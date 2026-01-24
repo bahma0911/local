@@ -1,0 +1,10 @@
+
+> negadras-backend@1.0.0 start
+> node server.js
+
+DEBUG: process.env.MONGODB_URI = mongodb+srv://bahma05:Mememe10.@negadras.dgnulyi.mongodb.net/negadras?appName=Negadras
+{"timestamp":"2026-01-22T12:05:59.562Z","level":"info","message":"Backend server listening","port":"5000","env":"development","frontendOrigin":true}
+Backend server listening on port 5000
+{"timestamp":"2026-01-22T12:06:01.619Z","level":"info","message":"Connected to MongoDB","uriSet":true}
+2026-01-22T12:06:21.584Z POST /api/upload
+{"timestamp":"2026-01-22T12:06:21.588Z","level":"error","message":"Cannot read properties of undefined (reading 'uploader')","stack":"TypeError: Cannot read properties of undefined (reading 'uploader')\n    at /media/bahma/1C0C4C710C4C47CA/Users/Bahma/Negadras-market/backend/node_modules/multer-storage-cloudinary/lib/index.js:67:42\n    at end (/media/bahma/1C0C4C710C4C47CA/Users/Bahma/Negadras-market/backend/node_modules/run-parallel/index.js:21:15)\n    at node:internal/process/task_queues:151:7\n    at AsyncResource.runInAsyncScope (node:async_hooks:214:14)\n    at AsyncResource.runMicrotask (node:internal/process/task_queues:148:8)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)"}

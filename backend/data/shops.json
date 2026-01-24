@@ -1,0 +1,289 @@
+[
+  {
+    "id": 1,
+    "name": "Abebe Electronics",
+    "category": "Electronics",
+    "address": "Bole, Addis Ababa - Near Bole Medhanealem",
+    "deliveryFee": 150,
+    "deliveryServices": [
+      "negadras",
+      "pickup"
+    ],
+    "owner": {
+      "username": "abebe",
+      "password": "$2b$10$/iBb35sBhF8/7GnIny26veIjdt9.tFByML8.VeALDsr./WBF5SEXy"
+    },
+    "products": [
+      {
+        "id": 1,
+        "name": "Smartphone",
+        "price": 5000,
+        "image": "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400&h=300&fit=crop",
+        "description": "Latest model smartphone",
+        "inStock": true,
+        "rating": 4.5,
+        "reviewCount": 23
+      },
+      {
+        "id": 2,
+        "name": "Laptop",
+        "price": 15000,
+        "image": "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400&h=300&fit=crop",
+        "description": "High-performance laptop",
+        "inStock": false,
+        "rating": 4.2,
+        "reviewCount": 15
+      },
+      {
+        "name": "Test Product",
+        "price": 123,
+        "description": "desc",
+        "image": "/uploads/1768772282771-test-image.png",
+        "id": 9
+      }
+    ],
+    "orders": [
+      {
+        "orderId": "ORD-1765382775630",
+        "receivedAt": "2025-12-10T16:06:16.232Z",
+        "items": [
+          {
+            "id": 1,
+            "name": "Smartphone",
+            "price": 5000,
+            "quantity": 1,
+            "shopId": "1"
+          }
+        ],
+        "customer": {
+          "fullName": "Test User",
+          "email": "test@example.com",
+          "phone": "0912345678"
+        },
+        "total": 5000,
+        "status": "new"
+      },
+      {
+        "orderId": "ORD-1765382775630",
+        "receivedAt": "2025-12-10T16:06:16.081Z",
+        "items": [
+          {
+            "id": 1,
+            "name": "Smartphone",
+            "price": 5000,
+            "quantity": 1,
+            "shopId": "1"
+          }
+        ],
+        "customer": {
+          "fullName": "Test User",
+          "email": "test@example.com",
+          "phone": "0912345678"
+        },
+        "total": 5000,
+        "status": "new"
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "name": "Selam Grocery",
+    "category": "Grocery",
+    "address": "Merkato, Addis Ababa - Opposite Merkato Market",
+    "deliveryFee": 50,
+    "deliveryServices": [
+      "negadras",
+      "pickup"
+    ],
+    "owner": {
+      "username": "selam",
+      "password": "$2b$10$5eVwfm/qi9is.JQWXwzYreYhDNfLloOUk6fSX2bPh.uIZKHxl18vy"
+    },
+    "products": [
+      {
+        "id": 3,
+        "name": "Rice",
+        "price": 150,
+        "image": "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400&h=300&fit=crop",
+        "description": "Premium quality rice",
+        "inStock": false,
+        "rating": 4,
+        "reviewCount": 45,
+        "stock": 0
+      },
+      {
+        "id": 4,
+        "name": "Cooking Oil",
+        "price": 200,
+        "image": "https://images.unsplash.com/photo-1573408301185-9146fe634ad0?w=400&h=300&fit=crop",
+        "description": "Pure cooking oil",
+        "inStock": true,
+        "rating": 4.3,
+        "reviewCount": 32
+      },
+      {
+        "name": "bb",
+        "price": 22,
+        "description": "33",
+        "image": "",
+        "id": 8
+      },
+      {
+        "name": "qwer",
+        "price": 12345,
+        "description": "qwer",
+        "image": "/uploads/1768772436594-cake2.jpg",
+        "inStock": true,
+        "id": 10
+      },
+      {
+        "name": "cake",
+        "price": 3000,
+        "description": "cake",
+        "image": "/uploads/1768793165967-sliced_cake.jpg",
+        "inStock": true,
+        "id": 11
+      },
+      {
+        "name": "cake",
+        "price": 1234,
+        "description": "cake",
+        "image": "https://res.cloudinary.com/dk8v3s94w/image/upload/v1769012420/negadras/b3j96jgmwwczt3fnbopw.jpg",
+        "id": 12
+      },
+      {
+        "name": "AutoInStock Test",
+        "price": 100,
+        "description": "desc",
+        "id": 13,
+        "inStock": true
+      },
+      {
+        "name": "cup",
+        "price": 200,
+        "description": "good",
+        "images": [
+          "https://res.cloudinary.com/dk8v3s94w/image/upload/v1769155421/negadras/fnr152eprtg156r8yotz.jpg"
+        ],
+        "id": 14,
+        "inStock": true
+      },
+      {
+        "name": "bb",
+        "price": 33,
+        "description": "bb",
+        "images": [
+          "https://res.cloudinary.com/dk8v3s94w/image/upload/v1769155818/negadras/ziqyohjkaid5jvbaadtf.jpg"
+        ],
+        "id": 16,
+        "inStock": true
+      },
+      {
+        "name": "cup",
+        "price": 2000,
+        "description": "good",
+        "images": [
+          "https://res.cloudinary.com/dk8v3s94w/image/upload/v1769156018/negadras/kt7kjkxtcwtcs3ut7mm1.jpg"
+        ],
+        "id": 17,
+        "inStock": true
+      },
+      {
+        "name": "v",
+        "price": 1,
+        "description": "v",
+        "images": [
+          "https://res.cloudinary.com/dk8v3s94w/image/upload/v1769156116/negadras/wgbnwbbzo85ljtl3nnho.jpg"
+        ],
+        "id": 18,
+        "inStock": true
+      },
+      {
+        "name": "cake",
+        "price": 200,
+        "description": "11goo",
+        "images": [
+          "https://res.cloudinary.com/dk8v3s94w/image/upload/v1769156447/negadras/l9wj8gfhalv8rvfcugsz.jpg"
+        ],
+        "id": 19,
+        "inStock": true
+      }
+    ]
+  },
+  {
+    "name": "44",
+    "category": "Electronics",
+    "deliveryFee": "20",
+    "minOrder": "0",
+    "owner": {
+      "username": "bah",
+      "password": "$2b$10$uJmYTvxdufPIqXbgc0bJ7uNgAenQCrmNhuIHa7lqbp/CZG0UQuuPK"
+    },
+    "id": 3,
+    "products": [
+      {
+        "name": "swjgen",
+        "price": 647389,
+        "image": "/uploads/1764252396029-Screenshot_2025-08-05_075131.png",
+        "description": "sdbgs",
+        "inStock": true,
+        "id": 5
+      },
+      {
+        "name": "cxnv s, ",
+        "price": 387459,
+        "image": "/uploads/1764252410992-Screenshot_2025-08-05_075131.png",
+        "description": "lsdsj",
+        "inStock": true,
+        "id": 6
+      },
+      {
+        "name": "shiro",
+        "price": 2000,
+        "image": "/uploads/1765212699880-Screenshot_2025-08-05_075131.png",
+        "description": "1kg",
+        "inStock": true,
+        "id": 7
+      }
+    ]
+  },
+  {
+    "name": "bahma sho[",
+    "owner": {
+      "username": "bahma1",
+      "password": "$2b$10$RXSMrO4J5a9gawXvLqkJD.a52m.VXrEAnNUO1UdGYkH6VV5KNK6lK"
+    },
+    "address": "addis",
+    "id": 4,
+    "products": [
+      {
+        "name": "Automated Test Product",
+        "price": 120,
+        "description": "Created by test",
+        "images": [
+          "https://res.cloudinary.com/dk8v3s94w/image/upload/v1769155299/negadras/wlwq9ezgjnwv06qtript.png"
+        ],
+        "id": 15,
+        "inStock": true
+      }
+    ]
+  },
+  {
+    "name": "new shop",
+    "owner": {
+      "username": "new",
+      "password": "$2b$10$GjGoxuITASKUeX.OKRyN1uiROo2oVChJ97QoxwUk/vJM9p5sqmpye"
+    },
+    "address": "bole",
+    "id": 5
+  },
+  {
+    "name": "babi",
+    "owner": {
+      "username": "babi",
+      "password": "$2b$10$v8083K1OrbB4MmC0CkHTKuiXZs/frVV5/o6A3OQNF1JiSM31O8sF6"
+    },
+    "address": "bole",
+    "id": 6
+  }
+]

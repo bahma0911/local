@@ -1,0 +1,8 @@
+{
+  "shopId": 1,
+  "items": [
+    {"productId": 101, "name": "Sample Product", "quantity": 1, "price": 100}
+  ],
+  "total": 100,
+  "customer": {"username":"customer1","email":"c@example.com"}
+}

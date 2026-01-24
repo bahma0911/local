@@ -1,0 +1,82 @@
+.shop-card {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 20px;
+  border-radius: var(--hx-radius);
+  width: 100%;
+  background: rgba(9, 14, 26, 0.88);
+  box-shadow: var(--hx-shadow-soft);
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.shop-card:not(.selected) {
+  background: rgba(5, 8, 16, 0.85);
+  border-color: rgba(255, 255, 255, 0.05);
+  opacity: 0.85;
+  filter: saturate(0.7);
+}
+
+.shop-card:not(.selected) .shop-name {
+  color: var(--hx-text-muted);
+}
+
+.shop-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--hx-primary), var(--hx-secondary));
+  opacity: 0.8;
+}
+
+.shop-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 25px 60px rgba(8, 12, 30, 0.65);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.shop-card.selected {
+  background: rgba(24, 35, 62, 0.95);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.shop-card.selected .shop-name {
+  color: var(--hx-text);
+}
+
+.shop-card-header {
+  margin-bottom: 12px;
+}
+
+.shop-name {
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  font-size: 1.1rem;
+  color: var(--hx-text);
+  font-family: var(--hx-font-heading);
+}
+
+.shop-category {
+  color: var(--hx-text-muted);
+  margin: 0 0 8px 0;
+  font-size: 0.9rem;
+}
+
+.shop-product-count {
+  color: var(--hx-text-muted);
+  font-size: 0.85rem;
+  margin: 0;
+  font-style: italic;
+}
+
+.shop-delivery-info {
+  margin-top: 10px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.85rem;
+  color: var(--hx-text-muted);
+}

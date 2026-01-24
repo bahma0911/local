@@ -1,0 +1,9 @@
+.admin-orders { padding: 1rem; }
+.ao-controls { display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap; margin-bottom:1rem; }
+.ao-controls input, .ao-controls select { padding:0.3rem 0.5rem; }
+.ao-table { width:100%; border-collapse:collapse; }
+.ao-table th, .ao-table td { border:1px solid #ddd; padding:0.5rem; text-align:left; }
+.ao-table th { background:#f7f7f7; }
+.ao-pagination { margin-top:1rem; display:flex; gap:1rem; align-items:center; }
+.ao-loading, .ao-error { padding:1rem; }
+.ao-summary { margin-bottom:0.5rem; }

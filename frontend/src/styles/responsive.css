@@ -1,0 +1,86 @@
+/* responsive.css
+   Minimal, wide-scope responsive overrides to improve usability on small screens.
+   All rules are inside media queries so desktop/layout remains unchanged.
+   Targets: <=480px (phones), 481-768px (small tablets).
+*/
+
+/* Base adjustments for small tablets and phones */
+@media (max-width: 768px) {
+  :root { --container-padding: 12px; }
+
+  /* Make main content use full width and stack columns */
+  .product-list-section, .orders-container, .order-details-container, .product-management, .customer-dashboard, .admin-dashboard {
+    padding: var(--container-padding);
+  }
+
+  /* Ensure images are responsive */
+  img { max-width: 100%; height: auto; display: block; }
+
+  /* Product grid -> single column on smaller screens */
+  .product-list-grid {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  /* Product card: make actions full width and stacked */
+  .product-card .product-actions { display: flex; flex-direction: column; gap: 8px; }
+  .product-card .product-action-btn { width: 100%; }
+
+  /* Make forms and inputs full width and thumb-friendly */
+  input[type="text"], input[type="email"], input[type="number"], textarea, select {
+    width: 100% !important; box-sizing: border-box; padding: 10px; font-size: 15px;
+  }
+  .product-action-btn, button, .login-btn { padding: 10px 14px; font-size: 15px; }
+
+  /* Order items and admin tables -> stacked cards */
+  .shop-orders ul, .orders-container .orders-list, table { width: 100%; }
+  .shop-orders li, .orders-container li, table tr { display: block; border-bottom: 1px solid rgba(0,0,0,0.06); padding: 10px 0; }
+  table thead { display: none; }
+  table tbody tr td { display: flex; justify-content: space-between; padding: 6px 0; }
+
+  /* Admin: collapse sidebars / tabs into stacked layout */
+  .admin-tabs { flex-direction: row; flex-wrap: wrap; gap: 6px; }
+  .admin-sidebar { display: none; }
+
+  /* Make review lists compact and readable */
+  .reviews-list ul li { padding: 8px 0; }
+
+  /* Navbar: collapse to simple top bar with drawer button if available */
+  .navbar .nav-items { display: none; }
+  .navbar .mobile-menu-btn { display: inline-flex; }
+
+  /* Ensure modals and dialogs fit screen */
+  .modal, .dialog { max-width: 100% !important; margin: 8px; }
+}
+
+/* Extra small phones: increase spacing and tap targets */
+@media (max-width: 480px) {
+  :root { --container-padding: 10px; }
+  body { font-size: 15px; }
+
+  .product-card { padding: 12px !important; }
+  .product-name { font-size: 16px !important; }
+  .product-price { font-size: 14px !important; }
+
+  /* Make header elements wrap quickly to avoid overflow */
+  .order-info-grid { display: block !important; }
+  .order-info-grid .info-item { margin-bottom: 8px; }
+
+  /* Make admin/product lists single-column cards */
+  .products-list .product-item { display: block; width: 100%; }
+
+  /* Buttons near bottom so reachable by thumb */
+  .order-actions { display: flex; flex-direction: column-reverse; gap: 8px; }
+
+  /* Hide shop-owner Refresh Orders and Logout buttons on small phones to reduce header clutter */
+  .refresh-orders-btn, .admin-logout-btn { display: none !important; }
+}
+
+/* Preserve desktop styles outside media queries (no changes) */
+@media (max-width: 435px) {
+  :root { --container-padding: 10px; }
+  body { font-size: 15px; }
+   /* Hide wishlist on very small screens when Track/Track-Order is removed */
+  .app-nav-buttons .nav-button-wishlist { display: none !important; }
+}

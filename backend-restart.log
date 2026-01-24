@@ -1,0 +1,8 @@
+
+> negadras-backend@1.0.0 start
+> node server.js
+
+DEBUG: process.env.MONGODB_URI = mongodb+srv://bahma05:Mememe10.@negadras.dgnulyi.mongodb.net/negadras?appName=Negadras
+{"timestamp":"2026-01-23T12:12:15.005Z","level":"info","message":"Backend server listening","port":"5000","env":"development","frontendOrigin":true}
+Backend server listening on port 5000
+{"timestamp":"2026-01-23T12:12:17.470Z","level":"info","message":"Connected to MongoDB","uriSet":true}

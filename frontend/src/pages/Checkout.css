@@ -1,0 +1,788 @@
+.checkout-container {
+  padding: 30px 20px;
+  /* cap the maximum container width to avoid layout stretching on very large displays */
+  max-width: 1100px;
+  margin: 0 auto;
+  font-family: var(--hx-font-body);
+  color: var(--hx-text);
+}
+
+.checkout-title {
+  margin-bottom: 35px;
+  font-size: clamp(2rem, 4vw, 2.6rem);
+  font-weight: 600;
+  color: var(--hx-text);
+  text-align: center;
+  font-family: var(--hx-font-heading);
+}
+
+.checkout-container {
+  padding: 30px 20px;
+  /* cap the maximum container width to avoid layout stretching on very large displays */
+  max-width: 1100px;
+  margin: 0 auto;
+  font-family: var(--hx-font-body);
+  color: var(--hx-text);
+  /* center inner content horizontally */
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.checkout-grid {
+  display: flex;
+  /* main column grows, sidebar keeps a fixed preferred width to avoid overlap */
+  gap: clamp(1.5rem, 4vw, 2.5rem);
+  align-items: flex-start;
+  /* allow wrapping so the sidebar drops below the form instead of overlapping */
+  flex-wrap: wrap;
+  width: 100%;
+  max-width: 1100px;
+}
+
+/* Customer form */
+.customer-form {
+  width: 100%;
+  /* allow the form to shrink below its content to prevent overflow in flex */
+  min-width: 0;
+  /* prefer to keep a reasonable minimum width before wrapping */
+  flex: 1 1 600px;
+  position: relative;
+  z-index: 2; /* keep form above sidebar if there's any overlap */
+}
+
+.form-section {
+  background: rgba(11, 17, 32, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--hx-radius);
+  padding: clamp(1.5rem, 3vw, 2.25rem);
+  margin-bottom: 25px;
+  box-shadow: var(--hx-shadow-soft);
+  box-sizing: border-box;
+}
+
+.form-section-title {
+  margin-bottom: 20px;
+  font-size: 1.1rem;
+  color: var(--hx-text);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.form-grid {
+  display: grid;
+  gap: 20px;
+}
+
+.form-grid-2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+.form-group {
+  margin-bottom: 0;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: var(--hx-text-muted);
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.form-input, .form-textarea {
+  width: 100%;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--hx-radius-sm);
+  font-size: 16px;
+  transition: all 0.3s ease;
+  background-color: rgba(8, 12, 24, 0.85);
+  color: var(--hx-text);
+}
+
+.form-input:focus, .form-textarea:focus {
+  outline: none;
+  border-color: var(--hx-secondary);
+  background-color: rgba(15, 23, 42, 0.95);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+/* Payment method */
+.payment-method {
+  margin-top: 10px;
+}
+
+.payment-options {
+  display: flex;
+  gap: 25px;
+  flex-wrap: wrap;
+}
+
+.payment-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  padding: 12px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--hx-radius);
+  transition: all 0.3s ease;
+  background-color: rgba(8, 12, 24, 0.85);
+  color: var(--hx-text);
+}
+
+.payment-option:hover {
+  border-color: var(--hx-secondary);
+  background-color: rgba(15, 23, 42, 0.95);
+}
+
+.payment-option.selected {
+  border-color: var(--hx-secondary);
+  background: rgba(99, 102, 241, 0.15);
+}
+
+.payment-option input[type="radio"] {
+  margin: 0;
+}
+
+/* Submit button */
+.submit-order-btn {
+  width: 100%;
+  background: linear-gradient(120deg, var(--hx-primary), var(--hx-secondary));
+  color: #050816;
+  border: none;
+  padding: 18px;
+  border-radius: var(--hx-radius-pill);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 10px;
+  box-shadow: 0 20px 40px rgba(8, 12, 30, 0.6);
+}
+
+.submit-order-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.submit-order-btn:disabled {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.4);
+  cursor: not-allowed;
+  transform: none;
+  opacity: 1;
+}
+
+/* Order summary */
+.order-summary-sidebar {
+  background: rgba(11, 17, 32, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--hx-radius);
+  padding: 30px;
+  /* fixed preferred width so it doesn't expand and overlap the form (sidebar use only) */
+  flex: 0 0 360px;
+  max-width: 420px;
+  position: sticky;
+  top: 20px;
+  box-shadow: var(--hx-shadow-soft);
+  box-sizing: border-box;
+  z-index: 1;
+}
+
+/* Inline order summary used when we display summary below customer information */
+.order-summary-inline {
+  background: rgba(11, 17, 32, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--hx-radius);
+  padding: 22px;
+  box-shadow: var(--hx-shadow-soft);
+  margin-bottom: 18px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.order-summary-title {
+  margin-bottom: 25px;
+  font-size: 1.2rem;
+  color: var(--hx-text);
+  font-weight: 600;
+}
+
+/* Shop breakdown */
+.shop-breakdown {
+  margin-bottom: 25px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.shop-breakdown:last-child {
+  margin-bottom: 0;
+  border-bottom: none;
+}
+
+.shop-name {
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--hx-text);
+  font-size: 0.95rem;
+}
+
+.shop-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  margin-bottom: 6px;
+  color: var(--hx-text-muted);
+}
+
+.shop-delivery {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  margin-top: 8px;
+  color: var(--hx-text-muted);
+  padding-top: 8px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
+/* Order totals */
+.order-totals {
+  border-top: 2px solid #dee2e6;
+  padding-top: 20px;
+  margin-top: 20px;
+}
+
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 16px;
+}
+
+.total-final {
+  display: flex;
+  justify-content: space-between;
+  font-weight: bold;
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #dee2e6;
+  font-size: 20px;
+  color: #333;
+}
+
+/* Order confirmation */
+.order-confirmation {
+  padding: 40px 20px;
+  text-align: center;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.confirmation-card {
+  background-color: #d4edda;
+  border: 1px solid #c3e6cb;
+  border-radius: 12px;
+  padding: 40px;
+  color: #155724;
+}
+.confirmation-icon {
+  font-size: 64px;
+  margin-bottom: 25px;
+}
+
+.confirmation-title {
+  margin-bottom: 20px;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.confirmation-message {
+  font-size: 18px;
+  margin-bottom: 15px;
+}
+
+.confirmation-details {
+  margin-bottom: 25px;
+  font-size: 16px;
+}
+
+.confirmation-total {
+  margin-bottom: 30px;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.confirmation-actions {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.continue-shopping-btn {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  text-decoration: none;
+  display: inline-block;
+  transition: all 0.3s ease;
+}
+
+.continue-shopping-btn:hover {
+  background-color: #0056b3;
+  transform: translateY(-2px);
+}
+
+.view-orders-btn {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  text-decoration: none;
+  display: inline-block;
+  transition: all 0.3s ease;
+}
+
+.view-orders-btn:hover {
+  background-color: #545b62;
+  transform: translateY(-2px);
+}
+
+/* Empty cart */
+.empty-cart {
+  text-align: center;
+  padding: 60px 20px;
+  color: #666;
+}
+
+.empty-cart h2 {
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.empty-cart p {
+  margin-bottom: 25px;
+  font-size: 16px;
+}
+
+.continue-shopping-btn-large {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 15px 30px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  text-decoration: none;
+  display: inline-block;
+  transition: all 0.3s ease;
+}
+
+.continue-shopping-btn-large:hover {
+  background-color: #0056b3;
+  transform: translateY(-2px);
+}
+
+/* Responsive design */
+@media (max-width: 968px) {
+  .checkout-grid {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+  
+  .order-summary-sidebar {
+    position: static;
+    order: -1;
+  }
+}
+
+/* Medium screens: let the sidebar shrink a bit to avoid overlapping long forms */
+@media (max-width: 1100px) and (min-width: 769px) {
+  .checkout-grid {
+    grid-template-columns: 1fr minmax(240px, 360px);
+  }
+  .order-summary-sidebar {
+    max-width: 360px;
+  }
+}
+
+/* Ensure grid children can shrink to avoid overflow-caused overlap */
+.checkout-grid > * {
+  min-width: 0;
+}
+
+/* Responsive: stack columns on smaller screens */
+@media (max-width: 968px) {
+  .checkout-grid {
+    flex-direction: column;
+    gap: 30px;
+    flex-wrap: nowrap;
+  }
+  .order-summary-sidebar {
+    position: static;
+    order: -1;
+    flex: none;
+    max-width: 100%;
+    width: 100%;
+  }
+}
+
+/* Medium screens: allow sidebar to shrink a bit */
+@media (max-width: 1200px) and (min-width: 969px) {
+  .order-summary-sidebar { flex: 0 0 320px; max-width: 360px; }
+}
+
+/* Very large screens: cap container and allow slightly wider sidebar */
+@media (min-width: 1600px) {
+  .checkout-container { max-width: 1400px; }
+  .order-summary-sidebar { flex: 0 0 420px; max-width: 480px; }
+}
+
+@media (max-width: 768px) {
+  .checkout-container {
+    padding: 20px 15px;
+  }
+  
+  .form-grid-2 {
+    grid-template-columns: 1fr;
+  }
+  
+  .payment-options {
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .confirmation-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .continue-shopping-btn,
+  .view-orders-btn {
+    width: 100%;
+    max-width: 250px;
+  }
+}
+/* Add these styles to your existing Checkout.css */
+
+/* Payment Method Selection */
+.payment-method-selection {
+  margin-top: 1rem;
+}
+
+.payment-method-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.payment-method-option {
+  border: 2px solid #e1e5e9;
+  border-radius: 8px;
+  padding: 1rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: white;
+}
+
+.payment-method-option:hover {
+  border-color: #667eea;
+  transform: translateY(-2px);
+}
+
+.payment-method-option.selected {
+  border-color: #667eea;
+  background: #f8f9ff;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+}
+
+.payment-method-option input {
+  display: none;
+}
+
+.payment-method-icon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.payment-method-option span {
+  font-weight: 600;
+  color: #333;
+}
+
+/* Chapa Payment Styles */
+.chapa-payment-section {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 2px solid #e1e5e9;
+}
+
+.chapa-description {
+  color: #555;
+  margin: 0.75rem 0 1rem;
+  line-height: 1.4;
+}
+
+.chapa-note {
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  color: #6c757d;
+  text-align: center;
+}
+
+.chapa-error-text {
+  background: #f8d7da;
+  color: #721c24;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.payment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.payment-header h4 {
+  margin: 0;
+  color: #333;
+}
+
+.chapa-logo {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.telebirr-logo {
+  background: #28a745;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.payment-benefits {
+  margin: 1.5rem 0;
+}
+
+.benefit-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  color: #666;
+}
+
+.benefit-item span:first-child {
+  font-size: 1.2rem;
+}
+
+.chapa-pay-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.chapa-pay-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+}
+
+.chapa-pay-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Telebirr Payment Styles */
+.telebirr-payment-section {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 2px solid #e1e5e9;
+}
+
+.telebirr-pay-btn {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.telebirr-pay-btn:hover:not(:disabled) {
+  background: #218838;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.3);
+}
+
+.telebirr-pay-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Cash Payment Styles */
+.cash-payment-section {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 2px solid #e1e5e9;
+}
+
+.cash-payment-btn {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  transition: all 0.3s ease;
+}
+
+.cash-payment-btn:hover:not(:disabled) {
+  background: #5a6268;
+  transform: translateY(-2px);
+}
+
+.cash-payment-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.payment-info {
+  text-align: center;
+}
+
+.payment-info p {
+  color: #666;
+  margin-bottom: 1rem;
+}
+
+/* Loading Spinner */
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #ffffff;
+  border-top: 2px solid transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Test Notice */
+.test-notice {
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 6px;
+  padding: 0.75rem;
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.test-notice p {
+  margin: 0;
+  color: #856404;
+  font-size: 0.9rem;
+}
+
+/* Payment Error */
+.payment-error {
+  background: #f8d7da;
+  color: #721c24;
+  padding: 0.75rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  border: 1px solid #f5c6cb;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .payment-method-options {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  
+  .payment-header {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+  }
+  
+  .chapa-pay-btn,
+  .telebirr-pay-btn,
+  .cash-payment-btn {
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+  }
+  
+  .chapa-payment-section,
+  .telebirr-payment-section,
+  .cash-payment-section {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .payment-method-options {
+    grid-template-columns: 1fr;
+  }
+  
+  .payment-method-option {
+    padding: 0.75rem;
+  }
+  
+  .payment-method-icon {
+    font-size: 1.5rem;
+  }
+}

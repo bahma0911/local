@@ -1,0 +1,20 @@
+
+> negadras-backend@1.0.0 start
+> node server.js
+
+DEBUG: process.env.MONGODB_URI = mongodb+srv://bahma05:Mememe10.@negadras.dgnulyi.mongodb.net/negadras?appName=Negadras
+{"timestamp":"2026-01-23T11:53:36.769Z","level":"info","message":"Backend server listening","port":"5000","env":"development","frontendOrigin":true}
+Backend server listening on port 5000
+{"timestamp":"2026-01-23T11:53:39.218Z","level":"info","message":"Connected to MongoDB","uriSet":true}
+2026-01-23T11:54:59.367Z GET /api/shops
+2026-01-23T11:54:59.401Z GET /api/me
+2026-01-23T11:54:59.488Z GET /api/me
+2026-01-23T11:54:59.612Z GET /api/me
+2026-01-23T11:54:59.681Z GET /api/me
+2026-01-23T11:54:59.736Z GET /api/shops
+2026-01-23T11:54:59.762Z GET /api/shops/2/orders
+2026-01-23T11:55:00.100Z GET /api/shops
+2026-01-23T11:55:00.670Z GET /api/shops/2/orders
+2026-01-23T11:55:00.882Z GET /api/shops/2/orders
+2026-01-23T11:55:16.404Z POST /api/upload
+2026-01-23T11:55:18.943Z POST /api/products
