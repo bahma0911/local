@@ -39,14 +39,19 @@ const app = express();
 // trust proxy so secure cookies work behind proxies (Heroku, nginx, dev proxies)
 app.set('trust proxy', 1);
 // In production restrict origin via environment variable FRONTEND_ORIGIN
-app.use(
-  cors({
-    origin: process.env.FRONTEND_ORIGIN,
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
+// Normalize FRONTEND_ORIGIN to avoid trailing-slash mismatches and define corsOptions
+const frontendOrigin = (process.env.FRONTEND_ORIGIN || '').replace(/\/+$/, '') || undefined;
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow non-browser (curl, server) requests when origin is undefined
+    if (!frontendOrigin) return callback(null, true);
+    if (!origin) return callback(null, true);
+    return origin === frontendOrigin ? callback(null, true) : callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
 
 app.use(cors(corsOptions));
 app.use(helmet());
@@ -2556,4 +2561,5 @@ process.on('uncaughtException', (err) => {
   // In many production systems it's best to exit on uncaught exceptions after logging.
   // For this MVP we just log and allow the platform to restart if needed.
 });
+
 
