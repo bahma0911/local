@@ -30,7 +30,8 @@ export const useAuth = () => {
 
   const login = useCallback(async ({ username, password }) => {
     try {
-      const res = await fetch('/api/login', {
+      const res = await fetch(`${import.meta.env.https://nega-m5uz.onrender.com}/api/login`,
+, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -114,3 +115,4 @@ export const useAuth = () => {
     assignedShop,
   };
 };
+
