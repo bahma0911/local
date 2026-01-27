@@ -40,13 +40,18 @@ const app = express();
 app.set('trust proxy', 1);
 // In production restrict origin via environment variable FRONTEND_ORIGIN
 // Normalize FRONTEND_ORIGIN to avoid trailing-slash mismatches and define corsOptions
-const frontendOrigin = (process.env.FRONTEND_ORIGIN || '').replace(/\/+$/, '') || undefined;
+const frontendOrigin = process.env.FRONTEND_ORIGIN?.replace(/\/+$/, '');
+
 const corsOptions = {
   origin: (origin, callback) => {
-    // Allow non-browser (curl, server) requests when origin is undefined
-    if (!frontendOrigin) return callback(null, true);
+    // allow non-browser requests
     if (!origin) return callback(null, true);
-    return origin === frontendOrigin ? callback(null, true) : callback(new Error('Not allowed by CORS'));
+
+    if (origin === frontendOrigin) {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`CORS blocked: ${origin}`));
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -54,6 +59,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 app.use(helmet());
 app.use(express.json({ limit: '1mb' }));
 
@@ -2561,5 +2567,6 @@ process.on('uncaughtException', (err) => {
   // In many production systems it's best to exit on uncaught exceptions after logging.
   // For this MVP we just log and allow the platform to restart if needed.
 });
+
 
 
