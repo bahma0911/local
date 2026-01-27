@@ -40,28 +40,14 @@ const app = express();
 app.set('trust proxy', 1);
 // In production restrict origin via environment variable FRONTEND_ORIGIN
 // Normalize FRONTEND_ORIGIN to avoid trailing-slash mismatches and define corsOptions
-<<<<<<< HEAD
-const frontendOrigin = process.env.FRONTEND_ORIGIN?.replace(/\/+$/, '');
-
-const corsOptions = {
-  origin: (origin, callback) => {
-    // allow non-browser requests
-    if (!origin) return callback(null, true);
-
-    if (origin === frontendOrigin) {
-      return callback(null, true);
-    }
-
-    return callback(new Error(`CORS blocked: ${origin}`));
-=======
 const frontendOrigin = (process.env.FRONTEND_ORIGIN || '').replace(/\/+$/, '') || undefined;
 const corsOptions = {
   origin: (origin, callback) => {
-    // Allow non-browser (curl, server) requests when origin is undefined
+    // Allow all when FRONTEND_ORIGIN is not configured (convenient for dev/local)
     if (!frontendOrigin) return callback(null, true);
+    // Allow non-browser requests (curl, servers) when origin is not provided
     if (!origin) return callback(null, true);
     return origin === frontendOrigin ? callback(null, true) : callback(new Error('Not allowed by CORS'));
->>>>>>> 4fab393 (Safe cleanup: remove commented code and minor fixes)
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -69,11 +55,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-<<<<<<< HEAD
 app.options('*', cors(corsOptions));
-=======
-
->>>>>>> 4fab393 (Safe cleanup: remove commented code and minor fixes)
 app.use(helmet());
 app.use(express.json({ limit: '1mb' }));
 
