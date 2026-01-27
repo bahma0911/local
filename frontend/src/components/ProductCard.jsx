@@ -114,7 +114,6 @@ const ProductCard = ({ product, onAddToCart, shopId }) => {
         </button>
       </div>
 
-      {/* reviews removed from product card (moved to Orders page) */}
     </div>
   );
 };

@@ -64,7 +64,6 @@
   }
 }
 
-/* Remove unwanted background behind navbar buttons */
 .app-nav-buttons, .nav-button {
   background: none;
   box-shadow: none;

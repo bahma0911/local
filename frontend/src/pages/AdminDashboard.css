@@ -39,7 +39,6 @@
   box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
 }
 
-/* Shop selection */
 .shop-selection {
   margin-bottom: 40px;
 }
@@ -80,7 +79,6 @@
   color: #1976d2;
 }
 
-/* Product management styles removed */
 .admin-actions {
   display: flex;
   gap: 15px;
@@ -244,7 +242,6 @@
   padding: 8px;
   font-size: 14px;
 }
-/* File Upload Styles */
 .image-upload-container {
   display: flex;
   flex-direction: column;
@@ -330,7 +327,6 @@
   background: #c82333;
 }
 
-/* Product item layout adjustments */
 .product-item {
   display: flex;
   align-items: flex-start;
@@ -343,9 +339,7 @@
   gap: 15px;
 }
 
-/* Improved contrast for vendor readability */
 .product-item {
-  color: #222; /* darker text for readability */
 }
 .product-item .product-info .name {
   font-size: 18px;
@@ -368,7 +362,6 @@
 }
 .product-item .product-info .stock-number {
   font-weight: 600;
-  color: #155724; /* darker green */
   background: rgba(21,87,36,0.06);
   padding: 2px 8px;
   border-radius: 12px;
@@ -433,7 +426,6 @@
   min-width: 150px;
 }
 
-/* Responsive design */
 @media (max-width: 768px) {
   .product-item {
     flex-direction: column;
@@ -451,7 +443,6 @@
     height: 100px;
   }
 }
-/* Admin Tabs */
 .admin-tabs {
   display: flex;
   gap: 10px;
@@ -482,7 +473,6 @@
   color: white;
 }
 
-/* Shop Management */
 .shop-management {
   display: flex;
   flex-direction: column;
@@ -497,7 +487,6 @@
   padding-bottom: 10px;
 }
 
-/* Shop Form */
 .shop-form {
   background-color: #f8f9fa;
   padding: 25px;
@@ -541,7 +530,6 @@
   cursor: not-allowed;
 }
 
-/* Shops List */
 .shops-list {
   display: flex;
   flex-direction: column;

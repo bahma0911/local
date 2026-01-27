@@ -19,7 +19,6 @@ function log(level, message, meta = {}) {
     message,
     ...meta
   };
-  // Console JSON-friendly output
   console.log(safeStringify(entry));
 }
 

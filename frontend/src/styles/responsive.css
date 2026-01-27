@@ -81,6 +81,5 @@
 @media (max-width: 435px) {
   :root { --container-padding: 10px; }
   body { font-size: 15px; }
-   /* Hide wishlist on very small screens when Track/Track-Order is removed */
   .app-nav-buttons .nav-button-wishlist { display: none !important; }
 }

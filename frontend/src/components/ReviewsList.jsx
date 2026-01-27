@@ -1,4 +1,3 @@
-import React from 'react';
 import StarRating from './StarRating';
 
 const ReviewsList = ({ reviews = [], average = 0, count = 0 }) => {

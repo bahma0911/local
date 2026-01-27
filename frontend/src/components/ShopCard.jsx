@@ -1,4 +1,3 @@
-import React from "react";
 import "./ShopCard.css"; // Add this line
 
 const ShopCard = ({ shop, isSelected, onClick, productCount }) => {

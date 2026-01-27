@@ -3,7 +3,6 @@ dotenv.config();
 
 import * as cloudinaryPkg from 'cloudinary';
 const cloudinary = cloudinaryPkg.v2;
-import { PassThrough } from 'stream';
 
 // Detect whether Cloudinary credentials are available
 const hasCreds = Boolean(

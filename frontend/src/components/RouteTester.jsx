@@ -1,5 +1,3 @@
-// src/components/RouteTester.jsx - NEW FILE (for testing)
-import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const RouteTester = () => {

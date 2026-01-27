@@ -45,3 +45,5 @@ This file gives concise, repo-specific guidance to AI coding assistants to be im
 - `frontend/src/hooks/useAuth.js`, `frontend/src/contex/AppContext.js`, `frontend/src/data/shopsData.js`, `frontend/src/App.jsx`
 
 If anything here is unclear or you want a different level of detail (sample PR message conventions, tests to add, or CI hooks), tell me which area to expand. I can iterate on this file.
+
+<!-- TODOS UPDATE: Identification and commented-out code removal completed -->

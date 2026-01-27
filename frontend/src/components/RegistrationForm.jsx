@@ -1,6 +1,4 @@
-import React from 'react';
 
-// Registration UI removed in public-only mode. Keep stub to avoid import errors.
 const RegistrationForm = ({ onSwitchToLogin }) => (
   <div style={{ padding: 20 }}>
     <h3>Registration removed</h3>

@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { warn } from './logger.js';
 
-// Reusable schemas
 export const schemas = {
   authLogin: z.object({ username: z.string().min(1), password: z.string().min(1) }),
   authRegister: z.object({
@@ -15,7 +14,6 @@ export const schemas = {
   orderCreate: z.object({
     shopId: z.union([z.string(), z.number()]),
     customer: z.object({ username: z.string().optional(), email: z.string().email().optional() }).optional(),
-    // Accept either { productId, quantity } or { id, quantity } or { id, qty }
     items: z.array(z.object({
       productId: z.union([z.string(), z.number()]).optional(),
       id: z.union([z.string(), z.number()]).optional(),
@@ -39,7 +37,6 @@ export const schemas = {
   }),
   productCreate: z.object({
     name: z.string().min(1),
-    // Accept either a simple integer price or an object { amount, currency }
     price: z.union([
       z.number().int().nonnegative(),
       z.object({ amount: z.number().int().nonnegative(), currency: z.string().optional() })
@@ -56,19 +53,15 @@ export const schemas = {
   orderStatusUpdate: z.object({ status: z.enum(['new', 'confirmed', 'delivered', 'picked_up', 'cancelled']) }),
 };
 
-// Validation middleware generator
 export const validate = (schema) => (req, res, next) => {
   try {
-    // Parse and coerce where possible; replace body with parsed result
     const parsed = schema.parse(req.body || {});
     req.body = parsed;
     return next();
   } catch (err) {
-    // Zod error -> standardized response
     const details = (err && err.errors && Array.isArray(err.errors))
       ? err.errors.map(e => ({ path: e.path.join('.'), message: e.message }))
       : undefined;
-    // Log validation failure with request id if available, but do not log request payloads
     try { warn('Validation failed', { requestId: req && req.id ? req.id : undefined, errors: details }); } catch (e) {}
     return res.status(400).json({ success: false, message: 'Validation failed', errors: details });
   }

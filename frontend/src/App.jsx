@@ -1,14 +1,12 @@
 // src/App.jsx - DEBUG VERSION
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import ShopList from "./pages/ShopList";
 import Home from "./pages/Home";
 import CartPage from "./pages/CartPage";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import Checkout from "./pages/Checkout";
 import Orders from "./pages/Orders";
-import OrderManagement from "./pages/OrderManagement";
 import AdminOrders from "./pages/AdminOrders";
 import UserProfile from "./pages/UserProfile";
 import OrderTracking from "./pages/OrderTracking";
@@ -18,11 +16,9 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Register from "./pages/Register";
-// Auth removed: useAuth stub provides no user state
 import { useAuth } from "./hooks/useAuth";
 import "./App.css";
 
-// Test component - remove after debugging
 const RouteTester = () => {
   const navigate = useNavigate();
   return (
@@ -39,17 +35,16 @@ const AppContent = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  console.log('Current path:', location.pathname); // Debug log
-  console.log('User:', user); // Debug log
+  // Debug logs removed
 
   const handleLogoClick = () => {
-    console.log('Logo clicked - navigating to /');
+    // Debug log removed
     navigate("/");
   };
 
   // Enhanced navigation with error handling
   const navigateTo = (path, requireAuth = false) => {
-    console.log(`Navigating to: ${path}, Auth required: ${requireAuth}`);
+    // Debug log removed
     
     if (requireAuth && !user) {
       alert("Please login to access this page");
@@ -213,7 +208,6 @@ const AppContent = () => {
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin/orders" element={<AdminOrders />} />
             
-            {/* Test route - remove after debugging */}
             <Route path="/test-routes" element={<RouteTester />} />
             
             {/* Fallback route */}

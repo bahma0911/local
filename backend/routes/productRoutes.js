@@ -8,10 +8,9 @@ router.post("/create", upload.single("image"), async (req, res) => {
     const product = {
       name: req.body.name,
       price: req.body.price,
-      image: req.file.path, // Cloudinary URL
+      image: req.file.path,
     };
 
-    // save product to database here
     res.json(product);
   } catch (error) {
     res.status(500).json({ message: "Image upload failed" });

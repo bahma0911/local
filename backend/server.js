@@ -40,6 +40,7 @@ const app = express();
 app.set('trust proxy', 1);
 // In production restrict origin via environment variable FRONTEND_ORIGIN
 // Normalize FRONTEND_ORIGIN to avoid trailing-slash mismatches and define corsOptions
+<<<<<<< HEAD
 const frontendOrigin = process.env.FRONTEND_ORIGIN?.replace(/\/+$/, '');
 
 const corsOptions = {
@@ -52,6 +53,15 @@ const corsOptions = {
     }
 
     return callback(new Error(`CORS blocked: ${origin}`));
+=======
+const frontendOrigin = (process.env.FRONTEND_ORIGIN || '').replace(/\/+$/, '') || undefined;
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow non-browser (curl, server) requests when origin is undefined
+    if (!frontendOrigin) return callback(null, true);
+    if (!origin) return callback(null, true);
+    return origin === frontendOrigin ? callback(null, true) : callback(new Error('Not allowed by CORS'));
+>>>>>>> 4fab393 (Safe cleanup: remove commented code and minor fixes)
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -59,7 +69,11 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
+<<<<<<< HEAD
 app.options('*', cors(corsOptions));
+=======
+
+>>>>>>> 4fab393 (Safe cleanup: remove commented code and minor fixes)
 app.use(helmet());
 app.use(express.json({ limit: '1mb' }));
 
@@ -346,14 +360,22 @@ const authLimiter = rateLimit({ windowMs: 60 * 1000, max: 20 });
 // Cookie options for auth cookie
 const AUTH_COOKIE_NAME = 'auth_token';
 const AUTH_COOKIE_MAX_AGE = 12 * 60 * 60 * 1000; // 12 hours
+// Determine SameSite cookie policy.
+// - In production with a configured FRONTEND_ORIGIN we use 'none' so cross-site cookies work.
+// - For local development you can opt-in to `SameSite=None` by setting `DEV_SAMESITE_NONE=1`.
+//   Warning: many browsers require cookies with `SameSite=None` to be `Secure`. If you need
+//   that behavior for local HTTPS testing, set `DEV_SAMESITE_SECURE=1` as well (this will
+//   set the `secure` flag when not in production). Use these only for local/dev testing.
 const determineSameSite = () => {
-  // If frontend origin is configured in production, we serve frontend from a different origin -> require SameSite=None
   if (app.get('env') === 'production' && process.env.FRONTEND_ORIGIN) return 'none';
+  if (app.get('env') !== 'production' && process.env.DEV_SAMESITE_NONE === '1') return 'none';
   return 'lax';
 };
+
 const getAuthCookieOptions = () => ({
   httpOnly: true,
-  secure: app.get('env') === 'production',
+  // Secure in production; for dev you may enable secure via DEV_SAMESITE_SECURE=1 when using HTTPS locally
+  secure: app.get('env') === 'production' || (process.env.DEV_SAMESITE_SECURE === '1'),
   sameSite: determineSameSite(),
   maxAge: AUTH_COOKIE_MAX_AGE,
 });
@@ -834,6 +856,19 @@ app.get('/api/db/shops/:id/products', async (req, res) => {
     return res.json(shop.products || []);
   } catch (e) {
     console.error('GET /api/db/shops/:id/products error', e && e.message ? e.message : e);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Dev-only: list users from MongoDB for debugging (only available when not in production)
+app.get('/api/db/users', async (req, res) => {
+  try {
+    if (process.env.NODE_ENV === 'production') return res.status(404).json({ message: 'Not found' });
+    if (!mongoose.connection || mongoose.connection.readyState !== 1) return res.status(503).json({ message: 'MongoDB not connected' });
+    const docs = await User.find().limit(100).lean().exec();
+    return res.json({ count: docs.length, users: docs.map(d => ({ username: d.username, email: d.email, role: d.role, _id: d._id })) });
+  } catch (e) {
+    console.error('GET /api/db/users error', e && e.message ? e.message : e);
     return res.status(500).json({ message: 'Server error' });
   }
 });
@@ -1500,9 +1535,8 @@ app.post('/api/products/:productId/reviews', requireAuth, async (req, res) => {
       if (!devBypass) return res.status(403).json({ message: 'No qualifying purchase found' });
     }
 
-    // Store productId using ObjectId when valid, otherwise keep original (legacy) value
     let storedProductId = productId;
-    try { storedProductId = new mongoose.Types.ObjectId(productId); } catch (e) { /* leave as-is for legacy ids */ }
+    try { storedProductId = new mongoose.Types.ObjectId(productId); } catch (e) { }
 
     const reviewDoc = await ReviewModel.create({ productId: storedProductId, shopId: prod.shopId || null, userId: user._id, rating: Math.round(rating), comment: String(comment || '').trim(), verifiedPurchase: true });
 

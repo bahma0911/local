@@ -1,4 +1,3 @@
-// src/pages/Wishlist.jsx - FIXED AUTH CHECK
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useReviewsWishlist } from '../hooks/useReviewsWishlist';
@@ -14,9 +13,7 @@ const Wishlist = () => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
 
-  // ✅ FIXED: Better auth check with localStorage
   useEffect(() => {
-    // Check if user is actually logged in
     const checkAuth = () => {
       const savedUser = localStorage.getItem('user');
       if (!savedUser && !user) {
@@ -24,7 +21,6 @@ const Wishlist = () => {
         return;
       }
       
-      // If we have a user in localStorage but not in state, wait a bit
       if (savedUser && !user) {
         setTimeout(() => {
           setCheckingAuth(false);
@@ -37,7 +33,6 @@ const Wishlist = () => {
     checkAuth();
   }, [user]);
 
-  // Load wishlist only after auth is confirmed
   useEffect(() => {
     if (user && !isLoaded && !checkingAuth) {
       const userWishlist = getUserWishlist(user.username);
@@ -69,7 +64,6 @@ const Wishlist = () => {
     }
   };
 
-  // ✅ Show loading while checking authentication
   if (checkingAuth) {
     return (
       <div className="wishlist-container">
@@ -81,7 +75,6 @@ const Wishlist = () => {
     );
   }
 
-  // ✅ Check both localStorage and React state for user
   const isUserLoggedIn = user || localStorage.getItem('user');
 
   if (!isUserLoggedIn) {

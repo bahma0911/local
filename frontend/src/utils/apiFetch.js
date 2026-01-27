@@ -11,6 +11,8 @@
  * import apiFetch from '../utils/apiFetch';
  * const data = await apiFetch('/api/login', { method: 'POST', body: JSON.stringify({ username, password }) });
  */
+import { apiUrl } from './api';
+
 function getCookie(name) {
   const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
   return match ? decodeURIComponent(match[2]) : null;
@@ -20,6 +22,9 @@ async function apiFetch(url, options = {}) {
   const opts = { ...options };
   opts.credentials = 'include';
   opts.headers = { ...(opts.headers || {}) };
+
+  // Resolve url against Vite-provided API base (useful in production)
+  const fullUrl = apiUrl(url);
 
   // Attach CSRF token for state-changing requests
   const method = (opts.method || 'GET').toUpperCase();
@@ -38,7 +43,7 @@ async function apiFetch(url, options = {}) {
     // ignore if import.meta is unavailable in this environment
   }
 
-  const res = await fetch(url, opts);
+  const res = await fetch(fullUrl, opts);
   let text = await res.text();
   let data;
   try {
