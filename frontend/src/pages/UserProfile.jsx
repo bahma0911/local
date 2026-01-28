@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useReviewsWishlist } from '../hooks/useReviewsWishlist';
+import apiFetch from '../utils/apiFetch';
 import "./UserProfile.css";
 
 const UserProfile = () => {
@@ -22,9 +23,7 @@ const UserProfile = () => {
     const fetchOrders = async () => {
       if (!user) return;
       try {
-        const res = await fetch('/api/orders/my', { credentials: 'include' });
-        if (!res.ok) return;
-        const data = await res.json();
+        const data = await apiFetch('/api/orders/my');
         const userOrders = (data || []).filter(order => {
           if (order.createdBy) return order.createdBy === user.username;
           if (order.customerMeta?.username) return order.customerMeta.username === user.username;

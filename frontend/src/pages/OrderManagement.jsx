@@ -1,6 +1,7 @@
 // src/pages/OrderManagement.jsx
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import apiFetch from '../utils/apiFetch';
 import { useDelivery } from '../hooks/useDelivery';
 import "./OrderManagement.css";
 
@@ -14,9 +15,7 @@ const OrderManagement = () => {
     const fetchOrders = async () => {
       if (!isShopOwner || !assignedShop) return;
       try {
-        const res = await fetch(`/api/shops/${assignedShop}/orders`, { credentials: 'include' });
-        if (!res.ok) return;
-        const data = await res.json();
+        const data = await apiFetch(`/api/shops/${assignedShop}/orders`);
         setOrders((data || []).reverse());
       } catch (err) {
         console.error('Failed to fetch shop orders', err);
@@ -47,21 +46,17 @@ const OrderManagement = () => {
     if (!shopId) return;
     (async () => {
       try {
-        const res = await fetch(`/api/orders/${orderId}/status`, {
+        await apiFetch(`/api/orders/${orderId}/status`, {
           method: 'PATCH',
-          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status })
         });
-        if (!res.ok) {
-          const txt = await res.text();
-          throw new Error(txt || 'Failed to update order status');
-        }
         // refresh orders from server to reflect canonical state
-        const refreshed = await fetch(`/api/shops/${assignedShop}/orders`, { credentials: 'include' });
-        if (refreshed.ok) {
-          const data = await refreshed.json();
+        try {
+          const data = await apiFetch(`/api/shops/${assignedShop}/orders`);
           setOrders((data || []).reverse());
+        } catch (e) {
+          // ignore refresh errors
         }
         if (status === 'confirmed') updateDeliveryStatus(orderId, 'confirmed');
       } catch (err) {

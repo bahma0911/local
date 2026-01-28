@@ -32,9 +32,7 @@ const Orders = () => {
         return;
       }
       try {
-        const res = await fetch('/api/orders/my', { credentials: 'include' });
-        if (!res.ok) return;
-        let data = await res.json();
+        let data = await apiFetch('/api/orders/my');
         // Remove cancelled orders older than 7 days
         const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
         data = (data || []).filter(o => {
@@ -175,12 +173,7 @@ const Orders = () => {
 
     (async () => {
       try {
-        const res = await fetch(`/api/orders/${orderId}`, { method: 'DELETE', credentials: 'include' });
-        if (!res.ok) {
-          const txt = await res.text().catch(() => null);
-          alert(`Failed to cancel order: ${res.status} ${txt || ''}`);
-          return;
-        }
+        await apiFetch(`/api/orders/${orderId}`, { method: 'DELETE' });
         // remove from local state
         setOrders(prev => prev.filter(o => String(o.id || o.orderId || o._id) !== String(orderId)));
         // if currently viewing details for this order, go back

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import apiFetch from '../utils/apiFetch';
 import './AdminOrders.css';
 
 const AdminOrders = () => {
@@ -24,14 +25,11 @@ const AdminOrders = () => {
     // fetch shops to map shopId -> shop name for display
     (async () => {
       try {
-        const r = await fetch('/api/shops');
-        if (r.ok) {
-          const s = await r.json();
-          const map = (s || []).reduce((acc, sh) => { acc[Number(sh.id)] = sh.name || null; return acc; }, {});
-          setShopsMap(map);
-          // refresh orders after shops map is available so names resolve
-          try { await fetchOrders(); } catch (e) { }
-        }
+        const s = await apiFetch('/api/shops');
+        const map = (s || []).reduce((acc, sh) => { acc[Number(sh.id)] = sh.name || null; return acc; }, {});
+        setShopsMap(map);
+        // refresh orders after shops map is available so names resolve
+        try { await fetchOrders(); } catch (e) { }
       } catch (e) {
         // ignore
       }
@@ -53,16 +51,8 @@ const AdminOrders = () => {
       if (startDate) params.set('startDate', startDate);
       if (endDate) params.set('endDate', endDate);
 
-      const res = await fetch(`/api/admin/orders?${params.toString()}`, { credentials: 'include' });
-      if (res.status === 401 || res.status === 403) {
-        setError({ code: res.status, message: res.status === 403 ? 'Forbidden: admin only' : 'Not authenticated' });
-        setOrders([]);
-        setTotal(0);
-        setLoading(false);
-        return;
-      }
-      if (!res.ok) throw new Error('Failed to fetch orders');
-      const data = await res.json();
+      try {
+        const data = await apiFetch(`/api/admin/orders?${params.toString()}`);
       const raw = data.orders || [];
       // Normalize backend shape to UI shape
       const normalized = raw.map(o => ({
@@ -80,7 +70,13 @@ const AdminOrders = () => {
       setTotal(data.total || normalized.length || 0);
     } catch (err) {
       console.error(err);
-      setError({ message: err.message || 'Server error' });
+      if (err && (err.status === 401 || err.status === 403)) {
+        setError({ code: err.status, message: err.status === 403 ? 'Forbidden: admin only' : 'Not authenticated' });
+        setOrders([]);
+        setTotal(0);
+      } else {
+        setError({ message: err.message || 'Server error' });
+      }
     } finally {
       setLoading(false);
     }

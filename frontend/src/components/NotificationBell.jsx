@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import styles from './Navbar.module.css';
+import apiFetch from '../utils/apiFetch';
 
 export default function NotificationBell() {
   const [open, setOpen] = useState(false);
@@ -10,9 +11,7 @@ export default function NotificationBell() {
   const fetchNotes = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/notifications', { credentials: 'include' });
-      if (!res.ok) return setNotes([]);
-      const data = await res.json();
+      const data = await apiFetch('/api/notifications');
       setNotes(data || []);
     } catch (e) {
       setNotes([]);
@@ -39,9 +38,7 @@ export default function NotificationBell() {
 
   const markRead = async (id) => {
     try {
-      const res = await fetch(`/api/notifications/${id}/read`, { method: 'PATCH', credentials: 'include' });
-      if (!res.ok) return;
-      const json = await res.json();
+      const json = await apiFetch(`/api/notifications/${id}/read`, { method: 'PATCH' });
       setNotes((prev) => prev.map(p => (String(p._id || p.id) === String(id) ? json.notification : p)));
     } catch (e) {
       // ignore

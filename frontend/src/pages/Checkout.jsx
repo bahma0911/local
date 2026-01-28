@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useCart } from '../hooks/useCart';
 import { useAuth } from '../hooks/useAuth';
 import "./Checkout.css";
+import apiFetch from '../utils/apiFetch';
 
 const Checkout = () => {
   const { 
@@ -212,21 +213,14 @@ const Checkout = () => {
           }
         };
         try {
-          const res = await fetch('/api/orders', {
+          const data = await apiFetch('/api/orders', {
             method: 'POST',
-            credentials: 'include',
             headers: { 'Content-Type': 'application/json', ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) },
             body: JSON.stringify(payload)
           });
-          if (res.ok) {
-            const data = await res.json();
-            serverResults.push({ shopId, ok: true, data });
-          } else {
-            const txt = await res.text();
-            serverResults.push({ shopId, ok: false, error: txt });
-          }
+          serverResults.push({ shopId, ok: true, data });
         } catch (err) {
-          serverResults.push({ shopId, ok: false, error: String(err) });
+          serverResults.push({ shopId, ok: false, error: String(err && err.message ? err.message : err) });
         }
       }
 
@@ -284,16 +278,16 @@ const Checkout = () => {
           },
           total: order.subtotal || order.total || 0,
         };
-        const res = await fetch(`/api/shops/${shopId}/orders`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(`Notify failed for shop ${shopId}: ${res.status} ${text}`);
+        try {
+          const d = await apiFetch(`/api/shops/${shopId}/orders`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          return d;
+        } catch (err) {
+          throw err;
         }
-        return await res.json();
       } catch (err) {
         console.warn('Failed to notify shop', shopId, err && err.message ? err.message : err);
         return null;

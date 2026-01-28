@@ -34,9 +34,7 @@ const AdminDashboard = () => {
   // ===================== API Calls =====================
   const fetchShops = async () => {
     try {
-      const res = await fetch("/api/shops");
-      if (!res.ok) throw new Error("Failed to fetch shops");
-      const data = await res.json();
+      const data = await apiFetch("/api/shops");
       setShops(data);
       try {
         localStorage.setItem('updatedShops', JSON.stringify(data));
@@ -54,9 +52,8 @@ const AdminDashboard = () => {
         // fetch latest products from `/api/products` to ensure numeric `stock` is current
         if (myShop) {
           try {
-            const pRes = await fetch(`/api/products?shopId=${myShop.id}`);
-            if (pRes && pRes.ok) {
-              const plist = await pRes.json();
+            const plist = await apiFetch(`/api/products?shopId=${myShop.id}`);
+            if (plist) {
               const norm = (plist || []).map(pp => ({
                 id: pp.id || pp._id,
                 name: pp.name,
@@ -89,9 +86,8 @@ const AdminDashboard = () => {
   const fetchShopOrders = async (shopId) => {
     if (!shopId) return setShopOrders([]);
     try {
-      const res = await fetch(`/api/shops/${shopId}/orders`, { credentials: 'include' });
-      if (!res.ok) throw new Error('Failed to fetch shop orders');
-      const data = await res.json();
+      const data = await apiFetch(`/api/shops/${shopId}/orders`);
+      if (!data) throw new Error('Failed to fetch shop orders');
       // Ensure newest orders appear first
       const sorted = (data || []).slice().sort((a, b) => {
         const aTime = new Date(a.createdAt || a.receivedAt || a.updatedAt).getTime() || 0;
@@ -128,16 +124,11 @@ const AdminDashboard = () => {
   // Update order status for a shop (e.g., 'confirmed', 'delivered', 'picked_up')
   const updateOrderStatus = async (shopId, orderId, status) => {
     try {
-      const res = await fetch(`/api/orders/${orderId}/status`, {
+      await apiFetch(`/api/orders/${orderId}/status`, {
         method: 'PATCH',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json', ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) },
         body: JSON.stringify({ status })
       });
-      if (!res.ok) {
-        const text = await res.text().catch(() => '');
-        throw new Error(`Update failed (${res.status}): ${text}`);
-      }
       // refresh orders after a successful update
       fetchShopOrders(shopId);
     } catch (err) {
@@ -149,15 +140,10 @@ const AdminDashboard = () => {
   // Confirm payment for an order (shop owner action)
   const confirmOrderPayment = async (shopId, orderId) => {
     try {
-      const res = await fetch(`/api/orders/${orderId}/payment/confirm`, {
+      await apiFetch(`/api/orders/${orderId}/payment/confirm`, {
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json', ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) }
       });
-      if (!res.ok) {
-        const text = await res.text().catch(() => '');
-        throw new Error(`Payment confirm failed (${res.status}): ${text}`);
-      }
       // refresh orders so paymentStatus updates in the UI
       fetchShopOrders(shopId);
     } catch (err) {
@@ -194,11 +180,7 @@ const AdminDashboard = () => {
   const deleteOrderAPI = async (shopId, orderId) => {
     if (!window.confirm('Permanently delete this order? This cannot be undone.')) return;
     try {
-      const res = await fetch(`/api/shops/${shopId}/orders/${orderId}`, { method: 'DELETE', credentials: 'include', headers: { ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) } });
-      if (!res.ok) {
-        const text = await res.text().catch(() => '');
-        throw new Error(`Delete failed (${res.status}): ${text}`);
-      }
+      await apiFetch(`/api/shops/${shopId}/orders/${orderId}`, { method: 'DELETE', headers: { ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) } });
       // refresh the order list after delete
       fetchShopOrders(shopId);
     } catch (err) {
@@ -281,14 +263,11 @@ const AdminDashboard = () => {
     const payload = { ...newShop };
 
     try {
-      const res = await fetch("/api/shops", {
+      const data = await apiFetch("/api/shops", {
         method: "POST",
-        credentials: 'include',
         headers: { "Content-Type": "application/json", ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) },
         body: JSON.stringify(payload)
       });
-      if (!res.ok) throw new Error("Failed to create shop");
-      const data = await res.json();
       setShops(prev => [...prev, data]);
       try { localStorage.setItem('updatedShops', JSON.stringify([...shops, data])); } catch {}
       setNewShop({ name: "", category: "Electronics", deliveryFee: 50, minOrder: 0, address: '', owner: { username: "", password: "" } });
@@ -306,14 +285,11 @@ const AdminDashboard = () => {
     }
 
     try {
-      const res = await fetch(`/api/shops/${shopId}`, {
+      const data = await apiFetch(`/api/shops/${shopId}`, {
         method: "PUT",
-        credentials: 'include',
         headers: { "Content-Type": "application/json", ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) },
         body: JSON.stringify(editingShop)
       });
-      if (!res.ok) throw new Error("Failed to update shop");
-      const data = await res.json();
       setShops(prev => prev.map(shop => shop.id === shopId ? data : shop));
       try { localStorage.setItem('updatedShops', JSON.stringify(shops.map(shop => shop.id === shopId ? data : shop))); } catch {}
       setEditingShop(null);
@@ -328,8 +304,7 @@ const AdminDashboard = () => {
     if (!window.confirm("Are you sure you want to delete this shop? This cannot be undone.")) return;
 
     try {
-      const res = await fetch(`/api/shops/${shopId}`, { method: "DELETE", credentials: 'include', headers: { ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) } });
-      if (!res.ok) throw new Error("Failed to delete shop");
+      await apiFetch(`/api/shops/${shopId}`, { method: "DELETE", headers: { ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) } });
       setShops(prev => prev.filter(shop => shop.id !== shopId));
       try { localStorage.setItem('updatedShops', JSON.stringify(shops.filter(shop => shop.id !== shopId))); } catch {}
       if (selectedShop?.id === shopId) setSelectedShop(null);

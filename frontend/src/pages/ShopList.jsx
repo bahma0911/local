@@ -4,6 +4,7 @@ import ShopCard from "../components/ShopCard";
 import ProductList from "../components/ProductList";
 import { shops as initialShops, categories } from "../data/shopsData";
 import { useCart } from "../hooks/useCart";
+import apiFetch from '../utils/apiFetch';
 import "./ShopList.css";
 
 const ShopList = () => {
@@ -19,15 +20,12 @@ const ShopList = () => {
     let mounted = true;
     const load = async () => {
       try {
-        const res = await fetch('/api/shops');
-        if (res.ok) {
-          const data = await res.json();
-          if (mounted) {
-            setShops(data);
-            try { localStorage.setItem('updatedShops', JSON.stringify(data)); } catch (e) {}
-          }
-          return;
+        const data = await apiFetch('/api/shops');
+        if (mounted) {
+          setShops(data);
+          try { localStorage.setItem('updatedShops', JSON.stringify(data)); } catch (e) {}
         }
+        return;
       } catch (e) {
         // ignore and fallback
       }
