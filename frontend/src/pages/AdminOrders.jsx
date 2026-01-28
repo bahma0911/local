@@ -51,8 +51,7 @@ const AdminOrders = () => {
       if (startDate) params.set('startDate', startDate);
       if (endDate) params.set('endDate', endDate);
 
-      try {
-        const data = await apiFetch(`/api/admin/orders?${params.toString()}`);
+      const data = await apiFetch(`/api/admin/orders?${params.toString()}`);
       const raw = data.orders || [];
       // Normalize backend shape to UI shape
       const normalized = raw.map(o => ({
