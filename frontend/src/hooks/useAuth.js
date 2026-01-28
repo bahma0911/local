@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useApp } from '../contex/AppContext.jsx';
-
-const API_BASE = 'https://nega-m5uz.onrender.com';
+import apiFetch from '../utils/apiFetch';
 
 export const useAuth = () => {
   const { state, dispatch } = useApp();
@@ -14,20 +13,11 @@ export const useAuth = () => {
 
     (async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/me`, {
-          credentials: 'include',
-        });
-
+        const data = await apiFetch('/api/me');
         if (!mounted) return;
-
-        if (res.ok) {
-          const data = await res.json();
-          dispatch({ type: 'SET_USER', payload: data.user });
-        } else {
-          dispatch({ type: 'SET_USER', payload: null });
-        }
-      } catch {
-        dispatch({ type: 'SET_USER', payload: null });
+        dispatch({ type: 'SET_USER', payload: data.user || null });
+      } catch (e) {
+        if (mounted) dispatch({ type: 'SET_USER', payload: null });
       } finally {
         if (mounted) setLoading(false);
       }
@@ -40,19 +30,12 @@ export const useAuth = () => {
 
   const login = useCallback(async ({ username, password }) => {
     try {
-      const res = await fetch(`${API_BASE}/api/login`, {
+      const data = await apiFetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ username, password }),
       });
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        return { ok: false, message: err.message || 'Login failed' };
-      }
-
-      const data = await res.json();
       dispatch({ type: 'SET_USER', payload: data.user });
 
       // merge guest orders after login
@@ -74,9 +57,8 @@ export const useAuth = () => {
             };
 
             try {
-              await fetch(`${API_BASE}/api/orders`, {
+              await apiFetch('/api/orders', {
                 method: 'POST',
-                credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
               });
@@ -92,17 +74,14 @@ export const useAuth = () => {
       }
 
       return { ok: true, user: data.user };
-    } catch {
-      return { ok: false, message: 'Network error' };
+    } catch (err) {
+      return { ok: false, message: err && err.message ? err.message : 'Network error' };
     }
   }, [dispatch]);
 
   const logout = useCallback(async () => {
     try {
-      await fetch(`${API_BASE}/api/logout`, {
-        method: 'POST',
-        credentials: 'include',
-      });
+      await apiFetch('/api/logout', { method: 'POST' });
     } catch {
       // ignore
     }
@@ -112,24 +91,15 @@ export const useAuth = () => {
 
   const register = useCallback(async (payload) => {
     try {
-      const res = await fetch(`${API_BASE}/api/register`, {
+      const data = await apiFetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify(payload),
       });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        return { ok: false, message: err.message || 'Registration failed' };
-      }
-
-      const data = await res.json();
       dispatch({ type: 'SET_USER', payload: data.user });
-
       return { ok: true, user: data.user };
-    } catch {
-      return { ok: false, message: 'Network error' };
+    } catch (err) {
+      return { ok: false, message: err && err.message ? err.message : 'Network error' };
     }
   }, [dispatch]);
 
