@@ -4,7 +4,8 @@ import ShopCard from "../components/ShopCard";
 import ProductList from "../components/ProductList";
 import { shops as initialShops, categories } from "../data/shopsData";
 import { useCart } from "../hooks/useCart";
-import apiFetch from '../utils/apiFetch';
+// Use same backend base as login to ensure consistent auth cookie behavior
+const API_BASE = 'https://nega-m5uz.onrender.com';
 import "./ShopList.css";
 
 const ShopList = () => {
@@ -20,12 +21,15 @@ const ShopList = () => {
     let mounted = true;
     const load = async () => {
       try {
-        const data = await apiFetch('/api/shops');
-        if (mounted) {
-          setShops(data);
-          try { localStorage.setItem('updatedShops', JSON.stringify(data)); } catch (e) {}
+        const res = await fetch(`${API_BASE}/api/shops`, { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          if (mounted) {
+            setShops(data);
+            try { localStorage.setItem('updatedShops', JSON.stringify(data)); } catch (e) {}
+          }
+          return;
         }
-        return;
       } catch (e) {
         // ignore and fallback
       }

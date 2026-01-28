@@ -34,7 +34,10 @@ const AdminDashboard = () => {
   // ===================== API Calls =====================
   const fetchShops = async () => {
     try {
-      const data = await apiFetch("/api/shops");
+      const API_BASE = 'https://nega-m5uz.onrender.com';
+      const res = await fetch(`${API_BASE}/api/shops`, { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch shops');
+      const data = await res.json();
       setShops(data);
       try {
         localStorage.setItem('updatedShops', JSON.stringify(data));
