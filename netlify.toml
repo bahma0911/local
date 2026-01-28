@@ -1,0 +1,9 @@
+[build]
+  publish = "frontend/dist"
+  command = "npm --prefix frontend run build"
+
+[[redirects]]
+  from = "/api/*"
+  to = "https://nega-m5uz.onrender.com/:splat"
+  status = 200
+  force = true
