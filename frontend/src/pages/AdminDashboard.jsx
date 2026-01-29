@@ -287,11 +287,15 @@ const AdminDashboard = () => {
       return;
     }
 
+    // Build payload and omit empty owner.password (avoids Zod validation error)
+    const payload = { ...editingShop };
+    if (payload.owner && payload.owner.password === '') delete payload.owner.password;
+
     try {
       const data = await apiFetch(`/api/shops/${shopId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) },
-        body: JSON.stringify(editingShop)
+        body: JSON.stringify(payload)
       });
       setShops(prev => prev.map(shop => shop.id === shopId ? data : shop));
       try { localStorage.setItem('updatedShops', JSON.stringify(shops.map(shop => shop.id === shopId ? data : shop))); } catch {}

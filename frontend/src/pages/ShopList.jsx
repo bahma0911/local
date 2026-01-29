@@ -15,6 +15,18 @@ const ShopList = () => {
   const [searchTerm, setSearchTerm] = useState("");
   // priceRange: [min, max] — use `null` for unlimited max
   const [priceRange, setPriceRange] = useState([0, null]);
+
+  // Control how many shops to show by default and whether to show all
+  const [showAllShops, setShowAllShops] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(typeof window !== 'undefined' && window.innerWidth < 768 ? 2 : 3);
+
+  useEffect(() => {
+    // Update visibleCount on resize (2 for small screens, 3 for larger)
+    const update = () => setVisibleCount(window.innerWidth < 768 ? 2 : 3);
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
   
   // Prefer loading shops from backend API (returns normalized `stock`), fallback to localStorage/initial data
   useEffect(() => {
@@ -262,15 +274,29 @@ const ShopList = () => {
       ) : (
         // Normal Shop View (when no search)
         <>
-          <div className="shop-grid">
-            {filteredShops.map((shop) => (
-              <ShopCard
-                key={shop.id}
-                shop={shop}
-                isSelected={selectedShop?.id === shop.id}
-                onClick={() => setSelectedShop(shop)}
-              />
-            ))}
+          <div className="shops-section">
+            {/* toggle button on the top-right to show/hide remaining shops */}
+            {filteredShops.length > visibleCount && (
+              <button
+                className="toggle-shops-btn"
+                onClick={() => setShowAllShops(s => !s)}
+                aria-expanded={showAllShops}
+                aria-controls="shops-grid"
+              >
+                {!showAllShops ? `Show ${filteredShops.length - visibleCount} more` : 'Hide extra'}
+              </button>
+            )}
+
+            <div id="shops-grid" className={`shop-grid ${(!showAllShops && filteredShops.length > visibleCount) ? 'limited' : ''}`}>
+              {(showAllShops ? filteredShops : filteredShops.slice(0, visibleCount)).map((shop) => (
+                <ShopCard
+                  key={shop.id}
+                  shop={shop}
+                  isSelected={selectedShop?.id === shop.id}
+                  onClick={() => setSelectedShop(shop)}
+                />
+              ))}
+            </div>
           </div>
 
           {/* If a shop is selected, show its products BEFORE random picks */}

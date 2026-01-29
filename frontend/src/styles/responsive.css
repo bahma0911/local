@@ -78,7 +78,7 @@
 }
 
 /* Preserve desktop styles outside media queries (no changes) */
-@media (max-width: 435px) {
+@media (max-width: 336px) {
   :root { --container-padding: 10px; }
   body { font-size: 15px; }
   .app-nav-buttons .nav-button-wishlist { display: none !important; }
