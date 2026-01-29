@@ -349,6 +349,16 @@ const AdminDashboard = () => {
         console.debug(`uploadFile: ${url} responded with status ${up.status}`);
         // prefer successful responses (2xx). If non-OK, continue trying fallbacks.
         if (up && up.ok) {
+          // read response body early so we can detect empty responses and avoid returning a Response with no usable body
+          const upText = await up.text().catch(() => '');
+          up._bodyText = upText;
+          if (!upText) {
+            console.warn(`uploadFile: successful response from ${url} had empty body - will try next fallback`);
+            // keep last non-404/non-ok/empty response so caller can inspect errors
+            if (up && up.status !== 404) lastNonOk = { url, status: up.status, emptyBody: true };
+            continue; // try next URL
+          }
+
           if (url !== '/api/upload') console.warn(`uploadFile: used fallback URL ${url}`);
           window._lastSuccessfulUploadUrl = url;
           return up;
@@ -388,7 +398,8 @@ const AdminDashboard = () => {
           const text = await up.text().catch(() => '');
           throw new Error(`Image upload failed (${up.status}): ${text}`);
         }
-        const upText = await up.text().catch(() => '');
+        // Prefer any body text already read by uploadFile (up._bodyText) to avoid re-consuming the stream
+        const upText = (up && typeof up._bodyText !== 'undefined') ? up._bodyText : await up.text().catch(() => '');
         let j;
         if (!upText) {
           console.warn('uploadFile: response body was empty');
