@@ -397,6 +397,10 @@ const AdminDashboard = () => {
           try { j = JSON.parse(upText); } catch (e) { console.warn('uploadFile: response was not valid JSON', e); j = {}; }
         }
         console.debug('uploadFile response JSON:', j);
+        if (!j || !j.url) {
+          console.error('uploadFile: server returned empty or missing url in response', { attemptedUrl: window._lastSuccessfulUploadUrl || (window._lastUploadAttempts || []).join(', '), response: j });
+          throw new Error('Image uploaded but server did not return a URL. Check backend upload handler logs.');
+        }
         payload.image = j.url;
         // also provide images array for newer backend/Product API
         payload.images = [j.url];
