@@ -426,7 +426,12 @@ const AdminDashboard = () => {
         const text = await res.text().catch(() => '');
         throw new Error(`Failed to add product (${res.status}): ${text}`);
       }
-      return await res.json();
+      // Handle possibly-empty or non-JSON responses gracefully
+      {
+        const text = await res.text().catch(() => '');
+        if (!text) return {};
+        try { return JSON.parse(text); } catch (e) { console.warn('addProductAPI: response was not valid JSON, returning raw text', e); return text; }
+      }
     } catch (err) {
       console.error('addProductAPI error:', err);
       alert('Error adding product: ' + (err.message || err));
@@ -470,7 +475,12 @@ const AdminDashboard = () => {
         const text = await res.text().catch(() => '');
         throw new Error(`Failed to update product (${res.status}): ${text}`);
       }
-      return await res.json();
+      // Handle possibly-empty or non-JSON responses gracefully
+      {
+        const text = await res.text().catch(() => '');
+        if (!text) return {};
+        try { return JSON.parse(text); } catch (e) { console.warn('updateProductAPI: response was not valid JSON, returning raw text', e); return text; }
+      }
     } catch (err) {
       console.error('updateProductAPI error:', err);
       alert('Error updating product: ' + (err.message || err));
