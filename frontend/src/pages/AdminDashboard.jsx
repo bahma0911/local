@@ -388,7 +388,14 @@ const AdminDashboard = () => {
           const text = await up.text().catch(() => '');
           throw new Error(`Image upload failed (${up.status}): ${text}`);
         }
-        const j = await up.json();
+        const upText = await up.text().catch(() => '');
+        let j;
+        if (!upText) {
+          console.warn('uploadFile: response body was empty');
+          j = {};
+        } else {
+          try { j = JSON.parse(upText); } catch (e) { console.warn('uploadFile: response was not valid JSON', e); j = {}; }
+        }
         console.debug('uploadFile response JSON:', j);
         payload.image = j.url;
         // also provide images array for newer backend/Product API
@@ -451,7 +458,14 @@ const AdminDashboard = () => {
           const text = await up.text().catch(() => '');
           throw new Error(`Image upload failed (${up.status}): ${text}`);
         }
-        const j = await up.json();
+        const upText = await up.text().catch(() => '');
+        let j;
+        if (!upText) {
+          console.warn('uploadFile: response body was empty');
+          j = {};
+        } else {
+          try { j = JSON.parse(upText); } catch (e) { console.warn('uploadFile: response was not valid JSON', e); j = {}; }
+        }
         payload.image = j.url;
         payload.images = [j.url];
       }
