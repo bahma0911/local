@@ -864,7 +864,34 @@ app.post('/api/products', requireAuth, requireShopOwner, validate(schemas.produc
     // Determine legacy shop id: prefer explicit body.shopId, else authenticated shop owner shopId
     const legacyShopId = (typeof req.body.shopId !== 'undefined') ? Number(req.body.shopId) : (req.user && req.user.shopId ? Number(req.user.shopId) : undefined);
     if (!legacyShopId) return res.status(400).json({ message: 'shopId is required' });
-    const shop = await ShopModel.findOne({ legacyId: legacyShopId }).exec();
+    let shop = await ShopModel.findOne({ legacyId: legacyShopId }).exec();
+    // If Mongo is connected but the shop isn't present in Mongo, attempt to migrate
+    // the legacy shop from `data/shops.json` into Mongo so products created from
+    // the frontend still persist to MongoDB in deployed environments (Render etc.).
+    if (!shop && mongoose.connection && mongoose.connection.readyState === 1) {
+      try {
+        const legacyShops = readShops();
+        const legacy = legacyShops.find(s => Number(s.id) === Number(legacyShopId));
+        if (legacy) {
+          const owner = legacy.owner || {};
+          const doc = {
+            legacyId: legacy.id,
+            name: legacy.name || `Shop ${legacy.id}`,
+            category: legacy.category || null,
+            address: legacy.address || '',
+            deliveryFee: legacy.deliveryFee || 0,
+            deliveryServices: legacy.deliveryServices || [],
+            owner,
+            products: legacy.products || [],
+            orders: legacy.orders || []
+          };
+          shop = await ShopModel.create(doc);
+          console.info('Migrated legacy shop into Mongo:', legacy.id);
+        }
+      } catch (e) {
+        console.warn('Failed to migrate legacy shop to Mongo:', e && e.message ? e.message : e);
+      }
+    }
     if (!shop) return res.status(404).json({ message: 'Shop not found' });
 
     const { name, description = '', price, images = [], category, stock, inStock, status = 'draft', attributes = {} } = req.body;
@@ -1224,25 +1251,87 @@ app.get('/api/shops/:id/products', async (req, res) => {
 });
 
 // POST add product to a shop
-app.post('/api/shops/:id/products', authenticate, validate(schemas.productCreate), (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  const payload = req.body;
-  if (!payload || !payload.name) return res.status(400).json({ message: 'Invalid product payload' });
-  const shops = readShops();
-  const shop = shops.find(s => s.id === id);
-  if (!shop) return res.status(404).json({ message: 'Shop not found' });
-  // Public: allow adding products in public-only mode
+app.post('/api/shops/:id/products', authenticate, validate(schemas.productCreate), async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const payload = req.body;
+    if (!payload || !payload.name) return res.status(400).json({ message: 'Invalid product payload' });
 
-  // generate product id globally
-  const allProductIds = shops.flatMap(s => (s.products || []).map(p => p.id || 0));
-  const maxPid = allProductIds.reduce((m, v) => Math.max(m, v), 0);
-  // ensure inStock true by default when created from legacy endpoint
-  const inStock = (typeof payload.inStock !== 'undefined') ? !!payload.inStock : true;
-  const newProduct = { ...payload, id: maxPid + 1, inStock };
-  shop.products = shop.products || [];
-  shop.products.push(newProduct);
-  if (!writeShops(shops)) return res.status(500).json({ message: 'Failed to persist product' });
-  res.status(201).json(newProduct);
+    // If Mongo is available prefer to create a ProductModel document
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      try {
+        let shopDoc = await ShopModel.findOne({ legacyId: id }).exec();
+        if (!shopDoc) {
+          // attempt to migrate the legacy shop into Mongo
+          const legacyShops = readShops();
+          const legacy = legacyShops.find(s => Number(s.id) === Number(id));
+          if (legacy) {
+            const owner = legacy.owner || {};
+            const doc = {
+              legacyId: legacy.id,
+              name: legacy.name || `Shop ${legacy.id}`,
+              category: legacy.category || null,
+              address: legacy.address || '',
+              deliveryFee: legacy.deliveryFee || 0,
+              deliveryServices: legacy.deliveryServices || [],
+              owner,
+              products: legacy.products || [],
+              orders: legacy.orders || []
+            };
+            shopDoc = await ShopModel.create(doc);
+            console.info('Migrated legacy shop into Mongo for shop POST:', legacy.id);
+          }
+        }
+
+        if (!shopDoc) return res.status(404).json({ message: 'Shop not found' });
+
+        // Normalize price into { amount, currency }
+        let priceObj = { amount: 0, currency: 'ETB' };
+        if (typeof payload.price === 'number') priceObj.amount = Math.floor(payload.price);
+        else if (payload.price && typeof payload.price === 'object' && typeof payload.price.amount !== 'undefined') priceObj.amount = Math.floor(Number(payload.price.amount));
+
+        const images = Array.isArray(payload.images) ? payload.images : (payload.images ? [payload.images] : []);
+
+        const prod = await ProductModel.create({
+          name: payload.name,
+          description: payload.description || '',
+          price: priceObj,
+          images: images,
+          shopId: shopDoc._id,
+          shopLegacyId: shopDoc.legacyId || id,
+          category: payload.category,
+          stock: (typeof payload.inStock !== 'undefined') ? (payload.inStock ? 1 : 0) : (Number(payload.stock) || 0),
+          status: payload.status || 'draft',
+          attributes: payload.attributes || {}
+        });
+
+        const out = { ...prod.toObject(), inStock: typeof prod.stock !== 'undefined' ? (prod.stock > 0) : true };
+        return res.status(201).json(out);
+      } catch (e) {
+        console.error('POST /api/shops/:id/products (Mongo) error', e && e.message ? e.message : e);
+        // fallback to legacy JSON below
+      }
+    }
+
+    // Fallback to legacy JSON file when Mongo not available or Mongo path failed
+    const shops = readShops();
+    const shop = shops.find(s => s.id === id);
+    if (!shop) return res.status(404).json({ message: 'Shop not found' });
+
+    // generate product id globally
+    const allProductIds = shops.flatMap(s => (s.products || []).map(p => p.id || 0));
+    const maxPid = allProductIds.reduce((m, v) => Math.max(m, v), 0);
+    // ensure inStock true by default when created from legacy endpoint
+    const inStock = (typeof payload.inStock !== 'undefined') ? !!payload.inStock : true;
+    const newProduct = { ...payload, id: maxPid + 1, inStock };
+    shop.products = shop.products || [];
+    shop.products.push(newProduct);
+    if (!writeShops(shops)) return res.status(500).json({ message: 'Failed to persist product' });
+    return res.status(201).json(newProduct);
+  } catch (err) {
+    console.error('POST /api/shops/:id/products error', err && err.message ? err.message : err);
+    return res.status(500).json({ message: 'Server error' });
+  }
 });
 
 // PUT update product
