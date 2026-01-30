@@ -22,6 +22,7 @@ import CartModel from './models/Cart.js';
 import NotificationModel from './models/Notification.js';
 import ProductModel from './models/Product.js';
 import mongoose from 'mongoose';
+import uploadRoutes from './routes/uploadRoutes.js';
 
 dotenv.config();
 
@@ -233,48 +234,8 @@ if (hasCloudinary) {
   });
 }
 
-// upload endpoint: receives multipart/form-data with field `file` and returns a JSON with `url` pointing to the image
-// Upload endpoint: receives multipart/form-data with field `file` and returns JSON
-// Always return JSON. On success: { success: true, imageUrl }. On failure: { success: false, message }.
-// This avoids empty response bodies that cause client-side upload logic to misinterpret a 200 with no body.
-app.post('/api/upload', upload.single('file'), async (req, res) => {
-  // Validate presence of file early
-  if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
-
-  try {
-    // Storage adapters (Cloudinary/disk) populate different fields. Prefer a full URL when available.
-    const possibleUrl = req.file.path || req.file.secure_url || req.file.url || req.file.location || null;
-    if (possibleUrl && typeof possibleUrl === 'string') {
-      // Return standardized JSON shape and avoid returning raw adapter fields.
-      return res.status(200).json({ success: true, imageUrl: possibleUrl });
-    }
-
-    // If disk storage wrote a filename, expose a public uploads URL
-    if (req.file.filename) {
-      return res.status(200).json({ success: true, imageUrl: `/uploads/${req.file.filename}` });
-    }
-
-    // If a filesystem path was provided, derive a basename and expose under /uploads
-    if (req.file.path && typeof req.file.path === 'string') {
-      const fname = path.basename(req.file.path);
-      if (fname) return res.status(200).json({ success: true, imageUrl: `/uploads/${fname}` });
-    }
-
-    // If we reach here, multer reported a file but no usable URL could be determined.
-    console.error('Upload handler: no usable URL found; req.file =', req.file);
-    const safeFile = req.file ? {
-      originalname: req.file.originalname,
-      mimetype: req.file.mimetype,
-      size: req.file.size,
-      filename: req.file.filename,
-      path: req.file.path
-    } : null;
-    return res.status(500).json({ success: false, message: 'Upload succeeded but server could not determine image URL', file: safeFile });
-  } catch (err) {
-    console.error('Upload handler error:', err && err.message ? err.message : err);
-    return res.status(500).json({ success: false, message: 'Server error during upload' });
-  }
-});
+// Mount upload routes implemented in routes/uploadRoutes.js
+app.use('/api/upload', uploadRoutes);
 
 // --- Customers storage (moved server-side) ---
 const CUSTOMERS_FILE = path.join(DATA_DIR, 'customers.json');

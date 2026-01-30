@@ -328,30 +328,18 @@ const AdminDashboard = () => {
   // with an empty body as an error. Return a Response-like object with
   // `_bodyText` and `text()` for compatibility with existing callers.
   const uploadFile = async (fd) => {
-    const url = '/api/upload';
-    window._lastUploadAttempts = [url];
     try {
-      console.debug(`uploadFile: trying ${url}`);
-      const res = await fetch(url, { method: 'POST', credentials: 'include', body: fd, headers: { ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) } });
-      console.debug(`uploadFile: ${url} responded with status ${res.status}`);
-
-      // read response text immediately so we can check for empty body
-      const text = await res.text().catch(() => '');
-      if (!text) {
-        console.error(`uploadFile: ${url} returned empty body`);
-        return null;
+      const res = await fetch('/api/upload', { method: 'POST', credentials: 'include', body: fd });
+      const j = await res.json().catch(() => null);
+      if (!res.ok) {
+        const msg = j && j.message ? j.message : `Upload failed with status ${res.status}`;
+        throw new Error(msg);
       }
-
-      // Return a minimal response-like object expected by callers
-      return {
-        ok: res.ok,
-        status: res.status,
-        _bodyText: text,
-        text: async () => text
-      };
+      if (!j || !j.imageUrl) throw new Error('Image upload failed: server did not return an image URL.');
+      return j;
     } catch (err) {
-      console.error(`uploadFile: request to ${url} failed:`, err && err.message ? err.message : err);
-      return null;
+      console.error('uploadFile error:', err && err.message ? err.message : err);
+      throw err;
     }
   };
 
@@ -367,33 +355,11 @@ const AdminDashboard = () => {
         if (!ALLOWED.includes(product.imageFile.type)) throw new Error('Unsupported image type. Use JPG/PNG/WEBP.'); // WHY: quick feedback to user
         if (product.imageFile.size > MAX_BYTES) throw new Error('Image too large. Max 5MB.'); // WHY: avoid wasteful uploads
         const fd = new FormData();
-        fd.append('file', product.imageFile);
-        const up = await uploadFile(fd);
-        if (!up) {
-          const attempts = (window._lastUploadAttempts || []).join(', ');
-          throw new Error(`Image upload failed: no response from server. Attempted: ${attempts}. Ensure backend is running (cd backend; npm install; npm start) and that the Vite dev server proxy is active.`);
-        }
-        if (!up.ok) {
-          const text = await up.text().catch(() => '');
-          throw new Error(`Image upload failed (${up.status}): ${text}`);
-        }
-        // Prefer any body text already read by uploadFile (up._bodyText) to avoid re-consuming the stream
-        const upText = (up && typeof up._bodyText !== 'undefined') ? up._bodyText : await up.text().catch(() => '');
-        let j;
-        if (!upText) {
-          console.warn('uploadFile: response body was empty');
-          j = {};
-        } else {
-          try { j = JSON.parse(upText); } catch (e) { console.warn('uploadFile: response was not valid JSON', e); j = {}; }
-        }
-        console.debug('uploadFile response JSON:', j);
+        fd.append('image', product.imageFile);
+        const j = await uploadFile(fd);
         const imageUrl = j.imageUrl || j.url;
-        if (!j || !imageUrl) {
-          console.error('uploadFile: server returned empty or missing imageUrl in response', { attemptedUrl: (window._lastUploadAttempts || []).join(', '), response: j });
-          throw new Error('Image uploaded but server did not return an imageUrl. Check backend upload handler logs.');
-        }
+        if (!imageUrl) throw new Error('Image upload failed: server did not return an image URL.');
         payload.image = imageUrl;
-        // also provide images array for newer backend/Product API
         payload.images = [imageUrl];
       }
       delete payload.imageFile;
@@ -446,23 +412,10 @@ const AdminDashboard = () => {
       let payload = { ...product };
       if (product.imageFile) {
         const fd = new FormData();
-        fd.append('file', product.imageFile);
-        const up = await uploadFile(fd);
-        if (!up) throw new Error('Image upload failed: no response from server');
-        if (!up.ok) {
-          const text = await up.text().catch(() => '');
-          throw new Error(`Image upload failed (${up.status}): ${text}`);
-        }
-        const upText = await up.text().catch(() => '');
-        let j;
-        if (!upText) {
-          console.warn('uploadFile: response body was empty');
-          j = {};
-        } else {
-          try { j = JSON.parse(upText); } catch (e) { console.warn('uploadFile: response was not valid JSON', e); j = {}; }
-        }
+        fd.append('image', product.imageFile);
+        const j = await uploadFile(fd);
         const imageUrl = j.imageUrl || j.url;
-        if (!imageUrl) throw new Error('Image upload did not return imageUrl');
+        if (!imageUrl) throw new Error('Image upload failed: server did not return an image URL.');
         payload.image = imageUrl;
         payload.images = [imageUrl];
       }
