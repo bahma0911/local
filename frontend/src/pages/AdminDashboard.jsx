@@ -328,7 +328,7 @@ const AdminDashboard = () => {
   // with an empty body as an error. Return a Response-like object with
   // `_bodyText` and `text()` for compatibility with existing callers.
   const uploadFile = async (fd) => {
-    const url = '${API_BASE}/api/upload';
+    const url = '/api/upload';
     window._lastUploadAttempts = [url];
     try {
       console.debug(`uploadFile: trying ${url}`);
@@ -418,7 +418,7 @@ const AdminDashboard = () => {
         payload.stock = 0;
       }
       console.debug('Final product payload (JSON):', payload);
-      const res = await fetch(`/api/products`, {
+      const res = await fetch('/api/products', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json', ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) },

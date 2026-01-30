@@ -532,6 +532,15 @@ app.post('/api/register', loginRegisterLimiter, validate(schemas.authRegister), 
       return res.status(201).json({ user: userSafe });
     }
 
+    const isProd = process.env.NODE_ENV === "production";
+
+res.cookie("token", token, {
+  httpOnly: true,
+  secure: isProd,                 // false on localhost
+  sameSite: isProd ? "none" : "lax",
+});
+
+
     // Local JSON fallback
     const locals = readCustomers();
     const existsLocal = locals.find(c => c.username === username || c.email === email);
