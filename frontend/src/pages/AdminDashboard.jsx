@@ -328,7 +328,7 @@ const AdminDashboard = () => {
   // with an empty body as an error. Return a Response-like object with
   // `_bodyText` and `text()` for compatibility with existing callers.
   const uploadFile = async (fd) => {
-    const url = '/api/upload';
+    const url = '${API_BASE}/api/upload';
     window._lastUploadAttempts = [url];
     try {
       console.debug(`uploadFile: trying ${url}`);
