@@ -323,57 +323,36 @@ const AdminDashboard = () => {
   };
 
   // ---------------- Product management for shop owners ----------------
-  // helper to upload a file; try proxied path first, then absolute backend URL if 404
+  // helper to upload a file — use only the proxied relative endpoint `/api/upload`.
+  // Do not attempt multiple fallbacks or retry different hosts. Treat an HTTP 200
+  // with an empty body as an error. Return a Response-like object with
+  // `_bodyText` and `text()` for compatibility with existing callers.
   const uploadFile = async (fd) => {
-    const tryUrls = [
-      '/api/upload',
-      'http://localhost:5000/api/upload',
-      'http://127.0.0.1:5000/api/upload',
-    ];
-    // try a host using current hostname with port 5000 (handles custom hosts)
+    const url = '/api/upload';
+    window._lastUploadAttempts = [url];
     try {
-      const hostUrl = `${window.location.protocol}//${window.location.hostname}:5000/api/upload`;
-      if (!tryUrls.includes(hostUrl)) tryUrls.push(hostUrl);
-    } catch {
-      // ignore building host fallback
-    }
+      console.debug(`uploadFile: trying ${url}`);
+      const res = await fetch(url, { method: 'POST', credentials: 'include', body: fd, headers: { ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) } });
+      console.debug(`uploadFile: ${url} responded with status ${res.status}`);
 
-    // expose attempted URLs for easier debugging from console
-    window._lastUploadAttempts = tryUrls.slice();
-
-    let lastNonOk = null;
-    for (const url of tryUrls) {
-      try {
-        console.debug(`uploadFile: trying ${url}`);
-        const up = await fetch(url, { method: 'POST', credentials: 'include', body: fd, headers: { ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) } });
-        console.debug(`uploadFile: ${url} responded with status ${up.status}`);
-        // prefer successful responses (2xx). If non-OK, continue trying fallbacks.
-        if (up && up.ok) {
-          // read response body early so we can detect empty responses and avoid returning a Response with no usable body
-          const upText = await up.text().catch(() => '');
-          up._bodyText = upText;
-          if (!upText) {
-            console.warn(`uploadFile: successful response from ${url} had empty body - will try next fallback`);
-            // keep last non-404/non-ok/empty response so caller can inspect errors
-            if (up && up.status !== 404) lastNonOk = { url, status: up.status, emptyBody: true };
-            continue; // try next URL
-          }
-
-          if (url !== '/api/upload') console.warn(`uploadFile: used fallback URL ${url}`);
-          window._lastSuccessfulUploadUrl = url;
-          return up;
-        }
-        // keep the last non-404/non-ok response so caller can inspect errors
-        if (up && up.status !== 404) lastNonOk = { url, status: up.status };
-      } catch (err) {
-        console.warn(`uploadFile: request to ${url} failed:`, err && err.message ? err.message : err);
-        // continue to next url
+      // read response text immediately so we can check for empty body
+      const text = await res.text().catch(() => '');
+      if (!text) {
+        console.error(`uploadFile: ${url} returned empty body`);
+        return null;
       }
-    }
 
-    console.error('uploadFile: all upload attempts failed', tryUrls, 'lastNonOk=', lastNonOk);
-    // if we saw a non-ok response (e.g., 500), return null so caller shows attempted URLs
-    return null;
+      // Return a minimal response-like object expected by callers
+      return {
+        ok: res.ok,
+        status: res.status,
+        _bodyText: text,
+        text: async () => text
+      };
+    } catch (err) {
+      console.error(`uploadFile: request to ${url} failed:`, err && err.message ? err.message : err);
+      return null;
+    }
   };
 
   const addProductAPI = async (shopId, product) => {
@@ -408,13 +387,14 @@ const AdminDashboard = () => {
           try { j = JSON.parse(upText); } catch (e) { console.warn('uploadFile: response was not valid JSON', e); j = {}; }
         }
         console.debug('uploadFile response JSON:', j);
-        if (!j || !j.url) {
-          console.error('uploadFile: server returned empty or missing url in response', { attemptedUrl: window._lastSuccessfulUploadUrl || (window._lastUploadAttempts || []).join(', '), response: j });
-          throw new Error('Image uploaded but server did not return a URL. Check backend upload handler logs.');
+        const imageUrl = j.imageUrl || j.url;
+        if (!j || !imageUrl) {
+          console.error('uploadFile: server returned empty or missing imageUrl in response', { attemptedUrl: (window._lastUploadAttempts || []).join(', '), response: j });
+          throw new Error('Image uploaded but server did not return an imageUrl. Check backend upload handler logs.');
         }
-        payload.image = j.url;
+        payload.image = imageUrl;
         // also provide images array for newer backend/Product API
-        payload.images = [j.url];
+        payload.images = [imageUrl];
       }
       delete payload.imageFile;
       // normalize price into object expected by the API
@@ -481,8 +461,10 @@ const AdminDashboard = () => {
         } else {
           try { j = JSON.parse(upText); } catch (e) { console.warn('uploadFile: response was not valid JSON', e); j = {}; }
         }
-        payload.image = j.url;
-        payload.images = [j.url];
+        const imageUrl = j.imageUrl || j.url;
+        if (!imageUrl) throw new Error('Image upload did not return imageUrl');
+        payload.image = imageUrl;
+        payload.images = [imageUrl];
       }
       // Ensure stock is sent as a number. Prefer the explicit stock value when provided.
       if (typeof payload.stock !== 'undefined' && payload.stock !== null) {

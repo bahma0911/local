@@ -41,19 +41,27 @@ app.set('trust proxy', 1);
 // In production restrict origin via environment variable FRONTEND_ORIGIN
 // Normalize FRONTEND_ORIGIN to avoid trailing-slash mismatches and define corsOptions
 const frontendOrigin = (process.env.FRONTEND_ORIGIN || '').replace(/\/+$/, '') || undefined;
+// Always allow the local Vite origin and the public Render origin in addition to
+// any `FRONTEND_ORIGIN` value. This prevents CORS errors in dev (localhost:5173)
+// and in the deployed site (https://nega-f.onrender.com).
+const ALLOWED_ORIGINS = new Set([ 'http://localhost:5173', 'https://nega-f.onrender.com' ]);
+if (frontendOrigin) ALLOWED_ORIGINS.add(frontendOrigin);
+
 const corsOptions = {
   origin: (origin, callback) => {
-    // Allow all when FRONTEND_ORIGIN is not configured (convenient for dev/local)
-    if (!frontendOrigin) return callback(null, true);
     // Allow non-browser requests (curl, servers) when origin is not provided
     if (!origin) return callback(null, true);
-    return origin === frontendOrigin ? callback(null, true) : callback(new Error('Not allowed by CORS'));
+    // Allow if origin matches one of the allowed origins
+    if (ALLOWED_ORIGINS.has(origin)) return callback(null, true);
+    return callback(new Error('Not allowed by CORS'));
   },
+  // Enable cookies/credentials for auth flows that rely on cookies.
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-CSRF-Token"],
 };
 
+// Register CORS middleware early so it applies before routes are defined.
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 app.use(helmet());
@@ -226,33 +234,33 @@ if (hasCloudinary) {
 }
 
 // upload endpoint: receives multipart/form-data with field `file` and returns a JSON with `url` pointing to the image
+// Upload endpoint: receives multipart/form-data with field `file` and returns JSON
+// Always return JSON. On success: { success: true, imageUrl }. On failure: { success: false, message }.
+// This avoids empty response bodies that cause client-side upload logic to misinterpret a 200 with no body.
 app.post('/api/upload', upload.single('file'), async (req, res) => {
-  if (!req.file) return res.status(400).json({ message: 'No file uploaded' }); // WHY: validate presence of file early
+  // Validate presence of file early
+  if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
 
   try {
-    // Try multiple known fields that storage adapters may populate.
-    // multer-storage-cloudinary commonly sets `req.file.path` (string URL) or `req.file.secure_url`/`req.file.url`.
-    if (req.file) {
-      // If storage provided a full URL, return it directly
-      const possibleUrl = req.file.path || req.file.secure_url || req.file.url || req.file.location || null;
-      if (possibleUrl && typeof possibleUrl === 'string' && possibleUrl.startsWith('http')) {
-        return res.json({ url: possibleUrl });
-      }
-
-      // If the adapter wrote a local file path (disk storage), derive the public URL using the filename
-      if (req.file.filename) {
-        return res.json({ url: `/uploads/${req.file.filename}` });
-      }
-
-      if (req.file.path && typeof req.file.path === 'string') {
-        // `req.file.path` may be an absolute filesystem path; convert to basename
-        const fname = path.basename(req.file.path);
-        if (fname) return res.json({ url: `/uploads/${fname}` });
-      }
+    // Storage adapters (Cloudinary/disk) populate different fields. Prefer a full URL when available.
+    const possibleUrl = req.file.path || req.file.secure_url || req.file.url || req.file.location || null;
+    if (possibleUrl && typeof possibleUrl === 'string') {
+      // Return standardized JSON shape and avoid returning raw adapter fields.
+      return res.status(200).json({ success: true, imageUrl: possibleUrl });
     }
 
-    // If we reach here, multer reported a file but we couldn't determine a consumable URL.
-    // Dump `req.file` to server logs for debugging and return a clearer message to client.
+    // If disk storage wrote a filename, expose a public uploads URL
+    if (req.file.filename) {
+      return res.status(200).json({ success: true, imageUrl: `/uploads/${req.file.filename}` });
+    }
+
+    // If a filesystem path was provided, derive a basename and expose under /uploads
+    if (req.file.path && typeof req.file.path === 'string') {
+      const fname = path.basename(req.file.path);
+      if (fname) return res.status(200).json({ success: true, imageUrl: `/uploads/${fname}` });
+    }
+
+    // If we reach here, multer reported a file but no usable URL could be determined.
     console.error('Upload handler: no usable URL found; req.file =', req.file);
     const safeFile = req.file ? {
       originalname: req.file.originalname,
@@ -261,10 +269,10 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
       filename: req.file.filename,
       path: req.file.path
     } : null;
-    return res.status(500).json({ message: 'Upload succeeded but no usable URL found on server', file: safeFile });
+    return res.status(500).json({ success: false, message: 'Upload succeeded but server could not determine image URL', file: safeFile });
   } catch (err) {
-    console.error('Upload handler error:', err && err.message ? err.message : err); // WHY: log full error server-side for diagnostics
-    return res.status(500).json({ message: 'Server error during upload', error: String(err) }); // WHY: return safe error message to client
+    console.error('Upload handler error:', err && err.message ? err.message : err);
+    return res.status(500).json({ success: false, message: 'Server error during upload' });
   }
 });
 
