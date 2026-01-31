@@ -22,7 +22,6 @@ import CartModel from './models/Cart.js';
 import NotificationModel from './models/Notification.js';
 import ProductModel from './models/Product.js';
 import mongoose from 'mongoose';
-import uploadRoutes from './routes/uploadRoutes.js';
 
 dotenv.config();
 
@@ -42,29 +41,20 @@ app.set('trust proxy', 1);
 // In production restrict origin via environment variable FRONTEND_ORIGIN
 // Normalize FRONTEND_ORIGIN to avoid trailing-slash mismatches and define corsOptions
 const frontendOrigin = (process.env.FRONTEND_ORIGIN || '').replace(/\/+$/, '') || undefined;
-// Always allow the local Vite origin and the public Render origin in addition to
-// any `FRONTEND_ORIGIN` value. This prevents CORS errors in dev (localhost:5173)
-// and in the deployed site (https://nega-f.onrender.com).
-const ALLOWED_ORIGINS = new Set([ 'http://localhost:5173', 'https://nega-f.onrender.com' ]);
-if (frontendOrigin) ALLOWED_ORIGINS.add(frontendOrigin);
-
 const corsOptions = {
   origin: (origin, callback) => {
-    // Allow non-browser requests (curl, servers) when origin is not provided
+    // Allow non-browser (curl, server) requests when origin is undefined
+    if (!frontendOrigin) return callback(null, true);
     if (!origin) return callback(null, true);
-    // Allow if origin matches one of the allowed origins
-    if (ALLOWED_ORIGINS.has(origin)) return callback(null, true);
-    return callback(new Error('Not allowed by CORS'));
+    return origin === frontendOrigin ? callback(null, true) : callback(new Error('Not allowed by CORS'));
   },
-  // Enable cookies/credentials for auth flows that rely on cookies.
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-CSRF-Token"],
+  allowedHeaders: ["Content-Type", "Authorization"],
 };
 
-// Register CORS middleware early so it applies before routes are defined.
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
+
 app.use(helmet());
 app.use(express.json({ limit: '1mb' }));
 
@@ -234,8 +224,48 @@ if (hasCloudinary) {
   });
 }
 
-// Mount upload routes implemented in routes/uploadRoutes.js
-app.use('/api/upload', uploadRoutes);
+// upload endpoint: receives multipart/form-data with field `file` and returns a JSON with `url` pointing to the image
+app.post('/api/upload', upload.single('file'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ message: 'No file uploaded' }); // WHY: validate presence of file early
+
+  try {
+    // Try multiple known fields that storage adapters may populate.
+    // multer-storage-cloudinary commonly sets `req.file.path` (string URL) or `req.file.secure_url`/`req.file.url`.
+    if (req.file) {
+      // If storage provided a full URL, return it directly
+      const possibleUrl = req.file.path || req.file.secure_url || req.file.url || req.file.location || null;
+      if (possibleUrl && typeof possibleUrl === 'string' && possibleUrl.startsWith('http')) {
+        return res.json({ url: possibleUrl });
+      }
+
+      // If the adapter wrote a local file path (disk storage), derive the public URL using the filename
+      if (req.file.filename) {
+        return res.json({ url: `/uploads/${req.file.filename}` });
+      }
+
+      if (req.file.path && typeof req.file.path === 'string') {
+        // `req.file.path` may be an absolute filesystem path; convert to basename
+        const fname = path.basename(req.file.path);
+        if (fname) return res.json({ url: `/uploads/${fname}` });
+      }
+    }
+
+    // If we reach here, multer reported a file but we couldn't determine a consumable URL.
+    // Dump `req.file` to server logs for debugging and return a clearer message to client.
+    console.error('Upload handler: no usable URL found; req.file =', req.file);
+    const safeFile = req.file ? {
+      originalname: req.file.originalname,
+      mimetype: req.file.mimetype,
+      size: req.file.size,
+      filename: req.file.filename,
+      path: req.file.path
+    } : null;
+    return res.status(500).json({ message: 'Upload succeeded but no usable URL found on server', file: safeFile });
+  } catch (err) {
+    console.error('Upload handler error:', err && err.message ? err.message : err); // WHY: log full error server-side for diagnostics
+    return res.status(500).json({ message: 'Server error during upload', error: String(err) }); // WHY: return safe error message to client
+  }
+});
 
 // --- Customers storage (moved server-side) ---
 const CUSTOMERS_FILE = path.join(DATA_DIR, 'customers.json');
@@ -492,15 +522,6 @@ app.post('/api/register', loginRegisterLimiter, validate(schemas.authRegister), 
       const userSafe = { username: userDoc.username, email: userDoc.email, role: 'customer' };
       return res.status(201).json({ user: userSafe });
     }
-
-    const isProd = process.env.NODE_ENV === "production";
-
-res.cookie("token", token, {
-  httpOnly: true,
-  secure: isProd,                 // false on localhost
-  sameSite: isProd ? "none" : "lax",
-});
-
 
     // Local JSON fallback
     const locals = readCustomers();
@@ -820,19 +841,6 @@ app.get('/api/db/shops/:id/products', async (req, res) => {
   }
 });
 
-// Dev-only: list users from MongoDB for debugging (only available when not in production)
-app.get('/api/db/users', async (req, res) => {
-  try {
-    if (process.env.NODE_ENV === 'production') return res.status(404).json({ message: 'Not found' });
-    if (!mongoose.connection || mongoose.connection.readyState !== 1) return res.status(503).json({ message: 'MongoDB not connected' });
-    const docs = await User.find().limit(100).lean().exec();
-    return res.json({ count: docs.length, users: docs.map(d => ({ username: d.username, email: d.email, role: d.role, _id: d._id })) });
-  } catch (e) {
-    console.error('GET /api/db/users error', e && e.message ? e.message : e);
-    return res.status(500).json({ message: 'Server error' });
-  }
-});
-
 // Create product (shop owners only)
 app.post('/api/products', requireAuth, requireShopOwner, validate(schemas.productCreate), async (req, res) => {
   try {
@@ -842,37 +850,10 @@ app.post('/api/products', requireAuth, requireShopOwner, validate(schemas.produc
     // Determine legacy shop id: prefer explicit body.shopId, else authenticated shop owner shopId
     const legacyShopId = (typeof req.body.shopId !== 'undefined') ? Number(req.body.shopId) : (req.user && req.user.shopId ? Number(req.user.shopId) : undefined);
     if (!legacyShopId) return res.status(400).json({ message: 'shopId is required' });
-    let shop = await ShopModel.findOne({ legacyId: legacyShopId }).exec();
-    // If Mongo is connected but the shop isn't present in Mongo, attempt to migrate
-    // the legacy shop from `data/shops.json` into Mongo so products created from
-    // the frontend still persist to MongoDB in deployed environments (Render etc.).
-    if (!shop && mongoose.connection && mongoose.connection.readyState === 1) {
-      try {
-        const legacyShops = readShops();
-        const legacy = legacyShops.find(s => Number(s.id) === Number(legacyShopId));
-        if (legacy) {
-          const owner = legacy.owner || {};
-          const doc = {
-            legacyId: legacy.id,
-            name: legacy.name || `Shop ${legacy.id}`,
-            category: legacy.category || null,
-            address: legacy.address || '',
-            deliveryFee: legacy.deliveryFee || 0,
-            deliveryServices: legacy.deliveryServices || [],
-            owner,
-            products: legacy.products || [],
-            orders: legacy.orders || []
-          };
-          shop = await ShopModel.create(doc);
-          console.info('Migrated legacy shop into Mongo:', legacy.id);
-        }
-      } catch (e) {
-        console.warn('Failed to migrate legacy shop to Mongo:', e && e.message ? e.message : e);
-      }
-    }
+    const shop = await ShopModel.findOne({ legacyId: legacyShopId }).exec();
     if (!shop) return res.status(404).json({ message: 'Shop not found' });
 
-    const { name, description = '', price, images = [], image = null, category, stock, inStock, status = 'draft', attributes = {} } = req.body;
+    const { name, description = '', price, images = [], category, stock, inStock, status = 'draft', attributes = {} } = req.body;
     // Basic required-field validation with clear messages
     if (!name || String(name).trim().length === 0) return res.status(400).json({ message: 'Product name is required' });
     // Normalize price into { amount, currency }
@@ -885,12 +866,8 @@ app.post('/api/products', requireAuth, requireShopOwner, validate(schemas.produc
       return res.status(400).json({ message: 'price.amount is required and must be a number' });
     }
 
-    // Normalize images: accept either `images` array or single `image` field
-    let imagesArr = [];
-    if (Array.isArray(images) && images.length) imagesArr = images.filter(Boolean);
-    else if (image && typeof image === 'string') imagesArr = [image];
-    // Require at least one image URL
-    if (!imagesArr.length) {
+    // Validate images array
+    if (!Array.isArray(images) || images.length === 0) {
       return res.status(400).json({ message: 'images is required and must include at least one image URL' });
     }
 
@@ -898,7 +875,7 @@ app.post('/api/products', requireAuth, requireShopOwner, validate(schemas.produc
       name,
       description,
       price: priceObj,
-      images: imagesArr,
+      images: Array.isArray(images) ? images : (images ? [images] : []),
       shopId: shop._id,
       shopLegacyId: shop.legacyId,
       category,
@@ -1233,87 +1210,25 @@ app.get('/api/shops/:id/products', async (req, res) => {
 });
 
 // POST add product to a shop
-app.post('/api/shops/:id/products', authenticate, validate(schemas.productCreate), async (req, res) => {
-  try {
-    const id = parseInt(req.params.id, 10);
-    const payload = req.body;
-    if (!payload || !payload.name) return res.status(400).json({ message: 'Invalid product payload' });
+app.post('/api/shops/:id/products', authenticate, validate(schemas.productCreate), (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const payload = req.body;
+  if (!payload || !payload.name) return res.status(400).json({ message: 'Invalid product payload' });
+  const shops = readShops();
+  const shop = shops.find(s => s.id === id);
+  if (!shop) return res.status(404).json({ message: 'Shop not found' });
+  // Public: allow adding products in public-only mode
 
-    // If Mongo is available prefer to create a ProductModel document
-    if (mongoose.connection && mongoose.connection.readyState === 1) {
-      try {
-        let shopDoc = await ShopModel.findOne({ legacyId: id }).exec();
-        if (!shopDoc) {
-          // attempt to migrate the legacy shop into Mongo
-          const legacyShops = readShops();
-          const legacy = legacyShops.find(s => Number(s.id) === Number(id));
-          if (legacy) {
-            const owner = legacy.owner || {};
-            const doc = {
-              legacyId: legacy.id,
-              name: legacy.name || `Shop ${legacy.id}`,
-              category: legacy.category || null,
-              address: legacy.address || '',
-              deliveryFee: legacy.deliveryFee || 0,
-              deliveryServices: legacy.deliveryServices || [],
-              owner,
-              products: legacy.products || [],
-              orders: legacy.orders || []
-            };
-            shopDoc = await ShopModel.create(doc);
-            console.info('Migrated legacy shop into Mongo for shop POST:', legacy.id);
-          }
-        }
-
-        if (!shopDoc) return res.status(404).json({ message: 'Shop not found' });
-
-        // Normalize price into { amount, currency }
-        let priceObj = { amount: 0, currency: 'ETB' };
-        if (typeof payload.price === 'number') priceObj.amount = Math.floor(payload.price);
-        else if (payload.price && typeof payload.price === 'object' && typeof payload.price.amount !== 'undefined') priceObj.amount = Math.floor(Number(payload.price.amount));
-
-        const images = Array.isArray(payload.images) ? payload.images : (payload.images ? [payload.images] : []);
-
-        const prod = await ProductModel.create({
-          name: payload.name,
-          description: payload.description || '',
-          price: priceObj,
-          images: images,
-          shopId: shopDoc._id,
-          shopLegacyId: shopDoc.legacyId || id,
-          category: payload.category,
-          stock: (typeof payload.inStock !== 'undefined') ? (payload.inStock ? 1 : 0) : (Number(payload.stock) || 0),
-          status: payload.status || 'draft',
-          attributes: payload.attributes || {}
-        });
-
-        const out = { ...prod.toObject(), inStock: typeof prod.stock !== 'undefined' ? (prod.stock > 0) : true };
-        return res.status(201).json(out);
-      } catch (e) {
-        console.error('POST /api/shops/:id/products (Mongo) error', e && e.message ? e.message : e);
-        // fallback to legacy JSON below
-      }
-    }
-
-    // Fallback to legacy JSON file when Mongo not available or Mongo path failed
-    const shops = readShops();
-    const shop = shops.find(s => s.id === id);
-    if (!shop) return res.status(404).json({ message: 'Shop not found' });
-
-    // generate product id globally
-    const allProductIds = shops.flatMap(s => (s.products || []).map(p => p.id || 0));
-    const maxPid = allProductIds.reduce((m, v) => Math.max(m, v), 0);
-    // ensure inStock true by default when created from legacy endpoint
-    const inStock = (typeof payload.inStock !== 'undefined') ? !!payload.inStock : true;
-    const newProduct = { ...payload, id: maxPid + 1, inStock };
-    shop.products = shop.products || [];
-    shop.products.push(newProduct);
-    if (!writeShops(shops)) return res.status(500).json({ message: 'Failed to persist product' });
-    return res.status(201).json(newProduct);
-  } catch (err) {
-    console.error('POST /api/shops/:id/products error', err && err.message ? err.message : err);
-    return res.status(500).json({ message: 'Server error' });
-  }
+  // generate product id globally
+  const allProductIds = shops.flatMap(s => (s.products || []).map(p => p.id || 0));
+  const maxPid = allProductIds.reduce((m, v) => Math.max(m, v), 0);
+  // ensure inStock true by default when created from legacy endpoint
+  const inStock = (typeof payload.inStock !== 'undefined') ? !!payload.inStock : true;
+  const newProduct = { ...payload, id: maxPid + 1, inStock };
+  shop.products = shop.products || [];
+  shop.products.push(newProduct);
+  if (!writeShops(shops)) return res.status(500).json({ message: 'Failed to persist product' });
+  res.status(201).json(newProduct);
 });
 
 // PUT update product
@@ -1335,7 +1250,6 @@ app.put('/api/shops/:shopId/products/:productId', authenticate, validate(schemas
       if (typeof payload.name !== 'undefined') prod.name = payload.name;
       if (typeof payload.description !== 'undefined') prod.description = payload.description;
       if (typeof payload.images !== 'undefined') prod.images = Array.isArray(payload.images) ? payload.images : (payload.images ? [payload.images] : []);
-      else if (typeof payload.image !== 'undefined') prod.images = Array.isArray(payload.image) ? payload.image : (payload.image ? [payload.image] : []);
       if (typeof payload.category !== 'undefined') prod.category = payload.category;
       if (typeof payload.stock !== 'undefined' && payload.stock !== null) {
         const s = Number(payload.stock);
@@ -1589,8 +1503,9 @@ app.post('/api/products/:productId/reviews', requireAuth, async (req, res) => {
       if (!devBypass) return res.status(403).json({ message: 'No qualifying purchase found' });
     }
 
+    // Store productId using ObjectId when valid, otherwise keep original (legacy) value
     let storedProductId = productId;
-    try { storedProductId = new mongoose.Types.ObjectId(productId); } catch (e) { }
+    try { storedProductId = new mongoose.Types.ObjectId(productId); } catch (e) { /* leave as-is for legacy ids */ }
 
     const reviewDoc = await ReviewModel.create({ productId: storedProductId, shopId: prod.shopId || null, userId: user._id, rating: Math.round(rating), comment: String(comment || '').trim(), verifiedPurchase: true });
 
@@ -2655,6 +2570,3 @@ process.on('uncaughtException', (err) => {
   // In many production systems it's best to exit on uncaught exceptions after logging.
   // For this MVP we just log and allow the platform to restart if needed.
 });
-
-
-
