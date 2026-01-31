@@ -872,7 +872,7 @@ app.post('/api/products', requireAuth, requireShopOwner, validate(schemas.produc
     }
     if (!shop) return res.status(404).json({ message: 'Shop not found' });
 
-    const { name, description = '', price, images = [], category, stock, inStock, status = 'draft', attributes = {} } = req.body;
+    const { name, description = '', price, images = [], image = null, category, stock, inStock, status = 'draft', attributes = {} } = req.body;
     // Basic required-field validation with clear messages
     if (!name || String(name).trim().length === 0) return res.status(400).json({ message: 'Product name is required' });
     // Normalize price into { amount, currency }
@@ -885,8 +885,12 @@ app.post('/api/products', requireAuth, requireShopOwner, validate(schemas.produc
       return res.status(400).json({ message: 'price.amount is required and must be a number' });
     }
 
-    // Validate images array
-    if (!Array.isArray(images) || images.length === 0) {
+    // Normalize images: accept either `images` array or single `image` field
+    let imagesArr = [];
+    if (Array.isArray(images) && images.length) imagesArr = images.filter(Boolean);
+    else if (image && typeof image === 'string') imagesArr = [image];
+    // Require at least one image URL
+    if (!imagesArr.length) {
       return res.status(400).json({ message: 'images is required and must include at least one image URL' });
     }
 
@@ -894,7 +898,7 @@ app.post('/api/products', requireAuth, requireShopOwner, validate(schemas.produc
       name,
       description,
       price: priceObj,
-      images: Array.isArray(images) ? images : (images ? [images] : []),
+      images: imagesArr,
       shopId: shop._id,
       shopLegacyId: shop.legacyId,
       category,
@@ -1331,6 +1335,7 @@ app.put('/api/shops/:shopId/products/:productId', authenticate, validate(schemas
       if (typeof payload.name !== 'undefined') prod.name = payload.name;
       if (typeof payload.description !== 'undefined') prod.description = payload.description;
       if (typeof payload.images !== 'undefined') prod.images = Array.isArray(payload.images) ? payload.images : (payload.images ? [payload.images] : []);
+      else if (typeof payload.image !== 'undefined') prod.images = Array.isArray(payload.image) ? payload.image : (payload.image ? [payload.image] : []);
       if (typeof payload.category !== 'undefined') prod.category = payload.category;
       if (typeof payload.stock !== 'undefined' && payload.stock !== null) {
         const s = Number(payload.stock);

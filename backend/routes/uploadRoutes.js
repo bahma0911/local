@@ -48,3 +48,18 @@ router.post('/', upload.single('image'), async (req, res) => {
 });
 
 export default router;
+
+// Error handler for this router to ensure multer and other errors return JSON
+router.use((err, req, res, next) => {
+  try {
+    if (!err) return next();
+    console.error('uploadRoutes caught error:', err && err.stack ? err.stack : err);
+    if (err.name === 'MulterError') {
+      return res.status(400).json({ message: err.message || 'Upload error' });
+    }
+    return res.status(500).json({ message: err && err.message ? err.message : 'Server error' });
+  } catch (e) {
+    console.error('uploadRoutes error handler failed:', e && e.stack ? e.stack : e);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
