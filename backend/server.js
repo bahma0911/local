@@ -225,7 +225,7 @@ if (hasCloudinary) {
 }
 
 // upload endpoint: receives multipart/form-data with field `file` and returns a JSON with `url` pointing to the image
-app.post('/api/upload', upload.single('file'), async (req, res) => {
+app.post('/api/upload', upload.single('image'), async (req, res) => {
   if (!req.file) return res.status(400).json({ message: 'No file uploaded' }); // WHY: validate presence of file early
 
   try {
