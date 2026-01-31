@@ -235,18 +235,22 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
       // If storage provided a full URL, return it directly
       const possibleUrl = req.file.path || req.file.secure_url || req.file.url || req.file.location || null;
       if (possibleUrl && typeof possibleUrl === 'string' && possibleUrl.startsWith('http')) {
-        return res.json({ url: possibleUrl });
+        return res.json({ url: possibleUrl, imageUrl: possibleUrl });
       }
 
       // If the adapter wrote a local file path (disk storage), derive the public URL using the filename
       if (req.file.filename) {
-        return res.json({ url: `/uploads/${req.file.filename}` });
+        const u = `/uploads/${req.file.filename}`;
+        return res.json({ url: u, imageUrl: u });
       }
 
       if (req.file.path && typeof req.file.path === 'string') {
         // `req.file.path` may be an absolute filesystem path; convert to basename
         const fname = path.basename(req.file.path);
-        if (fname) return res.json({ url: `/uploads/${fname}` });
+        if (fname) {
+          const u = `/uploads/${fname}`;
+          return res.json({ url: u, imageUrl: u });
+        }
       }
     }
 
