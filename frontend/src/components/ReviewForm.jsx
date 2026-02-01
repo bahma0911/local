@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import apiFetch from '../utils/apiFetch';
+import { API_BASE } from '../utils/api';
 import StarRating from './StarRating';
 
 const ReviewForm = ({ productId, onSubmitted }) => {
@@ -13,7 +14,7 @@ const ReviewForm = ({ productId, onSubmitted }) => {
     setSubmitting(true);
     setError(null);
     try {
-      const res = await apiFetch(`/api/products/${productId}/reviews`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rating, comment }) });
+      const res = await apiFetch(`${API_BASE}/api/products/${productId}/reviews`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rating, comment }) });
       setComment('');
       setRating(5);
       // Dispatch a global event so other components (home product cards) can update ratings

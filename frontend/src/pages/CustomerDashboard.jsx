@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useReviewsWishlist } from '../hooks/useReviewsWishlist';
 import { useNavigate } from 'react-router-dom';
 import apiFetch from '../utils/apiFetch';
+import { API_BASE } from '../utils/api';
 import "./CustomerDashboard.css";
 
 const CustomerDashboard = () => {
@@ -20,7 +21,7 @@ const CustomerDashboard = () => {
       // Load recent orders from server
       (async () => {
         try {
-          const data = await apiFetch('/api/orders/my');
+          const data = await apiFetch(`${API_BASE}/api/orders/my`);
           const filtered = (data || []).filter(order => {
             if (order.createdBy) return order.createdBy === user.username;
             if (order.customerMeta?.username) return order.customerMeta.username === user.username;

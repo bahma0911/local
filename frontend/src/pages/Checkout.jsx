@@ -4,6 +4,7 @@ import { useCart } from '../hooks/useCart';
 import { useAuth } from '../hooks/useAuth';
 import "./Checkout.css";
 import apiFetch from '../utils/apiFetch';
+import { API_BASE } from '../utils/api';
 
 const Checkout = () => {
   const { 
@@ -213,7 +214,7 @@ const Checkout = () => {
           }
         };
         try {
-          const data = await apiFetch('/api/orders', {
+          const data = await apiFetch(`${API_BASE}/api/orders`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) },
             body: JSON.stringify(payload)
@@ -279,7 +280,7 @@ const Checkout = () => {
           total: order.subtotal || order.total || 0,
         };
         try {
-          const d = await apiFetch(`/api/shops/${shopId}/orders`, {
+          const d = await apiFetch(`${API_BASE}/api/shops/${shopId}/orders`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),

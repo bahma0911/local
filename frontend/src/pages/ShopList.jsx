@@ -5,6 +5,7 @@ import ProductList from "../components/ProductList";
 import { shops as initialShops, categories } from "../data/shopsData";
 import { useCart } from "../hooks/useCart";
 import apiFetch from "../utils/apiFetch";
+import { API_BASE } from '../utils/api';
 import "./ShopList.css";
 
 const ShopList = ({ compact = false }) => {
@@ -37,7 +38,7 @@ const ShopList = ({ compact = false }) => {
     let mounted = true;
     const load = async () => {
       try {
-        const data = await apiFetch('/api/shops');
+        const data = await apiFetch(`${API_BASE}/api/shops`);
         if (mounted) {
           setShops(data);
           try { localStorage.setItem('updatedShops', JSON.stringify(data)); } catch (e) {}

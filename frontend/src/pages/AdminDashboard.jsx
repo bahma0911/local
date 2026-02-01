@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { categories } from "../data/shopsData"; // keep your categories list
 import { useAuth } from "../hooks/useAuth";
 import apiFetch from '../utils/apiFetch';
+import { API_BASE } from '../utils/api';
 import ReviewsList from '../components/ReviewsList';
 import "./AdminDashboard.css";
 
@@ -34,7 +35,7 @@ const AdminDashboard = () => {
   // ===================== API Calls =====================
   const fetchShops = async () => {
     try {
-      const data = await apiFetch('/api/shops');
+      const data = await apiFetch(`${API_BASE}/api/shops`);
       setShops(data);
       try {
         localStorage.setItem('updatedShops', JSON.stringify(data));
@@ -52,7 +53,7 @@ const AdminDashboard = () => {
         // fetch latest products from `/api/products` to ensure numeric `stock` is current
         if (myShop) {
           try {
-            const plist = await apiFetch(`/api/products?shopId=${myShop.id}`);
+            const plist = await apiFetch(`${API_BASE}/api/products?shopId=${myShop.id}`);
             if (plist) {
               const norm = (plist || []).map(pp => ({
                 id: pp.id || pp._id,
@@ -86,7 +87,7 @@ const AdminDashboard = () => {
   const fetchShopOrders = async (shopId) => {
     if (!shopId) return setShopOrders([]);
     try {
-      const data = await apiFetch(`/api/shops/${shopId}/orders`);
+      const data = await apiFetch(`${API_BASE}/api/shops/${shopId}/orders`);
       if (!data) throw new Error('Failed to fetch shop orders');
       // Ensure newest orders appear first
       const sorted = (data || []).slice().sort((a, b) => {
@@ -124,7 +125,7 @@ const AdminDashboard = () => {
   // Update order status for a shop (e.g., 'confirmed', 'delivered', 'picked_up')
   const updateOrderStatus = async (shopId, orderId, status) => {
     try {
-      await apiFetch(`/api/orders/${orderId}/status`, {
+      await apiFetch(`${API_BASE}/api/orders/${orderId}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) },
         body: JSON.stringify({ status })
@@ -140,7 +141,7 @@ const AdminDashboard = () => {
   // Confirm payment for an order (shop owner action)
   const confirmOrderPayment = async (shopId, orderId) => {
     try {
-      await apiFetch(`/api/orders/${orderId}/payment/confirm`, {
+      await apiFetch(`${API_BASE}/api/orders/${orderId}/payment/confirm`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) }
       });
@@ -180,7 +181,7 @@ const AdminDashboard = () => {
   const deleteOrderAPI = async (shopId, orderId) => {
     if (!window.confirm('Permanently delete this order? This cannot be undone.')) return;
     try {
-      await apiFetch(`/api/shops/${shopId}/orders/${orderId}`, { method: 'DELETE', headers: { ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) } });
+      await apiFetch(`${API_BASE}/api/shops/${shopId}/orders/${orderId}`, { method: 'DELETE', headers: { ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) } });
       // refresh the order list after delete
       fetchShopOrders(shopId);
     } catch (err) {
@@ -220,7 +221,7 @@ const AdminDashboard = () => {
     const byProd = {};
     await Promise.all((products || []).map(async (p) => {
       try {
-        const data = await apiFetch(`/api/products/${p.id}/reviews`);
+        const data = await apiFetch(`${API_BASE}/api/products/${p.id}/reviews`);
         byProd[p.id] = { reviews: data.reviews || [], average: data.average || 0, count: data.count || 0, product: p };
       } catch (e) {
         byProd[p.id] = { reviews: [], average: 0, count: 0, product: p };
@@ -263,7 +264,7 @@ const AdminDashboard = () => {
     const payload = { ...newShop };
 
     try {
-      const data = await apiFetch("/api/shops", {
+      const data = await apiFetch(`${API_BASE}/api/shops`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) },
         body: JSON.stringify(payload)
@@ -297,7 +298,7 @@ const AdminDashboard = () => {
     }
 
     try {
-      const data = await apiFetch(`/api/shops/${shopId}`, {
+      const data = await apiFetch(`${API_BASE}/api/shops/${shopId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) },
         body: JSON.stringify(payload)
@@ -324,7 +325,7 @@ const AdminDashboard = () => {
     if (!window.confirm("Are you sure you want to delete this shop? This cannot be undone.")) return;
 
     try {
-      await apiFetch(`/api/shops/${shopId}`, { method: "DELETE", headers: { ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) } });
+      await apiFetch(`${API_BASE}/api/shops/${shopId}`, { method: "DELETE", headers: { ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) } });
       setShops(prev => prev.filter(shop => shop.id !== shopId));
       try { localStorage.setItem('updatedShops', JSON.stringify(shops.filter(shop => shop.id !== shopId))); } catch {}
       if (selectedShop?.id === shopId) setSelectedShop(null);
@@ -339,7 +340,7 @@ const AdminDashboard = () => {
   // helper to upload a file; try proxied path first, then absolute backend URL if 404
   const uploadFile = async (fd) => {
     const tryUrls = [
-      '/api/upload',
+      `${API_BASE}/api/upload`,
       'http://localhost:5000/api/upload',
       'http://127.0.0.1:5000/api/upload',
     ];
@@ -362,7 +363,7 @@ const AdminDashboard = () => {
         console.debug(`uploadFile: ${url} responded with status ${up.status}`);
         // prefer successful responses (2xx). If non-OK, continue trying fallbacks.
         if (up && up.ok) {
-          if (url !== '/api/upload') console.warn(`uploadFile: used fallback URL ${url}`);
+          if (url !== `${API_BASE}/api/upload`) console.warn(`uploadFile: used fallback URL ${url}`);
           window._lastSuccessfulUploadUrl = url;
           return up;
         }
@@ -401,7 +402,9 @@ const AdminDashboard = () => {
           const text = await up.text().catch(() => '');
           throw new Error(`Image upload failed (${up.status}): ${text}`);
         }
-        const j = await up.json();
+        const upText = await up.text().catch(() => '');
+        let j;
+        try { j = upText ? JSON.parse(upText) : {}; } catch (e) { j = upText; }
         console.debug('uploadFile response JSON:', j);
         payload.image = j.url;
         // also provide images array for newer backend/Product API
@@ -429,7 +432,7 @@ const AdminDashboard = () => {
         payload.stock = 0;
       }
       console.debug('Final product payload (JSON):', payload);
-      const res = await fetch(`/api/products`, {
+        const res = await fetch(`${API_BASE}/api/products`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json', ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) },
@@ -439,7 +442,10 @@ const AdminDashboard = () => {
         const text = await res.text().catch(() => '');
         throw new Error(`Failed to add product (${res.status}): ${text}`);
       }
-      return await res.json();
+      {
+        const txt = await res.text().catch(() => '');
+        try { return txt ? JSON.parse(txt) : {}; } catch (e) { return txt; }
+      }
     } catch (err) {
       console.error('addProductAPI error:', err);
       alert('Error adding product: ' + (err.message || err));
@@ -459,7 +465,9 @@ const AdminDashboard = () => {
           const text = await up.text().catch(() => '');
           throw new Error(`Image upload failed (${up.status}): ${text}`);
         }
-        const j = await up.json();
+        const upText = await up.text().catch(() => '');
+        let j;
+        try { j = upText ? JSON.parse(upText) : {}; } catch (e) { j = upText; }
         payload.image = j.url;
         payload.images = [j.url];
       }
@@ -473,7 +481,7 @@ const AdminDashboard = () => {
         payload.stock = 0;
       }
       delete payload.imageFile;
-      const res = await fetch(`/api/shops/${shopId}/products/${productId}`, {
+      const res = await fetch(`${API_BASE}/api/shops/${shopId}/products/${productId}`, {
         method: 'PUT',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json', ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) },
@@ -483,7 +491,10 @@ const AdminDashboard = () => {
         const text = await res.text().catch(() => '');
         throw new Error(`Failed to update product (${res.status}): ${text}`);
       }
-      return await res.json();
+      {
+        const txt = await res.text().catch(() => '');
+        try { return txt ? JSON.parse(txt) : {}; } catch (e) { return txt; }
+      }
     } catch (err) {
       console.error('updateProductAPI error:', err);
       alert('Error updating product: ' + (err.message || err));
@@ -494,7 +505,7 @@ const AdminDashboard = () => {
   const deleteProductAPI = async (shopId, productId) => {
     if (!window.confirm('Delete this product?')) return false;
     try {
-      const res = await fetch(`/api/shops/${shopId}/products/${productId}`, { method: 'DELETE', credentials: 'include', headers: { ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) } });
+      const res = await fetch(`${API_BASE}/api/shops/${shopId}/products/${productId}`, { method: 'DELETE', credentials: 'include', headers: { ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) } });
       if (!res.ok) throw new Error('Failed to delete product');
       return true;
     } catch (err) {

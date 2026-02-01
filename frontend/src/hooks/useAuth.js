@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useApp } from '../contex/AppContext.jsx';
 import apiFetch from '../utils/apiFetch';
+import { API_BASE } from '../utils/api';
 
 export const useAuth = () => {
   const { state, dispatch } = useApp();
@@ -13,7 +14,7 @@ export const useAuth = () => {
 
     (async () => {
       try {
-        const data = await apiFetch('/api/me');
+        const data = await apiFetch(`${API_BASE}/api/me`);
 
         if (!mounted) return;
 
@@ -31,7 +32,7 @@ export const useAuth = () => {
   }, [dispatch]);
   const login = useCallback(async ({ username, password }) => {
     try {
-      const data = await apiFetch('/api/login', {
+      const data = await apiFetch(`${API_BASE}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
@@ -58,7 +59,7 @@ export const useAuth = () => {
             };
 
             try {
-              await apiFetch('/api/orders', {
+              await apiFetch(`${API_BASE}/api/orders`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
@@ -82,7 +83,7 @@ export const useAuth = () => {
 
   const logout = useCallback(async () => {
     try {
-      await apiFetch('/api/logout', { method: 'POST' });
+      await apiFetch(`${API_BASE}/api/logout`, { method: 'POST' });
     } catch {
       // ignore
     }
@@ -92,7 +93,7 @@ export const useAuth = () => {
 
   const register = useCallback(async (payload) => {
     try {
-      const data = await apiFetch('/api/register', {
+      const data = await apiFetch(`${API_BASE}/api/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -108,7 +109,7 @@ export const useAuth = () => {
 
   const updateCustomerProfile = useCallback(async (payload) => {
     try {
-      const data = await apiFetch('/api/me', {
+      const data = await apiFetch(`${API_BASE}/api/me`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

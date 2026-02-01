@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import apiFetch from '../utils/apiFetch';
+import { API_BASE } from '../utils/api';
 import './AdminOrders.css';
 
 const AdminOrders = () => {
@@ -25,7 +26,7 @@ const AdminOrders = () => {
     // fetch shops to map shopId -> shop name for display
     (async () => {
       try {
-        const s = await apiFetch('/api/shops');
+        const s = await apiFetch(`${API_BASE}/api/shops`);
         const map = (s || []).reduce((acc, sh) => { acc[Number(sh.id)] = sh.name || null; return acc; }, {});
         setShopsMap(map);
         // refresh orders after shops map is available so names resolve
@@ -51,7 +52,7 @@ const AdminOrders = () => {
       if (startDate) params.set('startDate', startDate);
       if (endDate) params.set('endDate', endDate);
 
-      const data = await apiFetch(`/api/admin/orders?${params.toString()}`);
+      const data = await apiFetch(`${API_BASE}/api/admin/orders?${params.toString()}`);
       const raw = data.orders || [];
       // Normalize backend shape to UI shape
       const normalized = raw.map(o => ({

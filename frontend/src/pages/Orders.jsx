@@ -4,6 +4,7 @@ import { useCart } from '../hooks/useCart';
 import { useAuth } from '../hooks/useAuth';
 import "./Orders.css";
 import apiFetch from '../utils/apiFetch';
+import { API_BASE } from '../utils/api';
 import ReviewForm from '../components/ReviewForm';
 import ReviewsList from '../components/ReviewsList';
 
@@ -32,7 +33,7 @@ const Orders = () => {
         return;
       }
       try {
-        let data = await apiFetch('/api/orders/my');
+        let data = await apiFetch(`${API_BASE}/api/orders/my`);
         // Remove cancelled orders older than 7 days
         const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
         data = (data || []).filter(o => {
@@ -65,13 +66,13 @@ const Orders = () => {
       if (!productId) return;
       setLoadingReviewsByProduct(prev => ({ ...prev, [productId]: true }));
       try {
-        const data = await apiFetch(`/api/products/${productId}/reviews`);
+        const data = await apiFetch(`${API_BASE}/api/products/${productId}/reviews`);
         setReviewsByProduct(prev => ({ ...prev, [productId]: { reviews: data.reviews || [], average: data.average || 0, count: data.count || 0 } }));
       } catch (e) {
         setReviewsByProduct(prev => ({ ...prev, [productId]: { reviews: [], average: 0, count: 0 } }));
       }
       try {
-        const elig = await apiFetch(`/api/products/${productId}/reviews/eligibility`);
+        const elig = await apiFetch(`${API_BASE}/api/products/${productId}/reviews/eligibility`);
         setCanReviewByProduct(prev => ({ ...prev, [productId]: !!(elig && elig.canReview) }));
       } catch (e) {
         setCanReviewByProduct(prev => ({ ...prev, [productId]: false }));
@@ -173,7 +174,7 @@ const Orders = () => {
 
     (async () => {
       try {
-        await apiFetch(`/api/orders/${orderId}`, { method: 'DELETE' });
+      await apiFetch(`${API_BASE}/api/orders/${orderId}`, { method: 'DELETE' });
         // remove from local state
         setOrders(prev => prev.filter(o => String(o.id || o.orderId || o._id) !== String(orderId)));
         // if currently viewing details for this order, go back
@@ -354,7 +355,7 @@ const Orders = () => {
                             <ReviewForm productId={prodId} onSubmitted={async () => {
                               // refresh that product
                               try {
-                                const d = await apiFetch(`/api/products/${prodId}/reviews`);
+                                const d = await apiFetch(`${API_BASE}/api/products/${prodId}/reviews`);
                                 setReviewsByProduct(prev => ({ ...prev, [prodId]: { reviews: d.reviews || [], average: d.average || 0, count: d.count || 0 } }));
                                 setCanReviewByProduct(prev => ({ ...prev, [prodId]: false }));
                               } catch (e) { console.error(e); }

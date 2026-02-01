@@ -3,15 +3,17 @@
 // requests to the backend (see `frontend/vite.config.js`). In production set
 // `VITE_API_BASE` to your API origin (e.g. https://api.example.com).
 // Use: import { apiUrl, apiBase } from '../utils/api';
-export const apiBase = import.meta.env.VITE_API_BASE || '';
+// Central API base constant for the app.
+// Use `VITE_API_URL` at build time to set the absolute backend origin.
+// Example: VITE_API_URL=https://local-q29j.onrender.com
+export const API_BASE = import.meta.env.VITE_API_URL || '';
+
 export const apiUrl = (path) => {
-  if (!path) return apiBase || '';
+  if (!path) return API_BASE || '';
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
-  // If a proxied API path was provided, leave it as-is so it goes through Vite proxy
-  if (path.startsWith('/api')) return path;
   // ensure leading slash
   if (!path.startsWith('/')) path = `/${path}`;
-  return `${apiBase}${path}`;
+  return `${API_BASE}${path}`;
 };
 
-export default { apiBase, apiUrl };
+export default { API_BASE, apiUrl };

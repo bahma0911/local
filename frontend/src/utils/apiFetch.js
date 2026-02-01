@@ -11,7 +11,7 @@
  * import apiFetch from '../utils/apiFetch';
  * const data = await apiFetch('/api/login', { method: 'POST', body: JSON.stringify({ username, password }) });
  */
-import { apiUrl } from './api';
+import { API_BASE } from './api';
 
 function getCookie(name) {
   const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
@@ -23,8 +23,14 @@ async function apiFetch(url, options = {}) {
   opts.credentials = 'include';
   opts.headers = { ...(opts.headers || {}) };
 
-  // Resolve url against Vite-provided API base (useful in production)
-  const fullUrl = apiUrl(url);
+  // Resolve url against configured API base. Call sites should pass absolute API URLs
+  // in the form `${API_BASE}/api/...` but we still handle a leading `/api` path here.
+  let fullUrl = url;
+  if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
+    if (fullUrl.startsWith('/api')) fullUrl = `${API_BASE}${fullUrl}`;
+    else if (fullUrl.startsWith('api')) fullUrl = `${API_BASE}/${fullUrl}`;
+    else fullUrl = `${API_BASE}${fullUrl.startsWith('/') ? '' : '/'}${fullUrl}`;
+  }
 
   // Attach CSRF token for state-changing requests
   const method = (opts.method || 'GET').toUpperCase();

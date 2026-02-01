@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import apiFetch from '../utils/apiFetch';
+import { API_BASE } from '../utils/api';
 import { useDelivery } from '../hooks/useDelivery';
 import "./OrderManagement.css";
 
@@ -15,7 +16,7 @@ const OrderManagement = () => {
     const fetchOrders = async () => {
       if (!isShopOwner || !assignedShop) return;
       try {
-        const data = await apiFetch(`/api/shops/${assignedShop}/orders`);
+        const data = await apiFetch(`${API_BASE}/api/shops/${assignedShop}/orders`);
         setOrders((data || []).reverse());
       } catch (err) {
         console.error('Failed to fetch shop orders', err);
@@ -46,14 +47,14 @@ const OrderManagement = () => {
     if (!shopId) return;
     (async () => {
       try {
-        await apiFetch(`/api/orders/${orderId}/status`, {
+        await apiFetch(`${API_BASE}/api/orders/${orderId}/status`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status })
         });
         // refresh orders from server to reflect canonical state
         try {
-          const data = await apiFetch(`/api/shops/${assignedShop}/orders`);
+          const data = await apiFetch(`${API_BASE}/api/shops/${assignedShop}/orders`);
           setOrders((data || []).reverse());
         } catch (e) {
           // ignore refresh errors
