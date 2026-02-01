@@ -78,7 +78,7 @@ export default function Navbar() {
           <span className={styles.logoIcon}>🛍️</span>
           <span className={styles.logoText}>Negadras Market</span>
         </div>
-        <div className={styles.actions}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
           {/* Cart icon with live badge */}
           <button
             className={styles.iconButton}

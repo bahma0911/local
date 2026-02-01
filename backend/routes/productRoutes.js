@@ -11,15 +11,9 @@ router.post("/create", upload.single("image"), async (req, res) => {
       image: req.file.path,
     };
 
-    res.status(200).json({
-      success: true,
-      imageUrl: `/uploads/${req.file.filename}`,
-    });
+    res.json(product);
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message || "Server error",
-    });
+    res.status(500).json({ message: "Image upload failed" });
   }
 });
 
