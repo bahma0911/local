@@ -43,9 +43,8 @@ app.set('trust proxy', 1);
 const frontendOrigin = (process.env.FRONTEND_ORIGIN || '').replace(/\/+$/, '') || undefined;
 const corsOptions = {
   origin: (origin, callback) => {
-    // Allow all when FRONTEND_ORIGIN is not configured (convenient for dev/local)
+    // Allow non-browser (curl, server) requests when origin is undefined
     if (!frontendOrigin) return callback(null, true);
-    // Allow non-browser requests (curl, servers) when origin is not provided
     if (!origin) return callback(null, true);
     return origin === frontendOrigin ? callback(null, true) : callback(new Error('Not allowed by CORS'));
   },
@@ -55,7 +54,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
+
 app.use(helmet());
 app.use(express.json({ limit: '1mb' }));
 
@@ -226,7 +225,7 @@ if (hasCloudinary) {
 }
 
 // upload endpoint: receives multipart/form-data with field `file` and returns a JSON with `url` pointing to the image
-app.post('/api/upload', upload.single('file'), async (req, res) => {
+app.post('/api/upload', upload.single('image'), async (req, res) => {
   if (!req.file) return res.status(400).json({ message: 'No file uploaded' }); // WHY: validate presence of file early
 
   try {
@@ -236,18 +235,22 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
       // If storage provided a full URL, return it directly
       const possibleUrl = req.file.path || req.file.secure_url || req.file.url || req.file.location || null;
       if (possibleUrl && typeof possibleUrl === 'string' && possibleUrl.startsWith('http')) {
-        return res.json({ url: possibleUrl });
+        return res.json({ url: possibleUrl, imageUrl: possibleUrl });
       }
 
       // If the adapter wrote a local file path (disk storage), derive the public URL using the filename
       if (req.file.filename) {
-        return res.json({ url: `/uploads/${req.file.filename}` });
+        const u = `/uploads/${req.file.filename}`;
+        return res.json({ url: u, imageUrl: u });
       }
 
       if (req.file.path && typeof req.file.path === 'string') {
         // `req.file.path` may be an absolute filesystem path; convert to basename
         const fname = path.basename(req.file.path);
-        if (fname) return res.json({ url: `/uploads/${fname}` });
+        if (fname) {
+          const u = `/uploads/${fname}`;
+          return res.json({ url: u, imageUrl: u });
+        }
       }
     }
 
@@ -881,19 +884,6 @@ app.get('/api/db/shops/:id/products', async (req, res) => {
     return res.json(shop.products || []);
   } catch (e) {
     console.error('GET /api/db/shops/:id/products error', e && e.message ? e.message : e);
-    return res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// Dev-only: list users from MongoDB for debugging (only available when not in production)
-app.get('/api/db/users', async (req, res) => {
-  try {
-    if (process.env.NODE_ENV === 'production') return res.status(404).json({ message: 'Not found' });
-    if (!mongoose.connection || mongoose.connection.readyState !== 1) return res.status(503).json({ message: 'MongoDB not connected' });
-    const docs = await User.find().limit(100).lean().exec();
-    return res.json({ count: docs.length, users: docs.map(d => ({ username: d.username, email: d.email, role: d.role, _id: d._id })) });
-  } catch (e) {
-    console.error('GET /api/db/users error', e && e.message ? e.message : e);
     return res.status(500).json({ message: 'Server error' });
   }
 });
@@ -1560,8 +1550,9 @@ app.post('/api/products/:productId/reviews', requireAuth, async (req, res) => {
       if (!devBypass) return res.status(403).json({ message: 'No qualifying purchase found' });
     }
 
+    // Store productId using ObjectId when valid, otherwise keep original (legacy) value
     let storedProductId = productId;
-    try { storedProductId = new mongoose.Types.ObjectId(productId); } catch (e) { }
+    try { storedProductId = new mongoose.Types.ObjectId(productId); } catch (e) { /* leave as-is for legacy ids */ }
 
     const reviewDoc = await ReviewModel.create({ productId: storedProductId, shopId: prod.shopId || null, userId: user._id, rating: Math.round(rating), comment: String(comment || '').trim(), verifiedPurchase: true });
 
@@ -2626,6 +2617,3 @@ process.on('uncaughtException', (err) => {
   // In many production systems it's best to exit on uncaught exceptions after logging.
   // For this MVP we just log and allow the platform to restart if needed.
 });
-
-
-
