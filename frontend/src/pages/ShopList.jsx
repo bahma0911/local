@@ -4,32 +4,45 @@ import ShopCard from "../components/ShopCard";
 import ProductList from "../components/ProductList";
 import { shops as initialShops, categories } from "../data/shopsData";
 import { useCart } from "../hooks/useCart";
-// Use same backend base as login to ensure consistent auth cookie behavior
-const API_BASE = 'https://nega-m5uz.onrender.com';
+import apiFetch from "../utils/apiFetch";
 import "./ShopList.css";
 
-const ShopList = () => {
+const ShopList = ({ compact = false }) => {
   const [shops, setShops] = useState([]);
   const [selectedShop, setSelectedShop] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
   // priceRange: [min, max] — use `null` for unlimited max
   const [priceRange, setPriceRange] = useState([0, null]);
+
+  // compact mode: show limited number on home page and toggle to reveal others
+  const [showAllShops, setShowAllShops] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(3);
+
+  useEffect(() => {
+    if (!compact) return;
+    const mq = window.matchMedia('(max-width: 640px)');
+    const update = () => setVisibleCount(mq.matches ? 2 : 3);
+    update();
+    if (mq.addEventListener) mq.addEventListener('change', update);
+    else mq.addListener(update);
+    return () => {
+      if (mq.removeEventListener) mq.removeEventListener('change', update);
+      else mq.removeListener(update);
+    };
+  }, [compact]);
   
   // Prefer loading shops from backend API (returns normalized `stock`), fallback to localStorage/initial data
   useEffect(() => {
     let mounted = true;
     const load = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/shops`, { credentials: 'include' });
-        if (res.ok) {
-          const data = await res.json();
-          if (mounted) {
-            setShops(data);
-            try { localStorage.setItem('updatedShops', JSON.stringify(data)); } catch (e) {}
-          }
-          return;
+        const data = await apiFetch('/api/shops');
+        if (mounted) {
+          setShops(data);
+          try { localStorage.setItem('updatedShops', JSON.stringify(data)); } catch (e) {}
         }
+        return;
       } catch (e) {
         // ignore and fallback
       }
@@ -262,8 +275,18 @@ const ShopList = () => {
       ) : (
         // Normal Shop View (when no search)
         <>
+          {/* Compact header: small toggle button on the right to reveal more shops */}
+          {compact && (
+            <div className="shops-header">
+              <div />
+              <button className="compact-shops-toggle" onClick={() => setShowAllShops(s => !s)}>
+                {showAllShops ? 'Hide' : 'Shops'}
+              </button>
+            </div>
+          )}
+
           <div className="shop-grid">
-            {filteredShops.map((shop) => (
+            {(compact && !showAllShops ? filteredShops.slice(0, visibleCount) : filteredShops).map((shop) => (
               <ShopCard
                 key={shop.id}
                 shop={shop}

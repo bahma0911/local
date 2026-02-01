@@ -25,15 +25,11 @@ const AdminOrders = () => {
     // fetch shops to map shopId -> shop name for display
     (async () => {
       try {
-        const API_BASE = 'https://nega-m5uz.onrender.com';
-        const r = await fetch(`${API_BASE}/api/shops`, { credentials: 'include' });
-        if (r.ok) {
-          const s = await r.json();
-          const map = (s || []).reduce((acc, sh) => { acc[Number(sh.id)] = sh.name || null; return acc; }, {});
-          setShopsMap(map);
-          // refresh orders after shops map is available so names resolve
-          try { await fetchOrders(); } catch (e) { }
-        }
+        const s = await apiFetch('/api/shops');
+        const map = (s || []).reduce((acc, sh) => { acc[Number(sh.id)] = sh.name || null; return acc; }, {});
+        setShopsMap(map);
+        // refresh orders after shops map is available so names resolve
+        try { await fetchOrders(); } catch (e) { }
       } catch (e) {
         // ignore
       }

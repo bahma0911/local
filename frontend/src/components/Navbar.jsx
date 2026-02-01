@@ -75,7 +75,8 @@ export default function Navbar() {
     <nav className={styles.navbar}>
       <div className={styles.navbarContent}>
         <div className={styles.logo} onClick={() => navigate('/') }>
-          🛍️ Negadras Market
+          <span className={styles.logoIcon}>🛍️</span>
+          <span className={styles.logoText}>Negadras Market</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
           {/* Cart icon with live badge */}

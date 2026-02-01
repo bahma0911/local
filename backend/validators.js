@@ -35,6 +35,14 @@ export const schemas = {
     owner: z.object({ username: z.string().min(1).optional(), password: z.string().min(6).optional() }).optional(),
     address: z.string().optional(),
   }),
+  // Profile update for customers (partial updates allowed)
+  profileUpdate: z.object({
+    email: z.string().email().optional(),
+    phone: z.string().optional(),
+    address: z.string().optional(),
+    city: z.string().optional(),
+    password: z.string().min(6).optional()
+  }),
   productCreate: z.object({
     name: z.string().min(1),
     price: z.union([

@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useApp } from '../contex/AppContext.jsx';
-
-const API_BASE = 'https://nega-m5uz.onrender.com';
+import apiFetch from '../utils/apiFetch';
 
 export const useAuth = () => {
   const { state, dispatch } = useApp();
@@ -14,18 +13,11 @@ export const useAuth = () => {
 
     (async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/me`, {
-          credentials: 'include',
-        });
+        const data = await apiFetch('/api/me');
 
         if (!mounted) return;
 
-        if (res.ok) {
-          const data = await res.json();
-          dispatch({ type: 'SET_USER', payload: data.user });
-        } else {
-          dispatch({ type: 'SET_USER', payload: null });
-        }
+        dispatch({ type: 'SET_USER', payload: data.user });
       } catch {
         dispatch({ type: 'SET_USER', payload: null });
       } finally {
@@ -37,22 +29,14 @@ export const useAuth = () => {
       mounted = false;
     };
   }, [dispatch]);
-
   const login = useCallback(async ({ username, password }) => {
     try {
-      const res = await fetch(`${API_BASE}/api/login`, {
+      const data = await apiFetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ username, password }),
       });
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        return { ok: false, message: err.message || 'Login failed' };
-      }
-
-      const data = await res.json();
       dispatch({ type: 'SET_USER', payload: data.user });
 
       // merge guest orders after login
@@ -74,9 +58,8 @@ export const useAuth = () => {
             };
 
             try {
-              await fetch(`${API_BASE}/api/orders`, {
+              await apiFetch('/api/orders', {
                 method: 'POST',
-                credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
               });
@@ -99,10 +82,7 @@ export const useAuth = () => {
 
   const logout = useCallback(async () => {
     try {
-      await fetch(`${API_BASE}/api/logout`, {
-        method: 'POST',
-        credentials: 'include',
-      });
+      await apiFetch('/api/logout', { method: 'POST' });
     } catch {
       // ignore
     }
@@ -112,24 +92,32 @@ export const useAuth = () => {
 
   const register = useCallback(async (payload) => {
     try {
-      const res = await fetch(`${API_BASE}/api/register`, {
+      const data = await apiFetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        return { ok: false, message: err.message || 'Registration failed' };
-      }
-
-      const data = await res.json();
       dispatch({ type: 'SET_USER', payload: data.user });
 
       return { ok: true, user: data.user };
-    } catch {
-      return { ok: false, message: 'Network error' };
+    } catch (err) {
+      return { ok: false, message: (err && err.response && err.response.message) ? err.response.message : 'Network error' };
+    }
+  }, [dispatch]);
+
+  const updateCustomerProfile = useCallback(async (payload) => {
+    try {
+      const data = await apiFetch('/api/me', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      // update local user state with returned user
+      if (data && data.user) dispatch({ type: 'SET_USER', payload: data.user });
+      return { ok: true, user: data && data.user ? data.user : null };
+    } catch (err) {
+      return { ok: false, message: (err && err.response && err.response.message) ? err.response.message : 'Failed to update profile', response: err && err.response };
     }
   }, [dispatch]);
 
@@ -147,6 +135,7 @@ export const useAuth = () => {
     login,
     logout,
     register,
+    updateCustomerProfile,
     assignedShop,
   };
 };

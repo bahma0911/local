@@ -34,10 +34,7 @@ const AdminDashboard = () => {
   // ===================== API Calls =====================
   const fetchShops = async () => {
     try {
-      const API_BASE = 'https://nega-m5uz.onrender.com';
-      const res = await fetch(`${API_BASE}/api/shops`, { credentials: 'include' });
-      if (!res.ok) throw new Error('Failed to fetch shops');
-      const data = await res.json();
+      const data = await apiFetch('/api/shops');
       setShops(data);
       try {
         localStorage.setItem('updatedShops', JSON.stringify(data));
@@ -287,19 +284,39 @@ const AdminDashboard = () => {
       return;
     }
 
+    // Build payload and strip fields that would fail validation (e.g. empty password)
+    const payload = { ...editingShop };
+    if (payload.owner) {
+      // if password is empty or too short, remove it so backend validation (min 6) won't fail
+      if (!payload.owner.password || String(payload.owner.password).trim().length < 6) {
+        const { password, ...ownerNoPass } = payload.owner;
+        payload.owner = ownerNoPass;
+      }
+      // if owner object now has no keys, remove it entirely
+      if (Object.keys(payload.owner).length === 0) delete payload.owner;
+    }
+
     try {
       const data = await apiFetch(`/api/shops/${shopId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) },
-        body: JSON.stringify(editingShop)
+        body: JSON.stringify(payload)
       });
       setShops(prev => prev.map(shop => shop.id === shopId ? data : shop));
       try { localStorage.setItem('updatedShops', JSON.stringify(shops.map(shop => shop.id === shopId ? data : shop))); } catch {}
       setEditingShop(null);
       alert("Shop updated successfully!");
     } catch (err) {
-      console.error(err);
-      alert("Error updating shop");
+      console.error('updateShopAPI error', err);
+      // surface validation details from backend when available
+      if (err && err.response && err.response.errors && Array.isArray(err.response.errors)) {
+        const msg = err.response.errors.map(e => `${e.path || 'field'}: ${e.message}`).join('\n');
+        alert(`Validation failed:\n${msg}`);
+      } else if (err && err.response && err.response.message) {
+        alert(`Error updating shop: ${err.response.message}`);
+      } else {
+        alert("Error updating shop");
+      }
     }
   };
 

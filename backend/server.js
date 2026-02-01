@@ -587,6 +587,49 @@ app.post("/api/test-login", async (req, res) => {
     }
   });
 
+  // PUT /api/me - update current authenticated customer's profile
+  app.put('/api/me', authenticate, validate(schemas.profileUpdate), async (req, res) => {
+    try {
+      const authUser = await getUserFromRequest(req);
+      if (!authUser) return res.status(401).json({ message: 'Not authenticated' });
+
+      // Only customers stored in Mongo can update their persisted profile here
+      if (authUser.role !== 'customer') {
+        return res.status(403).json({ message: 'Only customers can update profile' });
+      }
+
+      const payload = req.body || {};
+
+      // Persist to MongoDB if available
+      if (mongoose.connection && mongoose.connection.readyState === 1) {
+        try {
+          const UserModel = (await import('./models/User.js')).default;
+          const update = { ...(payload.email ? { email: payload.email } : {}), ...(payload.phone ? { phone: payload.phone } : {}), ...(payload.address ? { address: payload.address } : {}), ...(payload.city ? { city: payload.city } : {}) };
+
+          if (payload.password) {
+            update.password = await bcrypt.hash(String(payload.password), 10);
+          }
+
+          const updated = await UserModel.findOneAndUpdate({ username: authUser.username }, { $set: update }, { new: true }).lean().exec();
+          if (!updated) return res.status(500).json({ message: 'Failed to update profile' });
+
+          // Return sanitized user info
+          const safe = { username: updated.username, email: updated.email, phone: updated.phone, address: updated.address, city: updated.city, role: 'customer' };
+          return res.json({ user: safe });
+        } catch (err) {
+          console.error('PUT /api/me - update error', err && err.message ? err.message : err);
+          return res.status(500).json({ message: 'Failed to update profile' });
+        }
+      }
+
+      // If Mongo isn't available, return 503
+      return res.status(503).json({ message: 'Profile updates are not available' });
+    } catch (e) {
+      console.error('PUT /api/me unexpected error', e && e.message ? e.message : e);
+      return res.status(500).json({ message: 'Server error' });
+    }
+  });
+
 // Temporary debug route: allows GET/POST to check bcrypt against first Mongo user.
 // IMPORTANT: paste this route BEFORE any global CSRF middleware in server.js so it is not blocked.
 app.all('/api/test-login', (req, res, next) => {

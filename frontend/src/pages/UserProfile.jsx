@@ -37,10 +37,18 @@ const UserProfile = () => {
     fetchOrders();
   }, [user]);
 
-  const handleProfileUpdate = (e) => {
+  const handleProfileUpdate = async (e) => {
     e.preventDefault();
-    if (updateCustomerProfile(profileData)) {
-      alert('Profile updated successfully!');
+    try {
+      const res = await updateCustomerProfile(profileData);
+      if (res && res.ok) {
+        alert('Profile updated successfully!');
+      } else {
+        alert(`Failed to update profile: ${res && res.message ? res.message : 'Unknown error'}`);
+      }
+    } catch (err) {
+      console.error('Profile update error', err);
+      alert('Failed to update profile');
     }
   };
 
