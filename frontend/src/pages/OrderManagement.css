@@ -37,6 +37,24 @@
   gap: 20px;
 }
 
+/* Add a clear separator under each order card to improve scanability */
+.orders-list > .order-card {
+  position: relative;
+  margin-bottom: 12px;
+}
+.orders-list > .order-card::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -8px;
+  height: 1px;
+  background: rgba(255,255,255,0.12);
+}
+.orders-list > .order-card:last-child::after {
+  display: none;
+}
+
 .order-card {
   background: white;
   border: 1px solid #e0e0e0;
