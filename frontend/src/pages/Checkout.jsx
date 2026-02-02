@@ -33,6 +33,7 @@ const Checkout = () => {
   const [orderNumber, setOrderNumber] = useState('');
   const [completionMessage, setCompletionMessage] = useState('');
   const [recentCheckoutUrl, setRecentCheckoutUrl] = useState('');
+  const [recentCreatedOrders, setRecentCreatedOrders] = useState([]);
   const [pickupLocations, setPickupLocations] = useState([]);
   const [showDeliveryPaymentMessage, setShowDeliveryPaymentMessage] = useState(false);
   const [finalTotal, setFinalTotal] = useState(null);
@@ -237,6 +238,10 @@ const Checkout = () => {
           const existing = JSON.parse(localStorage.getItem('guestOrders') || '[]');
           const merged = (existing || []).concat(created);
           localStorage.setItem('guestOrders', JSON.stringify(merged));
+          // expose the created orders for the confirmation view
+          setRecentCreatedOrders(created);
+          // prefer showing server-created order id as the canonical order number
+          setOrderNumber(String(created[0].id || created[0]._id || created[0].orderId || created[0].order_id || ''));
         }
       } catch (e) {
         console.warn('Failed to persist guest orders locally', e && e.message ? e.message : e);
@@ -318,7 +323,24 @@ const Checkout = () => {
             )}
           </p>
           <p className="confirmation-details">
-            Your order number is: <strong>{orderNumber}</strong>
+            Your order number is: 
+            {recentCreatedOrders && recentCreatedOrders.length > 0 ? (
+              <>
+                {recentCreatedOrders.map((o, idx) => (
+                  <span key={o.id || o._id || idx} style={{ display: 'inline-block', marginRight: 8 }}>
+                    <a
+                      href="#"
+                      onClick={(e) => { e.preventDefault(); navigate('/orders', { state: { openOrderId: String(o.id || o._id || o.orderId || o.order_id) } }); }}
+                      className="order-link"
+                    >
+                      <strong>{String(o.id || o._id || o.orderId || o.order_id)}</strong>
+                    </a>
+                  </span>
+                ))}
+              </>
+            ) : (
+              <strong>{orderNumber}</strong>
+            )}
           </p>
           <p className="confirmation-total">
             Total Amount: <strong>{(finalTotal ?? totalAmount)} ETB</strong>

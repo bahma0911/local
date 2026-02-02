@@ -1,5 +1,6 @@
 // src/pages/Orders.jsx - COMPLETE ENHANCED VERSION
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../hooks/useCart';
 import { useAuth } from '../hooks/useAuth';
@@ -20,6 +21,7 @@ const Orders = () => {
 
   // Load user and orders from localStorage
   const { user } = useAuth();
+  const location = useLocation();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -57,7 +59,18 @@ const Orders = () => {
       }
     };
     fetchMyOrders();
+    // If navigation included an order id to open, we'll handle it after orders are loaded
+    // (the effect that fetches order details for `selectedOrder` will run when set)
   }, [user]);
+
+  // If navigated with state to open a specific order, select it after orders load
+  useEffect(() => {
+    if (!location || !location.state || !location.state.openOrderId) return;
+    const idToOpen = String(location.state.openOrderId);
+    if (!idToOpen || orders.length === 0) return;
+    const found = orders.find(o => String(o.id || o._id || o.orderId || o.order_id) === idToOpen);
+    if (found) setSelectedOrder(found);
+  }, [location, orders]);
 
   // When viewing a selected order, fetch reviews & eligibility for its items
   useEffect(() => {
