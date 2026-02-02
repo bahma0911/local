@@ -1,5 +1,6 @@
 // src/pages/UserProfile.jsx
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useReviewsWishlist } from '../hooks/useReviewsWishlist';
 import apiFetch from '../utils/apiFetch';
@@ -9,6 +10,7 @@ import "./UserProfile.css";
 const UserProfile = () => {
   const { user, updateCustomerProfile, logout } = useAuth();
   const { getUserWishlist } = useReviewsWishlist();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('profile');
   const [profileData, setProfileData] = useState({
     email: user?.email || '',
@@ -168,15 +170,24 @@ const UserProfile = () => {
             {orders.length === 0 ? (
               <p>No orders yet</p>
             ) : (
-              orders.map((order, idx) => (
-                <div key={order.id || order.orderId || order._id || idx} className="order-item">
-                  <div className="order-summary">
-                    <strong>Order #{order.id}</strong>
-                    <span>{order.total} ETB</span>
-                    <span>{new Date(order.createdAt).toLocaleDateString()}</span>
+              orders.map((order, idx) => {
+                const oid = String(order.id || order._id || order.orderId || order.order_id || idx);
+                return (
+                  <div key={order.id || order.orderId || order._id || idx} className="order-item">
+                    <div className="order-summary">
+                      <a
+                        href="#"
+                        onClick={(e) => { e.preventDefault(); navigate('/orders', { state: { openOrderId: oid } }); }}
+                        className="order-link"
+                      >
+                        <strong>Order #{oid}</strong>
+                      </a>
+                      <span>{order.total} ETB</span>
+                      <span>{new Date(order.createdAt).toLocaleDateString()}</span>
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         )}
