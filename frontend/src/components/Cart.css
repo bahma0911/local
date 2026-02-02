@@ -414,3 +414,87 @@
   color: var(--hx-text-muted);
   font-size: 0.9rem;
 }
+
+/* Mobile / Phone tweaks */
+@media (max-width: 600px) {
+  .cart-container {
+    padding: 8px;
+    margin-top: 8px;
+  }
+
+  .cart-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
+  }
+
+  .cart-title { font-size: 1.1rem; }
+  .cart-summary { font-size: 0.85rem; }
+
+  .shop-cart-body {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .cart-items { padding: 8px; align-items: stretch; }
+
+  .shop-cart-summary { width: 100%; order: 2; padding: 12px; }
+
+  .cart-item {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 12px 0;
+  }
+
+  .cart-item-info { margin-bottom: 8px; }
+
+  .cart-item-name { font-size: 1rem; }
+  .cart-item-price { font-size: 0.9rem; }
+
+  .cart-item-controls {
+    justify-content: flex-start;
+    gap: 10px;
+    padding: 6px 8px;
+    margin-bottom: 8px;
+  }
+
+  .quantity-btn { width: 28px; height: 28px; }
+  .cart-item-quantity { min-width: 26px; }
+
+  .cart-item-total {
+    text-align: left;
+    margin-bottom: 8px;
+    min-width: 0;
+  }
+
+  .cart-item-remove {
+    align-self: flex-start;
+    padding: 8px 10px;
+  }
+
+  .delivery-buttons { flex-wrap: wrap; gap: 8px; }
+
+  .order-summary {
+    padding: 18px;
+    margin: 14px 8px;
+    max-width: 100%;
+  }
+
+  .checkout-section { max-width: 100%; margin: 8px; }
+
+  .cart-footer { flex-direction: row; gap: 8px; }
+
+  .cart-clear-btn { padding: 8px 14px; }
+
+  .checkout-btn {
+    padding: 14px 18px;
+    max-width: 100%;
+    width: 100%;
+    border-radius: 10px;
+  }
+
+  .shop-cart-header { padding: 12px; }
+  .shop-delivery-options { padding: 10px 12px; }
+  .shop-summary-row, .order-summary-row { font-size: 0.95rem; }
+}
