@@ -25,11 +25,36 @@ const UserProfile = () => {
       if (!user) return;
       try {
         const data = await apiFetch(`${API_BASE}/api/orders/my`);
-        const userOrders = (data || []).filter(order => {
-          if (order.createdBy) return order.createdBy === user.username;
-          if (order.customerMeta?.username) return order.customerMeta.username === user.username;
-          return order.customer?.fullName === user.username;
-        }).reverse();
+        const matchesUser = (order) => {
+          if (!order) return false;
+          const uname = String(user.username || '').toLowerCase();
+          const uemail = String(user.email || '').toLowerCase();
+          const uid = String(user.id || user._id || user.userId || '').toLowerCase();
+
+          const createdBy = String(order.createdBy || order.created_by || '').toLowerCase();
+          if (createdBy && (createdBy === uname || createdBy === uemail || createdBy === uid)) return true;
+
+          const metaUser = String(order.customerMeta?.username || order.customerMeta?.user || '').toLowerCase();
+          const metaEmail = String(order.customerMeta?.email || '').toLowerCase();
+          if (metaUser && (metaUser === uname || metaUser === uemail)) return true;
+          if (metaEmail && (metaEmail === uemail || metaEmail === uname)) return true;
+
+          const cust = order.customer || {};
+          const custName = String(cust.fullName || cust.name || cust.username || '').toLowerCase();
+          const custEmail = String(cust.email || '').toLowerCase();
+          if (custName && (custName === uname || custName === uemail)) return true;
+          if (custEmail && (custEmail === uemail || custEmail === uname)) return true;
+
+          // fallback: check order.email or order.userId
+          const orderEmail = String(order.email || '').toLowerCase();
+          const orderUserId = String(order.userId || order.user_id || order.customerId || '').toLowerCase();
+          if (orderEmail && (orderEmail === uemail || orderEmail === uname)) return true;
+          if (orderUserId && (orderUserId === uid)) return true;
+
+          return false;
+        };
+
+        const userOrders = (data || []).filter(matchesUser).reverse();
         setOrders(userOrders);
       } catch (err) {
         console.error('Failed to fetch user orders', err);
