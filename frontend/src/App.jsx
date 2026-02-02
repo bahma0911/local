@@ -1,6 +1,6 @@
 // src/App.jsx - DEBUG VERSION
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import Home from "./pages/Home";
 import CartPage from "./pages/CartPage";
 import AdminLogin from "./pages/AdminLogin";
@@ -221,9 +221,9 @@ const AppContent = () => {
 
 function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <AppContent />
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 
