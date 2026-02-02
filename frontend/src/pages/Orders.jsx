@@ -1,5 +1,6 @@
 // src/pages/Orders.jsx - COMPLETE ENHANCED VERSION
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useCart } from '../hooks/useCart';
 import { useAuth } from '../hooks/useAuth';
 import "./Orders.css";
@@ -19,6 +20,7 @@ const Orders = () => {
 
   // Load user and orders from localStorage
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchMyOrders = async () => {
@@ -205,13 +207,13 @@ const Orders = () => {
 
     alert(`Added ${successCount} items to cart!`);
     setTimeout(() => {
-      window.location.href = '/';
+      navigate('/');
     }, 100);
   };
 
   const navigateTo = (path) => {
     setTimeout(() => {
-      window.location.href = path;
+      navigate(path);
     }, 100);
   };
 

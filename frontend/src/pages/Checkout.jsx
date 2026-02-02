@@ -1,5 +1,6 @@
 // src/pages/Checkout.jsx - CLEAN WORKING VERSION
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useCart } from '../hooks/useCart';
 import { useAuth } from '../hooks/useAuth';
 import "./Checkout.css";
@@ -17,6 +18,7 @@ const Checkout = () => {
   } = useCart();
 
   const { user, csrfToken } = useAuth();
+  const navigate = useNavigate();
   
   const [customerInfo, setCustomerInfo] = useState({
     fullName: user?.username || 'Test User',
@@ -336,13 +338,13 @@ const Checkout = () => {
           )}
           <div className="confirmation-actions">
             <button
-              onClick={() => window.location.href = '/'}
+              onClick={() => navigate('/')}
               className="continue-shopping-btn"
             >
               Continue Shopping
             </button>
             <button
-              onClick={() => window.location.href = '/orders'}
+              onClick={() => navigate('/orders')}
               className="view-tracking-btn"
             >
               View My Orders
@@ -359,7 +361,7 @@ const Checkout = () => {
         <h2>Your cart is empty</h2>
         <p>Add some items to your cart before checking out.</p>
         <button
-          onClick={() => window.location.href = '/'}
+          onClick={() => navigate('/')}
           className="continue-shopping-btn-large"
         >
           Continue Shopping

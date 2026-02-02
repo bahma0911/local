@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useReviewsWishlist } from '../hooks/useReviewsWishlist';
 import { useCart } from '../hooks/useCart';
@@ -8,6 +9,7 @@ const Wishlist = () => {
   const { user } = useAuth();
   const { getUserWishlist, removeFromWishlist } = useReviewsWishlist();
   const { addToCart } = useCart();
+  const navigate = useNavigate();
   
   const [wishlist, setWishlist] = useState([]);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -43,7 +45,7 @@ const Wishlist = () => {
 
   const navigateTo = (path) => {
     setTimeout(() => {
-      window.location.href = path;
+      navigate(path);
     }, 100);
   };
 
