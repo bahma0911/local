@@ -1809,8 +1809,19 @@ app.post('/api/orders', ordersLimiter, validate(schemas.orderCreate), async (req
 
     // Persist updated shops and orders
     if (!writeShops(shops)) return res.status(500).json({ message: 'Failed to persist shop stock changes' });
-    const order = { ...orderBase };
+    // Legacy JSON storage: avoid duplicates by checking the computed fingerprint
     const orders = readOrders();
+    try {
+      const fp = orderBase.__fingerprint;
+      if (fp) {
+        const recent = orders.find(o => o && o.fingerprint === fp && ((Date.now() - (new Date(o.createdAt).getTime())) <= (30 * 1000)));
+        if (recent) return res.status(200).json({ message: 'Duplicate order detected; returning existing order', order: recent });
+      }
+    } catch (e) {
+      // ignore fingerprint lookup errors
+    }
+
+    const order = { ...orderBase, fingerprint: orderBase.__fingerprint || null };
     orders.unshift(order);
     if (!writeOrders(orders)) return res.status(500).json({ message: 'Failed to persist order' });
 
