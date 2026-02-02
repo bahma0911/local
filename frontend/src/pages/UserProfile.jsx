@@ -182,7 +182,9 @@ const UserProfile = () => {
                       >
                         <strong>Order #{oid}</strong>
                       </a>
+                      <span> </span>
                       <span>{order.total} ETB</span>
+                      <span> </span>
                       <span>{new Date(order.createdAt).toLocaleDateString()}</span>
                     </div>
                   </div>
