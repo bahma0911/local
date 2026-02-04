@@ -117,10 +117,8 @@ const ShopList = ({ compact = false }) => {
     return shuffled.slice(0, 6);
   }, [shops]);
 
-  // For normal shop list view, when a category is selected show shops that have products in that category
-  const filteredShops = selectedCategory === "All"
-    ? shops
-    : shops.filter((shop) => (shop.products || []).some(p => (p.category || shop.category) === selectedCategory));
+  // For normal shop list view, always show shops; product lists per-shop are filtered by `selectedCategory`
+  const filteredShops = shops;
 
   return (
     <div className="shop-list-container">
@@ -289,14 +287,18 @@ const ShopList = ({ compact = false }) => {
           )}
 
           <div className="shop-grid">
-            {(compact && !showAllShops ? filteredShops.slice(0, visibleCount) : filteredShops).map((shop) => (
-              <ShopCard
-                key={shop.id}
-                shop={shop}
-                isSelected={selectedShop?.id === shop.id}
-                onClick={() => setSelectedShop(shop)}
-              />
-            ))}
+            {(compact && !showAllShops ? filteredShops.slice(0, visibleCount) : filteredShops).map((shop) => {
+              const matchingProducts = (shop.products || []).filter(p => selectedCategory === 'All' ? true : ((p.category || shop.category) === selectedCategory));
+              return (
+                <ShopCard
+                  key={shop.id}
+                  shop={shop}
+                  isSelected={selectedShop?.id === shop.id}
+                  onClick={() => setSelectedShop(selectedCategory === 'All' ? shop : { ...shop, products: matchingProducts })}
+                  productCount={matchingProducts.length}
+                />
+              );
+            })}
           </div>
 
           {/* If a shop is selected, show its products BEFORE random picks */}
