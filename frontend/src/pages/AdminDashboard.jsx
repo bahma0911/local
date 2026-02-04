@@ -14,7 +14,6 @@ const AdminDashboard = () => {
   const [shopOrders, setShopOrders] = useState([]);
   const [newShop, setNewShop] = useState({
     name: "",
-    category: "Electronics",
     deliveryFee: 50,
     minOrder: 0,
     address: '',
@@ -271,7 +270,7 @@ const AdminDashboard = () => {
       });
       setShops(prev => [...prev, data]);
       try { localStorage.setItem('updatedShops', JSON.stringify([...shops, data])); } catch {}
-      setNewShop({ name: "", category: "Electronics", deliveryFee: 50, minOrder: 0, address: '', owner: { username: "", password: "" } });
+      setNewShop({ name: "", deliveryFee: 50, minOrder: 0, address: '', owner: { username: "", password: "" } });
       alert("Shop created successfully!");
     } catch (err) {
       console.error(err);
@@ -579,7 +578,7 @@ const AdminDashboard = () => {
     // product controls removed
 
   // product form state for shop owners
-  const [newProduct, setNewProduct] = useState({ name: '', price: '', image: '', imageFile: null, description: '', inStock: true, stock: 1 });
+  const [newProduct, setNewProduct] = useState({ name: '', price: '', image: '', imageFile: null, description: '', inStock: true, stock: 1, category: '' });
   const [editingProductId, setEditingProductId] = useState(null);
   const [editingProduct, setEditingProduct] = useState(null);
   // declared above near top to ensure effects can reference it
@@ -612,9 +611,7 @@ const AdminDashboard = () => {
           <div className="create-shop-section">
             <h3>Create New Shop</h3>
             <input name="name" placeholder="Shop Name" value={newShop.name} onChange={handleNewShopInputChange} />
-            <select name="category" value={newShop.category} onChange={handleNewShopInputChange}>
-              {shopCategories.map(c => <option key={c}>{c}</option>)}
-            </select>
+            {/* Category removed from shop creation; categories are chosen per-product now */}
             <input name="address" placeholder="Shop address" value={newShop.address} onChange={handleNewShopInputChange} />
             <input type="number" name="deliveryFee" placeholder="Delivery fee" value={newShop.deliveryFee} onChange={handleNewShopInputChange} />
             <input type="number" name="minOrder" placeholder="Minimum order" value={newShop.minOrder} onChange={handleNewShopInputChange} />
@@ -631,9 +628,7 @@ const AdminDashboard = () => {
                 {editingShop?.id === shop.id ? (
                   <div>
                     <input name="name" value={editingShop.name} onChange={handleEditShopInputChange} />
-                    <select name="category" value={editingShop.category} onChange={handleEditShopInputChange}>
-                      {shopCategories.map(c => <option key={c}>{c}</option>)}
-                    </select>
+                    {/* Category removed from shop editing; keep shop category data unchanged on server */}
                     <input type="number" name="deliveryFee" placeholder="Delivery fee" value={editingShop.deliveryFee} onChange={handleEditShopInputChange} />
                     <input type="number" name="minOrder" placeholder="Minimum order" value={editingShop.minOrder} onChange={handleEditShopInputChange} />
                     <input name="owner.username" value={editingShop.owner.username} onChange={handleEditShopInputChange} />
@@ -643,7 +638,7 @@ const AdminDashboard = () => {
                   </div>
                 ) : (
                   <div>
-                    <p>{shop.name} | {shop.category} | Delivery: {shop.deliveryFee} ETB</p>
+                    <p>{shop.name} | Delivery: {shop.deliveryFee} ETB</p>
                     <p>Owner: {shop.owner.username}</p>
                     <button onClick={() => startEditingShop(shop)}>Edit</button>
                     <button onClick={() => deleteShopAPI(shop.id)}>Delete</button>
@@ -756,6 +751,10 @@ const AdminDashboard = () => {
           {ownerTab === 'add' && (
             <div className="add-product-form" style={{ marginTop: 20 }}>
               <input placeholder="Product name" value={newProduct.name} onChange={e => setNewProduct(prev => ({ ...prev, name: e.target.value }))} />
+              <select value={newProduct.category} onChange={e => setNewProduct(prev => ({ ...prev, category: e.target.value }))}>
+                <option value="">Select category</option>
+                {shopCategories.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
               <input placeholder="Price in ETB" type="number" value={newProduct.price} onChange={e => setNewProduct(prev => ({ ...prev, price: Number(e.target.value) }))} />
                 <input type="file" accept="image/*" onChange={e => setNewProduct(prev => ({ ...prev, imageFile: e.target.files && e.target.files[0] ? e.target.files[0] : null }))} />
               <input placeholder="Description" value={newProduct.description} onChange={e => setNewProduct(prev => ({ ...prev, description: e.target.value }))} />
@@ -836,6 +835,10 @@ const AdminDashboard = () => {
           {editingProductId && editingProduct && (
             <div className="edit-product-form">
               <h4>Edit Product</h4>
+              <select value={editingProduct.category || ''} onChange={e => setEditingProduct(prev => ({ ...prev, category: e.target.value }))}>
+                <option value="">Select category</option>
+                {shopCategories.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
               <input value={editingProduct.name} onChange={e => setEditingProduct(prev => ({ ...prev, name: e.target.value }))} />
               <input type="number" placeholder="Price in ETB" value={editingProduct.price} onChange={e => setEditingProduct(prev => ({ ...prev, price: Number(e.target.value) }))} />
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>

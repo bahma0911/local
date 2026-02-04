@@ -49,7 +49,7 @@
   right: 0;
   bottom: -8px;
   height: 1px;
-  background: rgba(255, 255, 255);
+  background: rgba(255, 255, 255, 0);
 }
 .orders-list > .order-card:last-child::after {
   display: none;
