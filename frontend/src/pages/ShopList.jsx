@@ -79,6 +79,7 @@ const ShopList = ({ compact = false }) => {
       ...product,
       shopName: shop.name,
       shopCategory: shop.category,
+      category: product.category || shop.category || '',
       shopId: shop.id
     }))
   );
@@ -96,7 +97,7 @@ const ShopList = ({ compact = false }) => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          product.shopName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesPrice = product.price >= priceRange[0] && (priceRange[1] === null || product.price <= priceRange[1]);
-    const matchesCategory = selectedCategory === "All" || product.shopCategory === selectedCategory;
+    const matchesCategory = selectedCategory === "All" || (product.category && product.category === selectedCategory);
     
     return matchesSearch && matchesPrice && matchesCategory;
   });
@@ -116,9 +117,10 @@ const ShopList = ({ compact = false }) => {
     return shuffled.slice(0, 6);
   }, [shops]);
 
+  // For normal shop list view, when a category is selected show shops that have products in that category
   const filteredShops = selectedCategory === "All"
     ? shops
-    : shops.filter((shop) => shop.category === selectedCategory);
+    : shops.filter((shop) => (shop.products || []).some(p => (p.category || shop.category) === selectedCategory));
 
   return (
     <div className="shop-list-container">
