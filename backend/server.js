@@ -1249,7 +1249,8 @@ app.get('/api/shops/:id/products', async (req, res) => {
             price: p.price ? p.price.amount : 0,
             image: (p.images && p.images.length) ? p.images[0] : '',
             description: p.description || '',
-            inStock: typeof p.stock !== 'undefined' ? (p.stock > 0) : true
+            inStock: typeof p.stock !== 'undefined' ? (p.stock > 0) : true,
+            category: p.category || null
           }));
           return res.json(mapped);
         }
@@ -1282,7 +1283,11 @@ app.post('/api/shops/:id/products', authenticate, validate(schemas.productCreate
   const maxPid = allProductIds.reduce((m, v) => Math.max(m, v), 0);
   // ensure inStock true by default when created from legacy endpoint
   const inStock = (typeof payload.inStock !== 'undefined') ? !!payload.inStock : true;
+  // Ensure category is persisted for legacy JSON products; fall back to shop.category when not provided
   const newProduct = { ...payload, id: maxPid + 1, inStock };
+  if (typeof newProduct.category === 'undefined' || newProduct.category === null) {
+    newProduct.category = shop.category || '';
+  }
   shop.products = shop.products || [];
   shop.products.push(newProduct);
   if (!writeShops(shops)) return res.status(500).json({ message: 'Failed to persist product' });
