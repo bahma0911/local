@@ -78,8 +78,10 @@ const ShopList = ({ compact = false }) => {
     (shop.products || []).map(product => ({
       ...product,
       shopName: shop.name,
-      // prefer product.category, fallback to shop.category for datasets that omit per-product category
-      category: product.category || shop.category || '',
+      // keep original product-level category only (do NOT inherit from shop)
+      category: product.category || '',
+      // normalized category for case-insensitive comparisons
+      categoryNormalized: (product.category || '').toLowerCase().trim(),
       shopId: shop.id
     }))
   );
@@ -92,12 +94,13 @@ const ShopList = ({ compact = false }) => {
     }
   }
 
-  // Search and filter logic
+  // Search and filter logic (use case-insensitive product-level category)
+  const selectedCategoryNormalized = selectedCategory.toLowerCase().trim();
   const filteredProducts = allProducts.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          product.shopName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesPrice = product.price >= priceRange[0] && (priceRange[1] === null || product.price <= priceRange[1]);
-    const matchesCategory = selectedCategory === "All" || (product.category && product.category === selectedCategory);
+    const matchesCategory = selectedCategoryNormalized === 'all' || (product.category && product.category.toLowerCase().trim() === selectedCategoryNormalized);
     
     return matchesSearch && matchesPrice && matchesCategory;
   });
@@ -292,7 +295,11 @@ const ShopList = ({ compact = false }) => {
 
           <div className="shop-grid">
             {(compact && !showAllShops ? filteredShops.slice(0, visibleCount) : filteredShops).map((shop) => {
-              const matchingProducts = (shop.products || []).filter(p => selectedCategory === 'All' ? true : ((p.category || shop.category) === selectedCategory));
+              const matchingProducts = (shop.products || []).filter(p => {
+                if (!p) return false;
+                if (selectedCategoryNormalized === 'all') return true;
+                return (p.category || '').toLowerCase().trim() === selectedCategoryNormalized;
+              });
               return (
                 <ShopCard
                   key={shop.id}
