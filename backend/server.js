@@ -1010,7 +1010,7 @@ app.get('/api/products', async (req, res) => {
         price: { amount: Math.floor(Number(p.price || 0)), currency: 'ETB' },
         images: p.image ? [p.image] : [],
         shopId: shopLegacyId,
-        category: s.category || null,
+        category: p.category || null,
         stock: (typeof p.inStock !== 'undefined') ? (p.inStock ? 1 : 0) : 0,
         status: 'active',
         attributes: {}
@@ -1152,7 +1152,6 @@ app.post('/api/shops', authenticate, validate(schemas.shopCreate), async (req, r
       const shopDoc = await ShopModel.create({
         legacyId: Number(newShop.id),
         name: newShop.name,
-        category: newShop.category,
         address: newShop.address,
         deliveryFee: newShop.deliveryFee || 0,
         deliveryServices: newShop.deliveryServices || [],
@@ -1192,7 +1191,6 @@ app.put('/api/shops/:id', authenticate, validate(schemas.shopUpdate), async (req
     try {
       await ShopModel.findOneAndUpdate({ legacyId: id }, {
         name: updated.name,
-        category: updated.category,
         address: updated.address,
         deliveryFee: updated.deliveryFee,
         deliveryServices: updated.deliveryServices || [],
@@ -1283,10 +1281,10 @@ app.post('/api/shops/:id/products', authenticate, validate(schemas.productCreate
   const maxPid = allProductIds.reduce((m, v) => Math.max(m, v), 0);
   // ensure inStock true by default when created from legacy endpoint
   const inStock = (typeof payload.inStock !== 'undefined') ? !!payload.inStock : true;
-  // Ensure category is persisted for legacy JSON products; fall back to shop.category when not provided
+  // Ensure category is persisted for legacy JSON products; do not fall back to shop.category
   const newProduct = { ...payload, id: maxPid + 1, inStock };
   if (typeof newProduct.category === 'undefined' || newProduct.category === null) {
-    newProduct.category = shop.category || '';
+    newProduct.category = '';
   }
   shop.products = shop.products || [];
   shop.products.push(newProduct);

@@ -64,7 +64,6 @@ const Cart = ({
                 {/* Shop Header */}
                 <div className="shop-cart-header">
                   <h3 className="shop-cart-name">🏪 {shop.name}</h3>
-                  <p className="shop-cart-category">{shop.category}</p>
                 </div>
 
                 {/* Delivery Option for this Shop */}

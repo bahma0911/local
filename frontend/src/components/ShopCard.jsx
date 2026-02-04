@@ -8,7 +8,7 @@ const ShopCard = ({ shop, isSelected, onClick, productCount }) => {
     >
       <div className="shop-card-header">
         <h2 className="shop-name">{shop.name}</h2>
-        <p className="shop-category">{shop.category}</p>
+        {/* shop category removed */}
         {/* Show product count when provided */}
         {productCount !== undefined && (
           <p className="shop-product-count">
