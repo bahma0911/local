@@ -59,6 +59,7 @@ const AdminDashboard = () => {
                 name: pp.name,
                 price: (pp.price && pp.price.amount) ? pp.price.amount : (typeof pp.price === 'number' ? pp.price : 0),
                 image: (pp.images && pp.images.length) ? pp.images[0] : (pp.image || ''),
+                category: pp.category || '',
                 description: pp.description || '',
                 stock: typeof pp.stock !== 'undefined' ? Number(pp.stock) : ((typeof pp.inStock !== 'undefined') ? (pp.inStock ? 1 : 0) : 0),
                 inStock: typeof pp.stock !== 'undefined' ? (Number(pp.stock) > 0) : ((typeof pp.inStock !== 'undefined') ? !!pp.inStock : true)
