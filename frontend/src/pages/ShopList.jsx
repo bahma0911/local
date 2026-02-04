@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import CategoryFilter from "../components/CategoryFilter";
 import ShopCard from "../components/ShopCard";
 import ProductList from "../components/ProductList";
-import { shops as initialShops } from "../data/shopsData";
+import { shops as initialShops, categories as fallbackCategories } from "../data/shopsData";
 import { useCart } from "../hooks/useCart";
 import apiFetch from "../utils/apiFetch";
 import { API_BASE } from '../utils/api';
@@ -94,7 +94,12 @@ const ShopList = ({ compact = false }) => {
       const c = (p.category || '').toString().trim();
       if (c) set.add(c);
     }
-    return Array.from(set);
+    const derived = Array.from(set);
+    // If only 'All' was found (no product-level categories), fall back to provided categories list
+    if (derived.length <= 1 && Array.isArray(fallbackCategories) && fallbackCategories.length > 1) {
+      return Array.from(new Set(fallbackCategories));
+    }
+    return derived;
   }, [allProducts]);
 
   // Ensure each product has an `inStock` boolean for UI consistency

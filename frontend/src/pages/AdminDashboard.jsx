@@ -533,7 +533,18 @@ const AdminDashboard = () => {
         if (c) s.add(c);
       }
     }
-    return Array.from(s);
+    const derived = Array.from(s);
+    // fallback to static categories from data if no product-level categories found
+    if (derived.length === 0) {
+      try {
+        // dynamic import to avoid top-level dependency if file changes
+        const { categories: fallback } = require('../data/shopsData');
+        if (Array.isArray(fallback)) return fallback.filter(c => c !== 'All');
+      } catch (e) {
+        // ignore and return empty
+      }
+    }
+    return derived;
   }, [shops]);
 
   // ===================== Input Handlers =====================
