@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from 'react-router-dom';
-import { categories } from "../data/shopsData"; // keep your categories list
+// product categories are computed dynamically from products (do not import shop-based categories)
 import { useAuth } from "../hooks/useAuth";
 import apiFetch from '../utils/apiFetch';
 import { API_BASE } from '../utils/api';
@@ -524,7 +524,17 @@ const AdminDashboard = () => {
 
   const _accessibleShops = isAdmin ? shops : shops.filter(shop => shop.id === assignedShop);
   const currentShop = shops.find(shop => shop.id === selectedShop?.id) || selectedShop;
-  const shopCategories = categories.filter(c => c !== "All");
+  // derive product categories from available products (exclude empty string)
+  const shopCategories = React.useMemo(() => {
+    const s = new Set();
+    for (const sh of shops) {
+      for (const p of (sh.products || [])) {
+        const c = (p && p.category) ? String(p.category).trim() : '';
+        if (c) s.add(c);
+      }
+    }
+    return Array.from(s);
+  }, [shops]);
 
   // ===================== Input Handlers =====================
   const handleNewShopInputChange = (e) => {

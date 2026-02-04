@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import CategoryFilter from "../components/CategoryFilter";
 import ShopCard from "../components/ShopCard";
 import ProductList from "../components/ProductList";
-import { shops as initialShops, categories } from "../data/shopsData";
+import { shops as initialShops } from "../data/shopsData";
 import { useCart } from "../hooks/useCart";
 import apiFetch from "../utils/apiFetch";
 import { API_BASE } from '../utils/api';
@@ -85,6 +85,17 @@ const ShopList = ({ compact = false }) => {
       shopId: shop.id
     }))
   );
+
+  // Build categories dynamically from product-level categories
+  const categories = React.useMemo(() => {
+    const set = new Set();
+    set.add('All');
+    for (const p of allProducts) {
+      const c = (p.category || '').toString().trim();
+      if (c) set.add(c);
+    }
+    return Array.from(set);
+  }, [allProducts]);
 
   // Ensure each product has an `inStock` boolean for UI consistency
   for (const p of allProducts) {
