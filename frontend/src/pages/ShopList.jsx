@@ -102,11 +102,7 @@ const ShopList = ({ compact = false }) => {
     return matchesSearch && matchesPrice && matchesCategory;
   });
 
-  // Group filtered products by shop for display
-  const shopsWithFilteredProducts = shops.map(shop => ({
-    ...shop,
-    products: filteredProducts.filter(product => product.shopId === shop.id)
-  })).filter(shop => shop.products.length > 0);
+  // (Removed shop-level filtering) — products are filtered in `filteredProducts` and per-shop where needed
 
   // Random products section: pick up to 6 random products from all shops
   const randomProducts = React.useMemo(() => {
@@ -210,18 +206,21 @@ const ShopList = ({ compact = false }) => {
           </h2>
           
           <div className="shop-grid">
-            {shopsWithFilteredProducts.map((shop) => (
-              <ShopCard
-                key={shop.id}
-                shop={shop}
-                isSelected={selectedShop?.id === shop.id}
-                onClick={() => setSelectedShop(shop)}
-                productCount={(shop.products || []).length}
-              />
-            ))}
+            {shops.map((shop) => {
+              const matchingCount = filteredProducts.filter(p => p.shopId === shop.id).length;
+              return (
+                <ShopCard
+                  key={shop.id}
+                  shop={shop}
+                  isSelected={selectedShop?.id === shop.id}
+                  onClick={() => setSelectedShop({ ...shop, products: filteredProducts.filter(p => p.shopId === shop.id) })}
+                  productCount={matchingCount}
+                />
+              );
+            })}
           </div>
 {/* Show products from all shops that match search */}
-          {shopsWithFilteredProducts.length > 0 && (
+          {filteredProducts.length > 0 && (
             <div className="mt-4">
               <h2 className="search-results-header">Search Results</h2>
               <div className="search-results-grid">
