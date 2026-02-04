@@ -190,18 +190,23 @@ const ShopList = ({ compact = false }) => {
         selectedCategory={selectedCategory}
         onSelect={(cat) => {
           setSelectedCategory(cat);
-          setSelectedShop(null);
           setSearchTerm("");
+          // If a shop is currently selected, update its product list to reflect the new category
+          if (selectedShop && selectedShop.id) {
+            const shopFull = shops.find(s => s.id === selectedShop.id) || selectedShop;
+            const matchingProducts = (shopFull.products || []).filter(p => cat === 'All' ? true : ((p.category) === cat));
+            setSelectedShop(cat === 'All' ? shopFull : { ...shopFull, products: matchingProducts });
+          }
         }}
       />
 
       {/* Search Results OR Normal Shop List */}
-      {searchTerm || (priceRange[1] !== null && priceRange[1] < 1000000000) ? (
+      {searchTerm || (priceRange[1] !== null && priceRange[1] < 1000000000) || (selectedCategory !== 'All') ? (
         // Search Results View
         <div>
           <h2 className="search-results-header">
             {filteredProducts.length} products found
-            {searchTerm && ` for "${searchTerm}"`}
+            {searchTerm ? ` for "${searchTerm}"` : (selectedCategory !== 'All' ? ` in "${selectedCategory}"` : '')}
           </h2>
           
           <div className="shop-grid">
