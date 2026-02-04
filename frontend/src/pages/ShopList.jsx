@@ -78,7 +78,8 @@ const ShopList = ({ compact = false }) => {
     (shop.products || []).map(product => ({
       ...product,
       shopName: shop.name,
-      category: product.category || '',
+      // prefer product.category, fallback to shop.category for datasets that omit per-product category
+      category: product.category || shop.category || '',
       shopId: shop.id
     }))
   );
@@ -291,7 +292,7 @@ const ShopList = ({ compact = false }) => {
 
           <div className="shop-grid">
             {(compact && !showAllShops ? filteredShops.slice(0, visibleCount) : filteredShops).map((shop) => {
-              const matchingProducts = (shop.products || []).filter(p => selectedCategory === 'All' ? true : ((p.category) === selectedCategory));
+              const matchingProducts = (shop.products || []).filter(p => selectedCategory === 'All' ? true : ((p.category || shop.category) === selectedCategory));
               return (
                 <ShopCard
                   key={shop.id}
