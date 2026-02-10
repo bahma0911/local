@@ -236,7 +236,7 @@ const ShopList = ({ compact = false }) => {
           </h2>
           
           <div className="shop-grid">
-            {shops.map((shop) => {
+            {displayedShops.map((shop) => {
               const matchingCount = filteredProducts.filter(p => p.shopId === shop.id).length;
               return (
                 <ShopCard
