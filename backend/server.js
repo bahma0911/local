@@ -756,6 +756,7 @@ app.get('/api/shops', async (req, res) => {
                   price: p.price.amount,
                   image: (p.images && p.images.length) ? p.images[0] : (p.image || ''),
                   description: p.description || '',
+                  category: (p.category || '').toString(),
                   stock: (typeof p.stock !== 'undefined') ? Number(p.stock) : 0,
                   inStock: (typeof p.stock !== 'undefined') ? (p.stock > 0) : true
                 };
@@ -768,6 +769,7 @@ app.get('/api/shops', async (req, res) => {
                 price: legacyPrice,
                 image: p.image || (p.images && p.images.length ? p.images[0] : ''),
                 description: p.description || '',
+                category: (p.category || '').toString(),
                 stock: (typeof p.stock !== 'undefined') ? Number(p.stock) : ((typeof p.inStock !== 'undefined') ? (p.inStock ? 1 : 0) : 0),
                 inStock: (typeof p.stock !== 'undefined') ? (Number(p.stock) > 0) : ((typeof p.inStock !== 'undefined') ? !!p.inStock : true)
               };

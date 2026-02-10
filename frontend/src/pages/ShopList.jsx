@@ -86,21 +86,6 @@ const ShopList = ({ compact = false }) => {
     }))
   );
 
-  // Build categories dynamically from product-level categories
-  const categories = React.useMemo(() => {
-    const set = new Set();
-    set.add('All');
-    for (const p of allProducts) {
-      const c = (p.category || '').toString().trim();
-      if (c) set.add(c);
-    }
-    const derived = Array.from(set);
-    // If only 'All' was found (no product-level categories), fall back to provided categories list
-    if (derived.length <= 1 && Array.isArray(fallbackCategories) && fallbackCategories.length > 1) {
-      return Array.from(new Set(fallbackCategories));
-    }
-    return derived;
-  }, [allProducts]);
 
   // Ensure each product has an `inStock` boolean for UI consistency
   for (const p of allProducts) {
@@ -110,14 +95,28 @@ const ShopList = ({ compact = false }) => {
     }
   }
 
+  // Build categories dynamically from product-level categories
+  const categories = React.useMemo(() => {
+    const set = new Set();
+    set.add('All');
+    for (const p of allProducts) {
+      const c = (p.category || '').toString().trim();
+      if (c) set.add(c);
+    }
+    const derived = Array.from(set);
+    if (derived.length <= 1 && Array.isArray(fallbackCategories) && fallbackCategories.length > 1) {
+      return Array.from(new Set(fallbackCategories));
+    }
+    return derived;
+  }, [allProducts]);
+
   // Search and filter logic (use case-insensitive product-level category)
-  const selectedCategoryNormalized = selectedCategory.toLowerCase().trim();
+  const selectedCategoryNormalized = (selectedCategory || 'All').toLowerCase().trim();
   const filteredProducts = allProducts.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          product.shopName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesPrice = product.price >= priceRange[0] && (priceRange[1] === null || product.price <= priceRange[1]);
     const matchesCategory = selectedCategoryNormalized === 'all' || (product.category && product.category.toLowerCase().trim() === selectedCategoryNormalized);
-    
     return matchesSearch && matchesPrice && matchesCategory;
   });
 
@@ -204,21 +203,22 @@ const ShopList = ({ compact = false }) => {
         </div>
       </div>
 
-      {/* Category Filter */}
-      <CategoryFilter
-        categories={categories}
-        selectedCategory={selectedCategory}
-        onSelect={(cat) => {
-          setSelectedCategory(cat);
-          setSearchTerm("");
-          // If a shop is currently selected, update its product list to reflect the new category
-          if (selectedShop && selectedShop.id) {
-            const shopFull = shops.find(s => s.id === selectedShop.id) || selectedShop;
-            const matchingProducts = (shopFull.products || []).filter(p => cat === 'All' ? true : ((p.category) === cat));
-            setSelectedShop(cat === 'All' ? shopFull : { ...shopFull, products: matchingProducts });
-          }
-        }}
-      />
+      {/* Category Filter (compact/home only) */}
+      {compact && (
+        <CategoryFilter
+          categories={categories}
+          selectedCategory={selectedCategory}
+          onSelect={(cat) => {
+            setSelectedCategory(cat);
+            setSearchTerm("");
+            if (selectedShop && selectedShop.id) {
+              const shopFull = shops.find(s => s.id === selectedShop.id) || selectedShop;
+              const matchingProducts = (shopFull.products || []).filter(p => cat === 'All' ? true : ((p.category || '') === cat));
+              setSelectedShop(cat === 'All' ? shopFull : { ...shopFull, products: matchingProducts });
+            }
+          }}
+        />
+      )}
 
       {/* Search Results OR Normal Shop List */}
       {searchTerm || (priceRange[1] !== null && priceRange[1] < 1000000000) || (selectedCategory !== 'All') ? (
