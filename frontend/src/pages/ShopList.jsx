@@ -19,6 +19,7 @@ const ShopList = ({ compact = false }) => {
   // compact mode: show limited number on home page and toggle to reveal others
   const [showAllShops, setShowAllShops] = useState(false);
   const [visibleCount, setVisibleCount] = useState(3);
+  const [expandedShops, setExpandedShops] = useState([]); // shop ids that are expanded in the list
 
   useEffect(() => {
     if (!compact) return;
@@ -131,8 +132,13 @@ const ShopList = ({ compact = false }) => {
     return shuffled.slice(0, 6);
   }, [shops]);
 
-  // For normal shop list view, always show shops; product lists per-shop are filtered by `selectedCategory`
+  // For normal shop list view, show all shops when no filters are active.
+  // When any filter (search/price/category) is active, only show shops that have matching products.
   const filteredShops = shops;
+  const hasActiveFilters = Boolean(searchTerm) || (priceRange[1] !== null && priceRange[1] < 1000000000) || (selectedCategory !== 'All');
+  const displayedShops = hasActiveFilters
+    ? filteredShops.filter(shop => filteredProducts.some(p => p.shopId === shop.id))
+    : filteredShops;
 
   return (
     <div className="shop-list-container">
@@ -310,20 +316,32 @@ const ShopList = ({ compact = false }) => {
           )}
 
           <div className="shop-grid">
-            {(compact && !showAllShops ? filteredShops.slice(0, visibleCount) : filteredShops).map((shop) => {
+            {(compact && !showAllShops ? displayedShops.slice(0, visibleCount) : displayedShops).map((shop) => {
               const matchingProducts = (shop.products || []).filter(p => {
                 if (!p) return false;
                 if (selectedCategoryNormalized === 'all') return true;
                 return (p.category || '').toLowerCase().trim() === selectedCategoryNormalized;
               });
+
+              const isExpanded = expandedShops.includes(shop.id);
+
               return (
-                <ShopCard
-                  key={shop.id}
-                  shop={shop}
-                  isSelected={selectedShop?.id === shop.id}
-                  onClick={() => setSelectedShop(selectedCategory === 'All' ? shop : { ...shop, products: matchingProducts })}
-                  productCount={matchingProducts.length}
-                />
+                <div key={shop.id} className="shop-list-item">
+                  <ShopCard
+                    shop={shop}
+                    isSelected={selectedShop?.id === shop.id}
+                    onClick={() => {
+                      // toggle expand
+                      setExpandedShops(prev => prev.includes(shop.id) ? prev.filter(id => id !== shop.id) : [...prev, shop.id]);
+                    }}
+                    productCount={matchingProducts.length}
+                  />
+                  {isExpanded && matchingProducts.length > 0 && (
+                    <div className="shop-expanded-products">
+                      <ProductList shop={{ ...shop, products: matchingProducts }} onAddToCart={addToCart} />
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>
