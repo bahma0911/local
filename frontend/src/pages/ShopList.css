@@ -145,16 +145,10 @@
 /* Shop grid */
 .shop-grid {
   display: grid;
-  gap: clamp(1rem, 3vw, 1.75rem);
-  /* Default to 3 columns on larger screens, 2 on small screens */
-  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(0.75rem, 2.5vw, 1.5rem);
+  /* responsive columns that adapt to width */
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   margin-bottom: 40px;
-}
-
-@media (max-width: 640px) {
-  .shop-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
 }
 
 /* Compact header used on home page to toggle showing all shops */
