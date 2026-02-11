@@ -175,6 +175,13 @@ const Checkout = () => {
 
     if (!validateCustomerInfo()) return;
 
+    // Require login before placing order
+    if (!user) {
+      alert('Please login to place an order');
+      navigate('/login');
+      return;
+    }
+
     // Ensure captcha is solved
     if (!captchaToken) {
       alert('Please verify that you are not a robot');
