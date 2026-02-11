@@ -1,5 +1,6 @@
 // src/pages/Checkout.jsx - CLEAN WORKING VERSION
 import React, { useState } from 'react';
+import ReCAPTCHA from 'react-google-recaptcha';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../hooks/useCart';
 import { useAuth } from '../hooks/useAuth';
@@ -30,6 +31,7 @@ const Checkout = () => {
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [orderCompleted, setOrderCompleted] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState(null);
   const [orderNumber, setOrderNumber] = useState('');
   const [completionMessage, setCompletionMessage] = useState('');
   const [recentCheckoutUrl, setRecentCheckoutUrl] = useState('');
@@ -173,6 +175,12 @@ const Checkout = () => {
 
     if (!validateCustomerInfo()) return;
 
+    // Ensure captcha is solved
+    if (!captchaToken) {
+      alert('Please verify that you are not a robot');
+      return;
+    }
+
     setIsProcessing(true);
 
     try {
@@ -219,7 +227,7 @@ const Checkout = () => {
         try {
           const data = await apiFetch(`${API_BASE}/api/orders`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) },
+            headers: { 'Content-Type': 'application/json', ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}), 'x-captcha-token': captchaToken },
             body: JSON.stringify(payload)
           });
           serverResults.push({ shopId, ok: true, data });
@@ -501,6 +509,14 @@ const Checkout = () => {
                   <span>{totalAmount} ETB</span>
                 </div>
               </div>
+            </div>
+
+            {/* reCAPTCHA - required before placing order */}
+            <div style={{ margin: '18px 0' }}>
+              <ReCAPTCHA
+                sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
+                onChange={(token) => setCaptchaToken(token)}
+              />
             </div>
 
             <button
