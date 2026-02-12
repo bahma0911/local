@@ -51,8 +51,8 @@ const corsOptions = {
   },
   credentials: true,
   // Include PATCH and commonly used custom headers to satisfy preflight checks
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-CSRF-Token", "X-Requested-With"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-CSRF-Token", "X-Requested-With", "X-Captcha-Token", "x-captcha-token"],
 };
 
 app.use(cors(corsOptions));
@@ -1615,9 +1615,17 @@ app.get('/api/shops/:id/orders', requireAuth, async (req, res) => {
 // POST /api/orders - create an order as an authenticated customer
 app.post('/api/orders', ordersLimiter, validate(schemas.orderCreate), async (req, res) => {
   const payload = req.body || {};
-  const { shopId, items: rawItems, total, paymentMethod } = payload;
-  // Read auth cookie if present so authenticated customers' orders are associated
+  // Require authenticated user for creating orders
   const authUser = await getUserFromRequest(req);
+  if (!authUser) return res.status(401).json({ message: 'Authentication required' });
+  const { shopId, items: rawItems, total, paymentMethod } = payload;
+  // authUser already resolved above (used to decide captcha requirement)
+  // Development debug logging to help diagnose order creation issues
+  if (process.env.NODE_ENV !== 'production') {
+    try {
+      console.log('POST /api/orders - requestId=', req.id, 'user=', authUser ? { username: authUser.username, role: authUser.role } : null, 'shopId=', shopId, 'itemsCount=', Array.isArray(rawItems) ? rawItems.length : 0, 'total=', total);
+    } catch (e) { /* ignore logging errors */ }
+  }
   const items = (Array.isArray(rawItems) ? rawItems : []).map(i => ({
     productId: i.productId ?? i.id ?? i.product ?? null,
     name: i.name ?? i.title ?? '',
