@@ -259,6 +259,14 @@ const ShopList = ({ compact = false }) => {
                     key={product.id + '-' + product.shopId}
                     className="search-product-card"
                   >
+                    <div className="search-product-media">
+                      <img
+                        src={product.image || product.imageUrl || ''}
+                        alt={product.name}
+                        className="search-product-image"
+                        onError={(e) => { e.target.onerror = null; e.target.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=300&fit=crop'; }}
+                      />
+                    </div>
                     <h3 className="search-product-name">{product.name}</h3>
                     <p className="search-product-shop">
                       {product.shopName}
