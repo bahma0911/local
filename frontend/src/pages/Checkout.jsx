@@ -409,10 +409,9 @@ const Checkout = () => {
 
   return (
     <div className="checkout-container">
-      <h1 className="checkout-title">Checkout</h1>
-      
       <div className="checkout-grid">
         <div className="customer-form">
+          <h1 className="checkout-title">Checkout</h1>
           <form onSubmit={handleSubmitOrder}>
             <div className="form-section">
               <h3 className="form-section-title">Customer Information</h3>

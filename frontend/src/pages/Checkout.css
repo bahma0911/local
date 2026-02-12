@@ -16,6 +16,12 @@
   font-family: var(--hx-font-heading);
 }
 
+/* When title is placed inside the customer-form column, left-align it for better layout */
+.customer-form .checkout-title {
+  text-align: left;
+  margin-bottom: 18px;
+}
+
 .checkout-container {
   padding: 30px 20px;
   /* cap the maximum container width to avoid layout stretching on very large displays */
