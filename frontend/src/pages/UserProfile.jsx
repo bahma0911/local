@@ -241,7 +241,7 @@ function ThemeToggleInline() {
         padding: '8px 12px',
         borderRadius: 8,
         border: '1px solid var(--border-color)',
-        background: 'var(--card-bg)',
+        background: '#454959e2',
         cursor: 'pointer'
       }}
     >
