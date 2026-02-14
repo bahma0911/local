@@ -134,7 +134,7 @@
   --input-bg: #ffffff;
   --navbar-bg: linear-gradient(
       120deg,
-      rgba(29, 51, 98, 0.85) 0%,
+      rgb(17, 45, 105) 0%,
       rgba(49, 68, 108, 0.85) 35%,
       #ffffff 100%
   );
