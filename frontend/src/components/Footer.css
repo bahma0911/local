@@ -13,12 +13,14 @@
   max-width: 1100px;
   margin: 0 auto;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
+  gap: 8px;
 }
 .footer-contact {
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  gap: 6px;
   align-items: center;
 }
 .footer-link {
@@ -28,5 +30,5 @@
 .footer-link:hover {
   text-decoration: underline;
 }
-.sep { color: var(--muted, #888); margin: 0 6px; }
+.sep { display: none; }
 .footer-copy { color: var(--muted, #666); }
