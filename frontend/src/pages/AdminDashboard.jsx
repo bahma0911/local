@@ -14,7 +14,7 @@ const AdminDashboard = () => {
   const [shopOrders, setShopOrders] = useState([]);
   const [newShop, setNewShop] = useState({
     name: "",
-    deliveryFee: 50,
+    deliveryFee: '',
     address: '',
     phone: '',
     geo: null, // optional { lat, lng }
