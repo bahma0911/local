@@ -64,8 +64,11 @@
 }
 
 .product-name {
-  color: #cdd2df;
-
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: var(--hx-text);
+  font-family: var(--hx-font-heading);
 }
 
   --hx-text: #222d43;
