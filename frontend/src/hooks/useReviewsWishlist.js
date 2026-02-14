@@ -4,7 +4,12 @@ import { useState, useEffect } from 'react';
 export const useReviewsWishlist = () => {
   const [reviews, setReviews] = useState(() => {
     const saved = localStorage.getItem('productReviews');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const parsed = saved ? JSON.parse(saved) : [];
+      return Array.isArray(parsed) ? parsed.map(r => ({ ...r, productId: typeof r.productId === 'undefined' ? r.product : String(r.productId) })) : [];
+    } catch (err) {
+      return [];
+    }
   });
 
   const [wishlist, setWishlist] = useState(() => {
@@ -16,7 +21,7 @@ export const useReviewsWishlist = () => {
   const addReview = (productId, rating, comment, username) => {
     const newReview = {
       id: Date.now(),
-      productId,
+      productId: String(productId),
       rating,
       comment,
       username,
@@ -28,7 +33,7 @@ export const useReviewsWishlist = () => {
   };
 
   const getProductReviews = (productId) => {
-    return reviews.filter(review => review.productId === productId);
+    return reviews.filter(review => String(review.productId) === String(productId));
   };
 
   const getProductRating = (productId) => {
@@ -77,7 +82,7 @@ export const useReviewsWishlist = () => {
         const r = detail.review || {};
         const newReview = {
           id: r._id || r.id || Date.now(),
-          productId: detail.productId,
+          productId: String(detail.productId),
           rating: Number(r.rating) || 0,
           comment: r.comment || '',
           username: (r.user && r.user.username) || r.username || 'you',
