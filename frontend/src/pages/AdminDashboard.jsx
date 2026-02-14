@@ -706,7 +706,6 @@ const AdminDashboard = () => {
                 {editingShop?.id === shop.id ? (
                   <div>
                     <input name="name" value={editingShop.name} onChange={handleEditShopInputChange} />
-                    {/* Category removed from shop editing; keep shop category data unchanged on server */}
                     <input type="number" name="deliveryFee" placeholder="Delivery fee" value={editingShop.deliveryFee} onChange={handleEditShopInputChange} />
                     <input name="phone" placeholder="Shop phone number" value={editingShop.phone || ''} onChange={handleEditShopInputChange} />
                     <input name="owner.username" value={editingShop.owner.username} onChange={handleEditShopInputChange} />

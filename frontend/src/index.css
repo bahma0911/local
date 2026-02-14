@@ -111,6 +111,10 @@
   color: #d1c0c0;
 }
 
+.shop-card h3 {
+  color: #fff;
+}
+
 .pd-review-user{color:#adacbc}
 .pd-review-date{color:#f9f9f9}
 .pd-review-comment{color:#adacbc}
