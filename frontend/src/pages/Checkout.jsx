@@ -22,11 +22,11 @@ const Checkout = () => {
   const navigate = useNavigate();
   
   const [customerInfo, setCustomerInfo] = useState({
-    fullName: user?.username || 'Test User',
-    email: user?.email || 'test@example.com',
-    phone: user?.phone || '0912345678',
-    address: user?.address || 'Test Address',
-    city: user?.city || 'Addis Ababa',
+    fullName: user?.username || '',
+    email: user?.email || '',
+    phone: user?.phone || '',
+    address: user?.address || '',
+    city: user?.city || '',
   });
 
   const [isProcessing, setIsProcessing] = useState(false);
