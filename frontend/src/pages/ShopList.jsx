@@ -258,6 +258,11 @@ const ShopList = ({ compact = false }) => {
                   <div
                     key={product.id + '-' + product.shopId}
                     className="search-product-card"
+                    onClick={() => {
+                      const pid = String(product.id || product._id || '');
+                      const navId = pid.includes('-') ? pid : `${product.shopId}-${pid}`;
+                      window.location.hash = `#/product/${navId}`;
+                    }}
                   >
                     <div className="search-product-media">
                       <img
@@ -276,13 +281,13 @@ const ShopList = ({ compact = false }) => {
                     </p>
                     <div className="search-product-actions">
                       <button
-                        onClick={() => addToCart(product, "Pickup", product.shopId)}
+                        onClick={(e) => { e.stopPropagation(); addToCart(product, "Pickup", product.shopId); }}
                         className="product-action-btn pickup"
                       >
                         Pickup
                       </button>
                       <button
-                        onClick={() => addToCart(product, "Delivery", product.shopId)}
+                        onClick={(e) => { e.stopPropagation(); addToCart(product, "Delivery", product.shopId); }}
                         className="product-action-btn delivery"
                       >
                         Delivery
@@ -363,15 +368,23 @@ const ShopList = ({ compact = false }) => {
               <h2 className="random-products-title">Random Picks</h2>
               <div className="random-products-grid">
                 {randomProducts.map(p => (
-                  <div key={`${p.id}-${p.shopId}`} className="random-product-card">
+                  <div
+                    key={`${p.id}-${p.shopId}`}
+                    className="random-product-card"
+                    onClick={() => {
+                      const pid = String(p.id || p._id || '');
+                      const navId = pid.includes('-') ? pid : `${p.shopId}-${pid}`;
+                      window.location.hash = `#/product/${navId}`;
+                    }}
+                  >
                     <img src={p.image} alt={p.name} onError={(e)=>{e.target.src='https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=300&fit=crop'}} />
                     <div className="rpc-info">
                       <div className="rpc-name">{p.name}</div>
                       <div className="rpc-shop">{p.shopName}</div>
                       <div className="rpc-price">{p.price} ETB</div>
                       <div className="rpc-actions">
-                        <button onClick={() => addToCart(p, 'Pickup', p.shopId)} className="rpc-btn pickup">Pickup</button>
-                        <button onClick={() => addToCart(p, 'Delivery', p.shopId)} className="rpc-btn delivery">Delivery</button>
+                        <button onClick={(e) => { e.stopPropagation(); addToCart(p, 'Pickup', p.shopId); }} className="rpc-btn pickup">Pickup</button>
+                        <button onClick={(e) => { e.stopPropagation(); addToCart(p, 'Delivery', p.shopId); }} className="rpc-btn delivery">Delivery</button>
                       </div>
                     </div>
                   </div>

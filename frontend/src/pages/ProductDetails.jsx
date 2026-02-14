@@ -55,7 +55,7 @@ const ProductDetails = () => {
           <h2>{product.name}</h2>
           <div style={{ margin: '8px 0' }}><strong>Price:</strong> {product.price && product.price.amount ? product.price.amount : (product.price || 0)} ETB</div>
           <div style={{ margin: '8px 0' }}>
-            <strong>Condition:</strong> <span style={{ padding: '4px 8px', background: product.condition === 'used' ? '#ffc' : '#cfc', borderRadius: 6 }}>{(product.condition || 'new').toUpperCase()}</span>
+            <strong>Condition:</strong> <span style={{ padding: '4px 8px', background: product.condition === 'used' ? '#ffc' : 'rgb(233, 132, 31)', borderRadius: 6 }}>{(product.condition || 'new').toUpperCase()}</span>
           </div>
 
           <div style={{ marginTop: 12 }}>

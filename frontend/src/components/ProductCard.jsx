@@ -56,14 +56,22 @@ const ProductCard = ({ product, onAddToCart, shopId }) => {
   const navigate = useNavigate();
 
   return (
-    <div className={`product-card ${available ? 'in-stock' : 'out-of-stock'}`}>
+    <div
+      className={`product-card ${available ? 'in-stock' : 'out-of-stock'}`}
+      onClick={() => {
+        const pid = String(product.id || product._id || '');
+        const shopPart = product.shopId || shopId || '';
+        const navId = pid.includes('-') ? pid : (shopPart ? `${shopPart}-${pid}` : pid);
+        navigate(`/product/${navId}`);
+      }}
+    >
       <div className="product-image-container">
         <img 
           src={product.image || (product.images && product.images[0])} 
           alt={product.name}
           className="product-image"
           onError={(e) => { e.target.src = "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=300&fit=crop"; }}
-          onClick={() => navigate(`/product/${product.id || product._id || product.id}`)}
+          onClick={(e) => { e.stopPropagation(); const pid = String(product.id || product._id || ''); const shopPart = product.shopId || shopId || ''; const navId = pid.includes('-') ? pid : (shopPart ? `${shopPart}-${pid}` : pid); navigate(`/product/${navId}`); }}
         />
         {!available && (
           <div className="out-of-stock-overlay">Out of Stock</div>
@@ -71,7 +79,7 @@ const ProductCard = ({ product, onAddToCart, shopId }) => {
         
         <button 
           className={`wishlist-btn ${inWishlist ? 'in-wishlist' : ''}`}
-          onClick={handleWishlistToggle}
+          onClick={(e) => { e.stopPropagation(); handleWishlistToggle(); }}
         >
           {inWishlist ? '❤️' : '🤍'}
         </button>
@@ -103,14 +111,14 @@ const ProductCard = ({ product, onAddToCart, shopId }) => {
       
       <div className="product-actions">
         <button
-          onClick={() => onAddToCart(product, "Pickup", shopId)}
+          onClick={(e) => { e.stopPropagation(); onAddToCart(product, "Pickup", shopId); }}
           className="product-action-btn pickup"
           disabled={!available}
         >
           Pickup
         </button>
         <button
-          onClick={() => onAddToCart(product, "Delivery", shopId)}
+          onClick={(e) => { e.stopPropagation(); onAddToCart(product, "Delivery", shopId); }}
           className="product-action-btn delivery"
           disabled={!available}
         >
