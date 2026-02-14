@@ -55,7 +55,7 @@
 
 .price-filter {
   
-  background: rgba(42, 55, 128);
+  background: rgba(29, 51, 98, 0.85);
 }
 
 .category-filter {
@@ -135,7 +135,7 @@
   --navbar-bg: linear-gradient(
       120deg,
       rgb(17, 45, 105) 0%,
-      rgba(49, 68, 108, 0.85) 45%,
+      rgba(49, 68, 108, 0.85) 55%,
       #ffffff 100%
   );
 
