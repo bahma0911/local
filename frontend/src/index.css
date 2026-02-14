@@ -44,33 +44,45 @@
 
 /* Light theme overrides */
 [data-theme="light"] {
-  --hx-bg: #f8fafc;
-  --hx-surface: #ffffff;
-  --hx-card: #ffffff;
-  --hx-card-muted: #f1f5f9;
-  --hx-border: rgba(15, 23, 42, 0.06);
-  --hx-border-strong: rgba(2,6,23,0.08);
-  --hx-text: #0f172a;
-  --hx-text-muted: #475569;
-  --hx-primary: #2563eb;
-  --hx-primary-hover: #1e40af;
-  --hx-secondary: #2563eb;
-  --hx-accent: #0891b2;
-  --hx-accent: #0891b2;
-  --hx-success: #059669;
-  --hx-warning: #d97706;
-  --hx-danger: #ef4444;
-  --hx-gradient: none;
+  /* Page */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-tertiary: #f1f5f9;
 
-  /* aliases */
-  --bg-primary: var(--hx-bg);
-  --bg-secondary: var(--hx-surface);
-  --text-primary: var(--hx-text);
-  --text-secondary: var(--hx-text-muted);
-  --card-bg: var(--hx-card);
-  --border-color: rgba(2,6,23,0.06);
-  --button-bg: linear-gradient(120deg, var(--hx-primary), var(--hx-secondary));
+  /* Text */
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+
+  /* Surfaces */
+  --card-bg: #ffffff;
+  --input-bg: #ffffff;
+  --navbar-bg: #ffffff;
+
+  /* Borders */
+  --border-color: #e2e8f0;
+  --border-light: #f1f5f9;
+
+  /* Brand / Accent */
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+
+  /* Status */
+  --success: #16a34a;
+  --danger: #dc2626;
+  --warning: #f59e0b;
+
+  /* Effects */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 10px 25px rgba(0,0,0,0.12);
+
+  /* Buttons */
+  --button-bg: var(--accent);
   --button-text: #ffffff;
+  --button-hover: var(--accent-hover);
+
+  /* Overlays */
   --overlay-1: rgba(2,6,23,0.03);
   --overlay-2: rgba(2,6,23,0.06);
 }
@@ -90,8 +102,8 @@
 
 body {
   font-family: var(--hx-font-body);
-  background: var(--hx-bg);
-  color: var(--hx-text);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
   line-height: 1.7;
   min-height: 100vh;
   letter-spacing: -0.01em;
@@ -183,12 +195,11 @@ select {
 .category-card,
 .dashboard-card,
 .order-card {
-  background: linear-gradient(150deg, rgba(18,27,47,0.95), rgba(13,20,36,0.9));
-  border: 1px solid var(--hx-border);
+  background: var(--card-bg);
+  border: 1px solid var(--border-light);
   border-radius: var(--hx-radius);
-  box-shadow: var(--hx-shadow-card);
+  box-shadow: var(--shadow-sm);
   padding: 1.5rem;
-  backdrop-filter: blur(18px);
   transition: transform 0.3s ease, border-color 0.25s ease, box-shadow 0.3s ease;
 }
 
@@ -198,8 +209,8 @@ select {
 .dashboard-card:hover,
 .order-card:hover {
   transform: translateY(-6px);
-  border-color: var(--hx-border-strong);
-  box-shadow: 0 25px 80px rgba(8, 12, 30, 0.65);
+  border-color: var(--border-color);
+  box-shadow: var(--shadow-md);
 }
 
 .btn,
@@ -207,23 +218,24 @@ button,
 input[type="submit"],
 .submit-order-btn,
 .nav-button {
-  background: linear-gradient(120deg, var(--hx-primary), var(--hx-secondary));
+  background: var(--button-bg);
   color: var(--button-text);
   font-weight: 600;
   padding: 0.85rem 1.4rem;
   border-radius: var(--hx-radius-pill);
   border: none;
   cursor: pointer;
-  transition: transform 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
-  box-shadow: 0 10px 30px rgba(99, 102, 241, 0.35);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+  box-shadow: var(--shadow-sm);
 }
 
 .btn:hover,
 button:hover,
 .nav-button:hover,
 .submit-order-btn:hover {
-  transform: translateY(-2px) scale(1.01);
-  box-shadow: 0 20px 40px rgba(255, 107, 44, 0.35);
+  transform: translateY(-2px);
+  background: var(--button-hover);
+  box-shadow: var(--shadow-md);
 }
 
 .btn:disabled,
@@ -254,12 +266,11 @@ textarea,
 .form-textarea {
   width: 100%;
   border-radius: var(--hx-radius-sm);
-  border: 1px solid rgba(148, 163, 184, 0.25);
-  background: rgba(15, 23, 42, 0.6);
-  color: var(--hx-text);
+  border: 1px solid var(--border-color);
+  background: var(--input-bg);
+  color: var(--text-primary);
   padding: 0.85rem 1rem;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-  backdrop-filter: blur(16px);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 input:focus,
@@ -268,8 +279,8 @@ textarea:focus,
 .form-input:focus,
 .form-textarea:focus {
   outline: none;
-  border-color: var(--hx-secondary);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 6px rgba(37,99,235,0.08);
 }
 
 label,

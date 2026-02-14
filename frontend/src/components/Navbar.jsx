@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styles from './Navbar.module.css';
 import NotificationBell from './NotificationBell';
-import { useTheme } from '../context/ThemeContext.jsx';
 
 // Small badge component that reads the existing cart from localStorage
 // and updates reactively when other parts of the app dispatch the
@@ -95,8 +94,6 @@ export default function Navbar() {
           </button>
 
           <NotificationBell />
-          {/* Theme toggle button */}
-          <ThemeToggle />
         </div>
         <button
           className={styles.hamburger}
@@ -130,17 +127,4 @@ export default function Navbar() {
   );
 }
 
-function ThemeToggle() {
-  const { theme, toggleTheme } = useTheme();
-  return (
-    <button
-      className={styles.iconButton}
-      aria-label="Toggle theme"
-      onClick={(e) => { e.stopPropagation(); toggleTheme(); }}
-      title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-      style={{ fontSize: '1.05rem' }}
-    >
-      {theme === 'dark' ? '☀️' : '🌙'}
-    </button>
-  );
-}
+// Theme toggle was moved to the profile page

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useTheme } from '../context/ThemeContext.jsx';
 import { useReviewsWishlist } from '../hooks/useReviewsWishlist';
 import apiFetch from '../utils/apiFetch';
 import { API_BASE } from '../utils/api';
@@ -91,8 +92,16 @@ const UserProfile = () => {
   return (
     <div className="user-profile">
       <div className="profile-header">
-        <h1>My Account</h1>
-        <p>Welcome back, {user.username}!</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div>
+            <h1>My Account</h1>
+            <p>Welcome back, {user.username}!</p>
+          </div>
+          <div style={{ marginLeft: 'auto' }}>
+            {/* Theme toggle moved here */}
+            <ThemeToggleInline />
+          </div>
+        </div>
       </div>
 
       <div className="profile-tabs">
@@ -220,3 +229,24 @@ const UserProfile = () => {
 };
 
 export default UserProfile;
+
+function ThemeToggleInline() {
+  const { theme, toggleTheme } = useTheme();
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); toggleTheme(); }}
+      title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+      aria-label="Toggle theme"
+      style={{
+        padding: '8px 12px',
+        borderRadius: 8,
+        border: '1px solid var(--border-color)',
+        background: 'var(--card-bg)',
+        cursor: 'pointer'
+      }}
+    >
+      <span style={{ marginRight: 8 }}>{theme === 'dark' ? '☀️' : '🌙'}</span>
+      <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
+    </button>
+  );
+}
