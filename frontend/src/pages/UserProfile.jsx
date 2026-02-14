@@ -20,6 +20,15 @@ const UserProfile = () => {
     city: user?.city || ''
   });
 
+  useEffect(() => {
+    setProfileData({
+      email: user?.email || '',
+      phone: user?.phone || '',
+      address: user?.address || '',
+      city: user?.city || ''
+    });
+  }, [user]);
+
   const wishlist = user ? getUserWishlist(user.username) : [];
   const [orders, setOrders] = useState([]);
 
