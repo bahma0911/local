@@ -48,8 +48,8 @@
 [data-theme="light"] {
   /* Page */
   --bg-primary: #eed3beda;
-  --bg-secondary: #889cc4; /* soft off-white page canvas for less glare */
-  --bg-tertiary: #96a3bf;  /* subtle section background */
+  --bg-secondary: #889cc4; 
+  --bg-tertiary: #96a3bf;  
 
   /* Text */
   --text-primary: #0f172a;
@@ -59,7 +59,7 @@
   /* Surfaces */
   --card-bg: #889cc4;
   --input-bg: #889cc4;
-  --navbar-bg: linear-gradient( 120deg #ff6b2c 0%, #ff6b2c 35%, #ffffff 100%);
+  --navbar-bg: linear-gradient( 120deg, #ff6b2c 0%, #ff6b2c 35%, #ffffff 100%);
 
   /* Borders */
   --border-color: #e6eef6; /* very subtle cool border */
