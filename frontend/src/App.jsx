@@ -19,7 +19,6 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Register from "./pages/Register";
 import { useAuth } from "./hooks/useAuth";
 import "./App.css";
-import { useTheme } from './context/ThemeContext.jsx';
 
 const RouteTester = () => {
   const navigate = useNavigate();
@@ -63,7 +62,7 @@ const AppContent = () => {
     }
   };
 
-  const { theme, toggleTheme } = useTheme();
+  
 
   // Cart badge that reads the centralized localStorage cart and
   // updates when the app dispatches the `cart_updated` event or when
@@ -156,16 +155,7 @@ const AppContent = () => {
               <span className="btn-text">Track</span>
             </button>
 
-            {/* Theme toggle */}
-            <button
-              onClick={() => toggleTheme()}
-              className="nav-button"
-              title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-              aria-label="Toggle theme"
-            >
-              <span className="btn-icon">{theme === 'dark' ? '☀️' : '🌙'}</span>
-              <span className="btn-text">Theme</span>
-            </button>
+            {/* Theme toggle moved to Profile page */}
 
             {/* Admin link: visible to admin users and shop owners (shop owners use same dashboard for 'My Shop') */}
             {(isAdmin || isShopOwner) && (
