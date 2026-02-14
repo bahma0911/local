@@ -80,19 +80,11 @@
   top: 0;
   width: 100%;
   z-index: 40;
-  background: rgba(5, 8, 22, 0.85);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(22px);
-  box-shadow: 0 24px 65px rgba(5, 8, 22, 0.6);
+  background: var(--navbar-bg, var(--card-bg));
+  border-bottom: 1px solid var(--border-color);
+  backdrop-filter: none;
+  box-shadow: var(--shadow-sm);
   overflow-x: hidden; /* prevent header overflow from causing page horizontal scroll */
-}
-
-.app-header::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(120deg, rgba(255, 107, 44, 0.25), transparent);
-  pointer-events: none;
 }
 
 .app-header-content {
@@ -195,9 +187,9 @@
   position: absolute;
   right: 0;
   top: calc(100% + 8px);
-  background: linear-gradient(180deg, rgba(12,19,34,0.98), rgba(8,12,24,0.98));
-  border: 1px solid rgba(255,255,255,0.06);
-  box-shadow: 0 12px 40px rgba(2,6,23,0.6);
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-lg);
   border-radius: 8px;
   min-width: 160px;
   z-index: 50;
@@ -227,10 +219,10 @@
 
 .app-footer {
   padding: 2rem 0;
-  background: rgba(8, 12, 30, 0.85);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
   text-align: center;
-  color: var(--hx-text-muted);
+  color: var(--text-secondary);
   font-size: 0.9rem;
 }
 
