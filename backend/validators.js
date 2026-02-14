@@ -29,11 +29,13 @@ export const schemas = {
     name: z.string().min(1),
     owner: z.object({ username: z.string().min(1), password: z.string().min(6).optional() }).optional(),
     address: z.string().optional(),
+    phone: z.string().optional(),
   }),
   shopUpdate: z.object({
     name: z.string().min(1).optional(),
     owner: z.object({ username: z.string().min(1).optional(), password: z.string().min(6).optional() }).optional(),
     address: z.string().optional(),
+    phone: z.string().optional(),
   }),
   // Profile update for customers (partial updates allowed)
   profileUpdate: z.object({

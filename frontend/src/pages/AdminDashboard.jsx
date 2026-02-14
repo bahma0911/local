@@ -15,8 +15,8 @@ const AdminDashboard = () => {
   const [newShop, setNewShop] = useState({
     name: "",
     deliveryFee: 50,
-    minOrder: 0,
     address: '',
+    phone: '',
     geo: null, // optional { lat, lng }
     owner: { username: "", password: "" }
   });
@@ -271,7 +271,7 @@ const AdminDashboard = () => {
       });
       setShops(prev => [...prev, data]);
       try { localStorage.setItem('updatedShops', JSON.stringify([...shops, data])); } catch {}
-      setNewShop({ name: "", deliveryFee: 50, minOrder: 0, address: '', owner: { username: "", password: "" } });
+      setNewShop({ name: "", deliveryFee: 50, address: '', phone: '', owner: { username: "", password: "" } });
       alert("Shop created successfully!");
     } catch (err) {
       console.error(err);
@@ -692,7 +692,7 @@ const AdminDashboard = () => {
             {/* Category removed from shop creation; categories are chosen per-product now */}
             <input name="address" placeholder="Shop address" value={newShop.address} onChange={handleNewShopInputChange} />
             <input type="number" name="deliveryFee" placeholder="Delivery fee" value={newShop.deliveryFee} onChange={handleNewShopInputChange} />
-            <input type="number" name="minOrder" placeholder="Minimum order" value={newShop.minOrder} onChange={handleNewShopInputChange} />
+            <input name="phone" placeholder="Shop phone number" value={newShop.phone} onChange={handleNewShopInputChange} />
             <input name="owner.username" value={newShop.owner.username} onChange={handleNewShopInputChange} placeholder="Owner Username" />
             <input type="password" name="owner.password" value={newShop.owner.password} onChange={handleNewShopInputChange} placeholder="Owner Password" />
               <div style={{ fontSize: 12, color: '#666', marginTop: 6 }}>Please provide the shop's address/location — this is required.</div>
@@ -708,7 +708,7 @@ const AdminDashboard = () => {
                     <input name="name" value={editingShop.name} onChange={handleEditShopInputChange} />
                     {/* Category removed from shop editing; keep shop category data unchanged on server */}
                     <input type="number" name="deliveryFee" placeholder="Delivery fee" value={editingShop.deliveryFee} onChange={handleEditShopInputChange} />
-                    <input type="number" name="minOrder" placeholder="Minimum order" value={editingShop.minOrder} onChange={handleEditShopInputChange} />
+                    <input name="phone" placeholder="Shop phone number" value={editingShop.phone || ''} onChange={handleEditShopInputChange} />
                     <input name="owner.username" value={editingShop.owner.username} onChange={handleEditShopInputChange} />
                     <input type="password" name="owner.password" value={editingShop.owner.password} onChange={handleEditShopInputChange} placeholder="New password" />
                     <button onClick={() => updateShopAPI(shop.id)}>Save</button>
@@ -930,7 +930,10 @@ const AdminDashboard = () => {
               <input value={editingProduct.name} onChange={e => setEditingProduct(prev => ({ ...prev, name: e.target.value }))} />
               <input type="number" placeholder="Price in ETB" value={editingProduct.price} onChange={e => setEditingProduct(prev => ({ ...prev, price: Number(e.target.value) }))} />
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <input type="file" accept="image/*" onChange={e => setEditingProduct(prev => ({ ...prev, imageFile: e.target.files && e.target.files[0] ? e.target.files[0] : null }))} />
+                <input type="file" accept="image/*" multiple onChange={e => {
+                  const files = e.target.files ? Array.from(e.target.files) : [];
+                  setEditingProduct(prev => ({ ...prev, imageFiles: files, imageFile: files.length === 1 ? files[0] : null }));
+                }} />
                 {editingProduct.image && <img src={editingProduct.image} alt="preview" style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 6 }} />}
               </div>
               <input value={editingProduct.description} onChange={e => setEditingProduct(prev => ({ ...prev, description: e.target.value }))} />

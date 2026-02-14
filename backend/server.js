@@ -1045,9 +1045,11 @@ app.get('/api/products', async (req, res) => {
         id: `${shopLegacyId}-${p.id}`,
         name: p.name,
         description: p.description || '',
+        details: p.details || p.description || '',
         price: { amount: Math.floor(Number(p.price || 0)), currency: 'ETB' },
         images: p.image ? [p.image] : [],
         shopId: shopLegacyId,
+        shopPhone: s.phone || '',
         shopLocation: s.address || '',
         category: p.category || null,
         stock: (typeof p.inStock !== 'undefined') ? (p.inStock ? 1 : 0) : 0,
@@ -1270,6 +1272,7 @@ app.post('/api/shops', authenticate, validate(schemas.shopCreate), async (req, r
         legacyId: Number(newShop.id),
         name: newShop.name,
         address: newShop.address,
+        phone: newShop.phone || '',
         deliveryFee: newShop.deliveryFee || 0,
         deliveryServices: newShop.deliveryServices || [],
         owner: newShop.owner || {},
@@ -1309,6 +1312,7 @@ app.put('/api/shops/:id', authenticate, validate(schemas.shopUpdate), async (req
       await ShopModel.findOneAndUpdate({ legacyId: id }, {
         name: updated.name,
         address: updated.address,
+        phone: updated.phone || '',
         deliveryFee: updated.deliveryFee,
         deliveryServices: updated.deliveryServices || [],
         owner: updated.owner || {},
@@ -1424,9 +1428,14 @@ app.put('/api/shops/:shopId/products/:productId', authenticate, validate(schemas
       // ensure product belongs to the shop (by legacy id)
       if (Number(prod.shopLegacyId) !== Number(shopId)) return res.status(404).json({ message: 'Product not found' });
 
-      // apply updates
+      // fetch shop document to allow defaulting of shopLocation when missing
+      let shopDoc = null;
+      try { shopDoc = await ShopModel.findOne({ legacyId: prod.shopLegacyId }).lean().exec(); } catch (e) { /* ignore */ }
+
+      // apply updates (accept same fields as product creation)
       if (typeof payload.name !== 'undefined') prod.name = payload.name;
       if (typeof payload.description !== 'undefined') prod.description = payload.description;
+      if (typeof payload.details !== 'undefined') prod.details = payload.details;
       if (typeof payload.images !== 'undefined') prod.images = Array.isArray(payload.images) ? payload.images : (payload.images ? [payload.images] : []);
       if (typeof payload.category !== 'undefined') prod.category = payload.category;
       if (typeof payload.stock !== 'undefined' && payload.stock !== null) {
@@ -1438,6 +1447,19 @@ app.put('/api/shops/:shopId/products/:productId', authenticate, validate(schemas
       if (typeof payload.price !== 'undefined') {
         if (typeof payload.price === 'number') prod.price = { amount: Math.floor(payload.price), currency: 'ETB' };
         else if (payload.price && typeof payload.price === 'object' && typeof payload.price.amount !== 'undefined') prod.price = { amount: Math.floor(Number(payload.price.amount)), currency: payload.price.currency || 'ETB' };
+      }
+
+      // additional fields supported by creation: details, condition, shopPhone, shopLocation
+      if (typeof payload.condition !== 'undefined') {
+        const c = String(payload.condition || '').toLowerCase();
+        if (c === 'new' || c === 'used') prod.condition = c;
+      }
+      if (typeof payload.shopPhone !== 'undefined') prod.shopPhone = payload.shopPhone || '';
+      if (typeof payload.shopLocation !== 'undefined') {
+        prod.shopLocation = payload.shopLocation || '';
+      } else {
+        // default to shop address when product lacks shopLocation
+        if ((!prod.shopLocation || String(prod.shopLocation).trim() === '') && shopDoc && shopDoc.address) prod.shopLocation = shopDoc.address;
       }
 
       await prod.save();
@@ -1459,6 +1481,12 @@ app.put('/api/shops/:shopId/products/:productId', authenticate, validate(schemas
       const s = Number(payload.stock);
       updated.stock = (Number.isFinite(s) && !Number.isNaN(s)) ? Math.max(0, Math.floor(s)) : updated.stock;
     }
+    // default shopLocation to shop address when not provided
+    if (typeof payload.shopLocation === 'undefined' && (!updated.shopLocation || String(updated.shopLocation).trim() === '')) {
+      updated.shopLocation = shop.address || '';
+    }
+    // ensure legacy products have a details field (fallback to description)
+    if (typeof updated.details === 'undefined' || updated.details === null) updated.details = updated.description || '';
     shop.products[idx] = updated;
     if (!writeShops(shops)) return res.status(500).json({ message: 'Failed to persist product' });
     return res.json(updated);

@@ -21,6 +21,7 @@ const ShopSchema = new mongoose.Schema({
   name: { type: String, required: true },
   category: { type: String },
   address: { type: String },
+  phone: { type: String },
   deliveryFee: { type: Number, default: 0 },
   deliveryServices: { type: [String], default: [] },
   owner: { type: OwnerSchema, default: {} },
