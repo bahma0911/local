@@ -47,6 +47,9 @@
 /* Light theme overrides */
 [data-theme="light"] {
 
+  --hx-text: #222d43;
+  --hx-text-muted: #385193;
+
   /* 🌤 PAGE CANVAS (warm neutral) */
   --bg-primary: #f7f3ef;
   --bg-secondary: #f1ece6;
