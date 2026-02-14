@@ -14,6 +14,7 @@ import Wishlist from "./pages/Wishlist";
 import CustomerDashboard from "./pages/CustomerDashboard";
 import ProductDetails from "./pages/ProductDetails";
 import ErrorBoundary from "./components/ErrorBoundary";
+import Footer from "./components/Footer";
 import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Register from "./pages/Register";
@@ -220,6 +221,7 @@ const AppContent = () => {
           </Routes>
         </div>
       </ErrorBoundary>
+      <Footer />
     </div>
   );
 };
