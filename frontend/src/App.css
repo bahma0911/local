@@ -82,9 +82,17 @@
   z-index: 40;
   background: var(--navbar-bg, var(--card-bg));
   border-bottom: 1px solid var(--border-color);
-  backdrop-filter: none;
-  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-md);
   overflow-x: hidden; /* prevent header overflow from causing page horizontal scroll */
+}
+
+.app-header::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, rgba(255, 107, 44, 0.12), transparent);
+  pointer-events: none;
 }
 
 .app-header-content {
@@ -103,7 +111,7 @@
   font-size: clamp(1.4rem, 2vw, 1.75rem);
   font-weight: 600;
   letter-spacing: -0.02em;
-  color: var(--hx-text);
+  color: var(--text-primary);
   position: relative;
 }
 
@@ -123,7 +131,7 @@
   position: absolute;
   top: 6px;
   right: 8px;
-  background: #ff4d4f;
+  background: var(--danger);
   color: white;
   font-size: 0.72rem;
   padding: 2px 6px;
@@ -149,9 +157,9 @@
 
 .nav-button {
   border-radius: var(--hx-radius-pill);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--hx-text);
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-primary);
   padding: 0.55rem 1.25rem;
   font-size: 0.95rem;
   letter-spacing: 0.02em;
@@ -159,8 +167,8 @@
 }
 
 .nav-button.active {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.4);
+  background: var(--overlay-1);
+  border-color: var(--border-color);
 }
 
 .nav-button-login {
@@ -201,14 +209,14 @@
 .user-dropdown .dropdown-item {
   background: transparent;
   border: none;
-  color: var(--hx-text);
+  color: var(--text-primary);
   padding: 10px 12px;
   text-align: left;
   cursor: pointer;
   border-radius: 6px;
 }
 
-.user-dropdown .dropdown-item:hover { background: rgba(255,255,255,0.04); }
+.user-dropdown .dropdown-item:hover { background: var(--overlay-1); }
 
 .app-main {
   width: min(1200px, 92%);
@@ -219,7 +227,7 @@
 
 .app-footer {
   padding: 2rem 0;
-  background: var(--bg-secondary);
+  background: var(--card-bg);
   border-top: 1px solid var(--border-color);
   text-align: center;
   color: var(--text-secondary);
