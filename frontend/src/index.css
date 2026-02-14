@@ -53,6 +53,17 @@
 
 }
 
+.price-filter {
+  
+  background: rgba(29, 51, 98, 0.85);
+}
+
+.category-filter {
+
+  background: rgba(29, 51, 98, 0.9);
+
+}
+
   --hx-text: #222d43;
   --hx-text-muted: #a8b3cf;
 
