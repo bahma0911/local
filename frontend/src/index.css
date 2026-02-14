@@ -86,11 +86,17 @@
 
 }
 
+.cart-item-name {
+  color: #fff;
+}
+
 .shop-summary-total {
   color: #fff;
 }
 
-
+.order-summary-title {
+  color: #fff;
+}
 
 
   --hx-text: #222d43;
