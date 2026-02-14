@@ -394,7 +394,7 @@ const getUserFromRequest = async (req) => {
       try {
         const UserModel = (await import('./models/User.js')).default;
         const user = await UserModel.findOne({ username: payload.username }).lean().exec();
-        if (user) return { username: user.username, email: user.email, role: 'customer' };
+        if (user) return { username: user.username, email: user.email, phone: user.phone, address: user.address, city: user.city, name: user.name, role: 'customer' };
       } catch (e) {
         // ignore DB errors, fall back to token payload
       }
@@ -605,7 +605,13 @@ app.post("/api/test-login", async (req, res) => {
       if (mongoose.connection && mongoose.connection.readyState === 1) {
         try {
           const UserModel = (await import('./models/User.js')).default;
-          const update = { ...(payload.email ? { email: payload.email } : {}), ...(payload.phone ? { phone: payload.phone } : {}), ...(payload.address ? { address: payload.address } : {}), ...(payload.city ? { city: payload.city } : {}) };
+          const update = {
+            ...(payload.name ? { name: payload.name } : {}),
+            ...(payload.email ? { email: payload.email } : {}),
+            ...(payload.phone ? { phone: payload.phone } : {}),
+            ...(payload.address ? { address: payload.address } : {}),
+            ...(payload.city ? { city: payload.city } : {}),
+          };
 
           if (payload.password) {
             update.password = await bcrypt.hash(String(payload.password), 10);
@@ -615,7 +621,7 @@ app.post("/api/test-login", async (req, res) => {
           if (!updated) return res.status(500).json({ message: 'Failed to update profile' });
 
           // Return sanitized user info
-          const safe = { username: updated.username, email: updated.email, phone: updated.phone, address: updated.address, city: updated.city, role: 'customer' };
+          const safe = { username: updated.username, email: updated.email, phone: updated.phone, address: updated.address, city: updated.city, name: updated.name, role: 'customer' };
           return res.json({ user: safe });
         } catch (err) {
           console.error('PUT /api/me - update error', err && err.message ? err.message : err);

@@ -6,6 +6,7 @@ const UserSchema = new mongoose.Schema({
   password: { type: String, required: true }, // Plain value (no bcrypt) per your request
   phone: { type: String, default: '' },
   address: { type: String, default: '' },
+  city: { type: String, default: '' },
   name: { type: String, default: '' },
   googleId: { type: String, index: true, sparse: true },
   role: { type: String, enum: ['customer', 'admin', 'shop_owner'], default: 'customer' },
