@@ -281,14 +281,16 @@ const ShopList = ({ compact = false }) => {
                     </p>
                     <div className="search-product-actions">
                       <button
-                        onClick={(e) => { e.stopPropagation(); const inCartLocal = cartItems && cartItems.some(it => String(it.id) === String(product.id)); if (compact && inCartLocal) { alert('Only 1 unit allowed from the home view.'); return; } addToCart(product, "Pickup", product.shopId); }}
+                        onClick={(e) => { e.stopPropagation(); const inCartLocal = cartItems && cartItems.some(it => String(it.id) === String(product.id)); if (compact && inCartLocal) return; addToCart(product, "Pickup", product.shopId); }}
                         className="product-action-btn pickup"
+                        disabled={compact && cartItems && cartItems.some(it => String(it.id) === String(product.id))}
                       >
                         Pickup
                       </button>
                       <button
-                        onClick={(e) => { e.stopPropagation(); const inCartLocal = cartItems && cartItems.some(it => String(it.id) === String(product.id)); if (compact && inCartLocal) { alert('Only 1 unit allowed from the home view.'); return; } addToCart(product, "Delivery", product.shopId); }}
+                        onClick={(e) => { e.stopPropagation(); const inCartLocal = cartItems && cartItems.some(it => String(it.id) === String(product.id)); if (compact && inCartLocal) return; addToCart(product, "Delivery", product.shopId); }}
                         className="product-action-btn delivery"
+                        disabled={compact && cartItems && cartItems.some(it => String(it.id) === String(product.id))}
                       >
                         Delivery
                       </button>
@@ -383,8 +385,8 @@ const ShopList = ({ compact = false }) => {
                       <div className="rpc-shop">{p.shopName}</div>
                       <div className="rpc-price">{p.price} ETB</div>
                       <div className="rpc-actions">
-                        <button onClick={(e) => { e.stopPropagation(); const inCartLocal = cartItems && cartItems.some(it => String(it.id) === String(p.id)); if (compact && inCartLocal) { alert('Only 1 unit allowed from the home view.'); return; } addToCart(p, 'Pickup', p.shopId); }} className="rpc-btn pickup">Pickup</button>
-                        <button onClick={(e) => { e.stopPropagation(); const inCartLocal = cartItems && cartItems.some(it => String(it.id) === String(p.id)); if (compact && inCartLocal) { alert('Only 1 unit allowed from the home view.'); return; } addToCart(p, 'Delivery', p.shopId); }} className="rpc-btn delivery">Delivery</button>
+                        <button onClick={(e) => { e.stopPropagation(); const inCartLocal = cartItems && cartItems.some(it => String(it.id) === String(p.id)); if (compact && inCartLocal) return; addToCart(p, 'Pickup', p.shopId); }} className="rpc-btn pickup" disabled={compact && cartItems && cartItems.some(it => String(it.id) === String(p.id))}>Pickup</button>
+                        <button onClick={(e) => { e.stopPropagation(); const inCartLocal = cartItems && cartItems.some(it => String(it.id) === String(p.id)); if (compact && inCartLocal) return; addToCart(p, 'Delivery', p.shopId); }} className="rpc-btn delivery" disabled={compact && cartItems && cartItems.some(it => String(it.id) === String(p.id))}>Delivery</button>
                       </div>
                     </div>
                   </div>

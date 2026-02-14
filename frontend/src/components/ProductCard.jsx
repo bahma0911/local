@@ -117,14 +117,14 @@ const ProductCard = ({ product, onAddToCart, shopId, limitSingle = false }) => {
       
       <div className="product-actions">
         <button
-          onClick={(e) => { e.stopPropagation(); if (limitSingle && inCart) { alert('Only 1 unit allowed from the home view.'); return; } onAddToCart(product, "Pickup", shopId); }}
+          onClick={(e) => { e.stopPropagation(); if (limitSingle && inCart) return; onAddToCart(product, "Pickup", shopId); }}
           className="product-action-btn pickup"
           disabled={!available || (limitSingle && inCart)}
         >
           Pickup
         </button>
         <button
-          onClick={(e) => { e.stopPropagation(); if (limitSingle && inCart) { alert('Only 1 unit allowed from the home view.'); return; } onAddToCart(product, "Delivery", shopId); }}
+          onClick={(e) => { e.stopPropagation(); if (limitSingle && inCart) return; onAddToCart(product, "Delivery", shopId); }}
           className="product-action-btn delivery"
           disabled={!available || (limitSingle && inCart)}
         >
