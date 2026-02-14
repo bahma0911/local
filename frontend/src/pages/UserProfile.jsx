@@ -19,15 +19,18 @@ const UserProfile = () => {
     address: user?.address || '',
     city: user?.city || ''
   });
+  const [dirty, setDirty] = useState(false);
 
   useEffect(() => {
+    // only sync profile data from `user` when the form is not being edited
+    if (dirty) return;
     setProfileData({
       email: user?.email || '',
       phone: user?.phone || '',
       address: user?.address || '',
       city: user?.city || ''
     });
-  }, [user]);
+  }, [user, dirty]);
 
   const wishlist = user ? getUserWishlist(user.username) : [];
   const [orders, setOrders] = useState([]);
@@ -80,6 +83,7 @@ const UserProfile = () => {
     try {
       const res = await updateCustomerProfile(profileData);
       if (res && res.ok) {
+        setDirty(false);
         alert('Profile updated successfully!');
       } else {
         alert(`Failed to update profile: ${res && res.message ? res.message : 'Unknown error'}`);
@@ -144,7 +148,7 @@ const UserProfile = () => {
                 <input
                   type="email"
                   value={profileData.email}
-                  onChange={(e) => setProfileData(prev => ({...prev, email: e.target.value}))}
+                  onChange={(e) => { setDirty(true); setProfileData(prev => ({...prev, email: e.target.value})); }}
                 />
               </div>
               <div className="form-group">
@@ -152,14 +156,14 @@ const UserProfile = () => {
                 <input
                   type="tel"
                   value={profileData.phone}
-                  onChange={(e) => setProfileData(prev => ({...prev, phone: e.target.value}))}
+                  onChange={(e) => { setDirty(true); setProfileData(prev => ({...prev, phone: e.target.value})); }}
                 />
               </div>
               <div className="form-group">
                 <label>Address</label>
                 <textarea
                   value={profileData.address}
-                  onChange={(e) => setProfileData(prev => ({...prev, address: e.target.value}))}
+                  onChange={(e) => { setDirty(true); setProfileData(prev => ({...prev, address: e.target.value})); }}
                   rows="3"
                 />
               </div>
@@ -168,7 +172,7 @@ const UserProfile = () => {
                 <input
                   type="text"
                   value={profileData.city}
-                  onChange={(e) => setProfileData(prev => ({...prev, city: e.target.value}))}
+                  onChange={(e) => { setDirty(true); setProfileData(prev => ({...prev, city: e.target.value})); }}
                 />
               </div>
               <button type="submit" className="btn-save">Save Changes</button>
