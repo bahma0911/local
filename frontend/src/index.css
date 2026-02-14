@@ -58,8 +58,8 @@
 
   /* Surfaces */
   --card-bg: #889cc4;
-  --input-bg: #ffffff;
-  --navbar-bg: #ffffff;
+  --input-bg: #889cc4;
+  --navbar-bg: linear-gradient(120deg, #ff6b2c, #fff);
 
   /* Borders */
   --border-color: #e6eef6; /* very subtle cool border */
