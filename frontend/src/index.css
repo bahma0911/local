@@ -59,7 +59,7 @@
 
   /* 🧊 SURFACES (subtle cool contrast) */
   --card-bg: #97b0db;
-  --input-bg: #4d4949;
+  --input-bg: #6ca7e2;
   --navbar-bg: linear-gradient(
       120deg,
       #ff6b2c 0%,
@@ -87,7 +87,7 @@
 
   /* 🔘 BUTTONS */
   --button-bg: linear-gradient(120deg, #ff6b2c, #ff8c42);
-  --button-text: #8488f5;
+  --button-text: #292a40;
   --button-hover: #e85b20;
 
   /* 🌫 OVERLAYS */
