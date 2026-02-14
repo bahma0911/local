@@ -48,7 +48,7 @@
 [data-theme="light"] {
 
   .search-input {
-  background: rgba(29, 51, 98, 0.85);
+  background: rgba(42, 55, 128);
   color: #fff;
 
 }
@@ -135,7 +135,7 @@
   --navbar-bg: linear-gradient(
       120deg,
       rgb(17, 45, 105) 0%,
-      rgba(49, 68, 108, 0.85) 35%,
+      rgba(49, 68, 108, 0.85) 45%,
       #ffffff 100%
   );
 
