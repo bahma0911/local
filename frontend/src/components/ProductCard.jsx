@@ -60,6 +60,28 @@ const ProductCard = ({ product, onAddToCart, shopId, limitSingle = false }) => {
   const priceAmount = (product && product.price && typeof product.price === 'object' && typeof product.price.amount !== 'undefined')
     ? product.price.amount
     : (typeof product.price === 'number' ? product.price : 0);
+  const [remoteRating, setRemoteRating] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+    const pid = product.id ?? product._id ?? product.productId ?? null;
+    if (!pid) return;
+    const fetchRating = async () => {
+      try {
+        const res = await fetch(`/api/products/${pid}/reviews`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!mounted) return;
+        if (data && typeof data.average !== 'undefined') {
+          setRemoteRating(Number(data.average) || 0);
+        }
+      } catch (err) {
+        // ignore
+      }
+    };
+    fetchRating();
+    return () => { mounted = false; };
+  }, [product.id, product._id, product.productId]);
 
   return (
     <div
@@ -95,8 +117,8 @@ const ProductCard = ({ product, onAddToCart, shopId, limitSingle = false }) => {
       
       <div className="product-rating">
         <div className="stars">
-          {renderStars(Math.round(rating))}
-          <span className="rating-text">({rating.toFixed(1)})</span>
+          {renderStars(Math.round((remoteRating !== null ? remoteRating : rating)))}
+          <span className="rating-text">({(remoteRating !== null ? remoteRating : rating).toFixed(1)})</span>
         </div>
       </div>
       
