@@ -3,6 +3,8 @@
 :root {
   --hx-bg: #080c1a;
   --hx-surface: #0d1424;
+  /* dark navbar background slightly darker than surface */
+  --navbar-bg: rgba(5, 8, 22, 0.95);
   --hx-card: #121b2f;
   --hx-card-muted: #1b253a;
   --hx-border: rgba(255, 255, 255, 0.07);
