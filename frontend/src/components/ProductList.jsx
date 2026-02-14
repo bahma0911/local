@@ -1,7 +1,7 @@
 import ProductCard from "./ProductCard";
 import "./ProductList.css"; // Add this line
 
-const ProductList = ({ shop, onAddToCart }) => {
+const ProductList = ({ shop, onAddToCart, limitSingle = false }) => {
   return (
     <div className="product-list-section">
       <div className="product-list-header">
@@ -16,7 +16,8 @@ const ProductList = ({ shop, onAddToCart }) => {
             key={product.id}
             product={product} 
             shopId={shop.id}
-            onAddToCart={onAddToCart} 
+            onAddToCart={onAddToCart}
+            limitSingle={limitSingle}
           />
         ))}
       </div>

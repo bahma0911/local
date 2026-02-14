@@ -3,11 +3,13 @@ import React, { useState, useEffect } from 'react';
 import { useReviewsWishlist } from '../hooks/useReviewsWishlist';
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
+import { useCart } from '../hooks/useCart';
 import "./ProductCard.css";
 
-const ProductCard = ({ product, onAddToCart, shopId }) => {
+const ProductCard = ({ product, onAddToCart, shopId, limitSingle = false }) => {
   const { getProductRating, addToWishlist, removeFromWishlist, isInWishlist } = useReviewsWishlist();
   const { user } = useAuth();
+  const { cartItems } = useCart();
 
   const rating = getProductRating(product.id);
   const inWishlist = user ? isInWishlist(product.id, user.username) : false;
@@ -54,6 +56,7 @@ const ProductCard = ({ product, onAddToCart, shopId }) => {
 
   const available = (typeof product.inStock !== 'undefined') ? product.inStock : ((typeof product.stock !== 'undefined') ? (product.stock > 0) : true);
   const navigate = useNavigate();
+  const inCart = cartItems && cartItems.some(item => String(item.id) === String(product.id || product._id || product.productId));
   const priceAmount = (product && product.price && typeof product.price === 'object' && typeof product.price.amount !== 'undefined')
     ? product.price.amount
     : (typeof product.price === 'number' ? product.price : 0);
@@ -114,16 +117,16 @@ const ProductCard = ({ product, onAddToCart, shopId }) => {
       
       <div className="product-actions">
         <button
-          onClick={(e) => { e.stopPropagation(); onAddToCart(product, "Pickup", shopId); }}
+          onClick={(e) => { e.stopPropagation(); if (limitSingle && inCart) { alert('Only 1 unit allowed from the home view.'); return; } onAddToCart(product, "Pickup", shopId); }}
           className="product-action-btn pickup"
-          disabled={!available}
+          disabled={!available || (limitSingle && inCart)}
         >
           Pickup
         </button>
         <button
-          onClick={(e) => { e.stopPropagation(); onAddToCart(product, "Delivery", shopId); }}
+          onClick={(e) => { e.stopPropagation(); if (limitSingle && inCart) { alert('Only 1 unit allowed from the home view.'); return; } onAddToCart(product, "Delivery", shopId); }}
           className="product-action-btn delivery"
-          disabled={!available}
+          disabled={!available || (limitSingle && inCart)}
         >
           Delivery
         </button>
