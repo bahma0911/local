@@ -30,10 +30,12 @@ const ProductDetails = () => {
   }, [id]);
 
   if (!product) return <div style={{ padding: 20 }}>Loading...</div>;
-
   const images = (product.images && product.images.length) ? product.images : (product.image ? [product.image] : []);
   const mainSrc = images[mainIndex] || images[0] || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=600&fit=crop';
   const available = typeof product.inStock !== 'undefined' ? product.inStock : ((typeof product.stock !== 'undefined') ? product.stock > 0 : true);
+  const priceAmount = (product && product.price && typeof product.price === 'object' && typeof product.price.amount !== 'undefined')
+    ? product.price.amount
+    : (typeof product.price === 'number' ? product.price : 0);
 
   return (
     <div className="product-details" style={{ padding: 16 }}>
@@ -53,7 +55,7 @@ const ProductDetails = () => {
 
         <div className="pd-info">
           <h2>{product.name}</h2>
-          <div style={{ margin: '8px 0' }}><strong>Price:</strong> {product.price && product.price.amount ? product.price.amount : (product.price || 0)} ETB</div>
+          <div style={{ margin: '8px 0' }}><strong>Price:</strong> {priceAmount} ETB</div>
           <div style={{ margin: '8px 0' }}>
             <strong>Condition:</strong> <span style={{ padding: '4px 8px', background: product.condition === 'used' ? '#ffc' : 'rgb(233, 132, 31)', borderRadius: 6 }}>{(product.condition || 'new').toUpperCase()}</span>
           </div>
