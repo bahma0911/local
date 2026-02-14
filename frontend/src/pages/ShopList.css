@@ -287,7 +287,7 @@
 .random-products-title {
   font-size: 1.4rem;
   margin-bottom: 1rem;
-  color: var(--hx-text);
+  color: var(--text-primary);
 }
 .random-products-grid {
   display: grid;
@@ -295,10 +295,11 @@
   gap: 1rem;
 }
 .random-product-card {
-  background: rgba(12, 19, 34, 0.92);
+  background: var(--card-bg);
+  border: 1px solid var(--border-light);
   border-radius: 8px;
   padding: 0.5rem;
-  box-shadow: var(--hx-shadow-soft);
+  box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -310,9 +311,9 @@
   border-radius: 6px;
 }
 .rpc-info { display:flex; flex-direction: column; gap:6px; }
-.rpc-name { font-weight:600; font-size:0.95rem; color:var(--hx-text); }
-.rpc-shop { font-size:0.8rem; color:var(--hx-text-muted); }
-.rpc-price { font-weight:700; color:var(--hx-primary); }
+.rpc-name { font-weight:600; font-size:0.95rem; color:var(--text-primary); }
+.rpc-shop { font-size:0.8rem; color:var(--text-secondary); }
+.rpc-price { font-weight:700; color:var(--accent); }
 .rpc-actions { display:flex; gap:6px; }
 .rpc-btn { flex:1; padding:6px 8px; border-radius:6px; border:none; cursor:pointer; font-size:0.85rem; }
 .rpc-btn.pickup { background:#f1f5f9; }
