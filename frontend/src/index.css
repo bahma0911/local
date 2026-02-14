@@ -146,24 +146,27 @@ body::before {
 /* App wrapper should follow theme background, not hardcoded dark */
 .App,
 .app,
-.layout,
+.layout {
   background: var(--card-bg);
+}
+
 .page-wrapper {
   background: var(--bg-secondary);
   color: var(--text-primary);
   min-height: 100vh;
 }
-  background: var(--bg-tertiary);
 img {
   max-width: 100%;
   display: block;
 }
 
+a {
   border-bottom: 1px solid var(--border-color);
   color: var(--hx-accent);
   text-decoration: none;
   transition: color 0.25s ease;
   background: var(--bg-tertiary);
+}
 
 a:hover {
   color: var(--hx-primary-hover);
