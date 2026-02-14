@@ -1080,7 +1080,20 @@ app.get('/api/products/:id', async (req, res) => {
     if (mongoose.connection && mongoose.connection.readyState === 1) {
       let doc = null;
       try {
-        if (mongoose.Types.ObjectId.isValid(pid)) {
+        // Support legacy hyphenated ids like "<shopLegacyId>-<mongoObjectId>"
+        const hyphenMatch = String(pid).match(/^(\d+)-([0-9a-fA-F]{24})$/);
+        if (hyphenMatch) {
+          const possibleId = hyphenMatch[2];
+          if (mongoose.Types.ObjectId.isValid(possibleId)) {
+            doc = await ProductModel.findById(possibleId).lean().exec();
+            // ensure product belongs to indicated shop when possible
+            if (doc && typeof doc.shopLegacyId !== 'undefined' && Number(doc.shopLegacyId) !== Number(hyphenMatch[1])) {
+              doc = null; // mismatch, ignore
+            }
+          }
+        }
+        // Fallback: direct ObjectId lookup when pid itself is an ObjectId
+        if (!doc && mongoose.Types.ObjectId.isValid(pid)) {
           doc = await ProductModel.findById(pid).lean().exec();
         }
         // last resort: try matching by string id field (some old entries may store id differently)
