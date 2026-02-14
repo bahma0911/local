@@ -47,6 +47,12 @@
 /* Light theme overrides */
 [data-theme="light"] {
 
+  .search-input {
+  background: rgba(29, 51, 98, 0.85);
+  color: #fff;
+
+}
+
   --hx-text: #222d43;
   --hx-text-muted: #a8b3cf;
 
