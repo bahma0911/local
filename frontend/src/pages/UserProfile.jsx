@@ -14,6 +14,7 @@ const UserProfile = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('profile');
   const [profileData, setProfileData] = useState({
+    name: user?.name || user?.fullName || '',
     email: user?.email || '',
     phone: user?.phone || '',
     address: user?.address || '',
@@ -25,6 +26,7 @@ const UserProfile = () => {
     // only sync profile data from `user` when the form is not being edited
     if (dirty) return;
     setProfileData({
+      name: user?.name || user?.fullName || '',
       email: user?.email || '',
       phone: user?.phone || '',
       address: user?.address || '',
@@ -86,6 +88,7 @@ const UserProfile = () => {
         // ensure the form shows the saved values — prefer server-returned user when available
         if (res.user) {
           setProfileData({
+            name: res.user.name || res.user.fullName || profileData.name,
             email: res.user.email || profileData.email,
             phone: res.user.phone || profileData.phone,
             address: res.user.address || profileData.address,
@@ -152,6 +155,14 @@ const UserProfile = () => {
           <div className="profile-form">
             <h3>Personal Information</h3>
             <form onSubmit={handleProfileUpdate}>
+              <div className="form-group">
+                <label>Name</label>
+                <input
+                  type="text"
+                  value={profileData.name}
+                  onChange={(e) => { setDirty(true); setProfileData(prev => ({...prev, name: e.target.value})); }}
+                />
+              </div>
               <div className="form-group">
                 <label>Email</label>
                 <input

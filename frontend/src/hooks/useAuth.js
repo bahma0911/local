@@ -122,7 +122,15 @@ export const useAuth = () => {
       try {
         const current = state?.user || null;
         if (current) {
-          const merged = { ...current, ...(payload.email ? { email: payload.email } : {}), ...(payload.phone ? { phone: payload.phone } : {}), ...(payload.address ? { address: payload.address } : {}), ...(payload.city ? { city: payload.city } : {}) };
+          const merged = {
+            ...current,
+            ...(payload.name ? { name: payload.name } : {}),
+            ...(payload.fullName ? { fullName: payload.fullName } : {}),
+            ...(payload.email ? { email: payload.email } : {}),
+            ...(payload.phone ? { phone: payload.phone } : {}),
+            ...(payload.address ? { address: payload.address } : {}),
+            ...(payload.city ? { city: payload.city } : {}),
+          };
           dispatch({ type: 'SET_USER', payload: merged });
           return { ok: true, user: merged, fallback: true };
         }
@@ -131,7 +139,7 @@ export const useAuth = () => {
       }
       return { ok: false, message: (err && err.response && err.response.message) ? err.response.message : 'Failed to update profile', response: err && err.response };
     }
-  }, [dispatch]);
+  }, [dispatch, state]);
 
   const assignedShop =
     user && user.shopId !== undefined && user.shopId !== null
