@@ -756,6 +756,8 @@ app.get('/api/shops', async (req, res) => {
                   price: p.price.amount,
                   image: (p.images && p.images.length) ? p.images[0] : (p.image || ''),
                   description: p.description || '',
+                  shopLocation: p.shopLocation || d.address || '',
+                  shopPhone: p.shopPhone || (d && d.owner && d.owner.phone) || '',
                   category: (p.category || '').toString(),
                   stock: (typeof p.stock !== 'undefined') ? Number(p.stock) : 0,
                   inStock: (typeof p.stock !== 'undefined') ? (p.stock > 0) : true
@@ -769,6 +771,8 @@ app.get('/api/shops', async (req, res) => {
                 price: legacyPrice,
                 image: p.image || (p.images && p.images.length ? p.images[0] : ''),
                 description: p.description || '',
+                shopLocation: p.shopLocation || d.address || '',
+                shopPhone: p.shopPhone || (d && d.owner && d.owner.phone) || '',
                 category: (p.category || '').toString(),
                 stock: (typeof p.stock !== 'undefined') ? Number(p.stock) : ((typeof p.inStock !== 'undefined') ? (p.inStock ? 1 : 0) : 0),
                 inStock: (typeof p.stock !== 'undefined') ? (Number(p.stock) > 0) : ((typeof p.inStock !== 'undefined') ? !!p.inStock : true)
@@ -944,7 +948,8 @@ app.post('/api/products', requireAuth, requireShopOwner, validate(schemas.produc
       images: imagesArr,
       condition: String(condition) || 'new',
       shopPhone: shopPhone || '',
-      shopLocation: shopLocation || '',
+      // Default shopLocation to the shop's stored address when not provided
+      shopLocation: (shopLocation && String(shopLocation).trim()) ? shopLocation : (shop.address || ''),
       shopId: shop._id,
       shopLegacyId: shop.legacyId,
       category,
@@ -994,25 +999,37 @@ app.get('/api/products', async (req, res) => {
       if (!docs || docs.length === 0) {
         // fallback to legacy JSON below
       } else {
-        // sanitize shape for public consumption
-        const out = docs.map(d => ({
-        id: d._id,
-        name: d.name,
-        description: d.description,
-        price: d.price || { amount: 0, currency: 'ETB' },
-        images: d.images || (d.image ? [d.image] : []),
-        condition: d.condition || 'new',
-        shopPhone: d.shopPhone || '',
-        shopLocation: d.shopLocation || '',
-        shopId: d.shopLegacyId || null,
-        category: d.category || null,
-        stock: d.stock || 0,
-        status: d.status || 'draft',
-        attributes: d.attributes || {},
-        createdAt: d.createdAt,
-        updatedAt: d.updatedAt
-        }));
-        return res.json(out);
+          // Build a map of shop info to enrich products when shopLocation/shopPhone are missing
+          const legacyIds = Array.from(new Set((docs || []).map(d => d.shopLegacyId).filter(id => typeof id !== 'undefined' && id !== null)));
+          const shopsMap = {};
+          if (legacyIds.length) {
+            try {
+              const shopDocs = await ShopModel.find({ legacyId: { $in: legacyIds } }).lean().exec();
+              for (const s of shopDocs || []) shopsMap[s.legacyId] = s;
+            } catch (e) {
+              // ignore shop lookup failures
+            }
+          }
+
+          // sanitize shape for public consumption and prefer shop address when product lacks shopLocation
+          const out = docs.map(d => ({
+            id: d._id,
+            name: d.name,
+            description: d.description,
+            price: d.price || { amount: 0, currency: 'ETB' },
+            images: d.images || (d.image ? [d.image] : []),
+            condition: d.condition || 'new',
+            shopPhone: d.shopPhone || (shopsMap[d.shopLegacyId] ? shopsMap[d.shopLegacyId].phone || '' : ''),
+            shopLocation: (d.shopLocation && String(d.shopLocation).trim()) ? d.shopLocation : (shopsMap[d.shopLegacyId] ? shopsMap[d.shopLegacyId].address || '' : ''),
+            shopId: d.shopLegacyId || null,
+            category: d.category || null,
+            stock: d.stock || 0,
+            status: d.status || 'draft',
+            attributes: d.attributes || {},
+            createdAt: d.createdAt,
+            updatedAt: d.updatedAt
+          }));
+          return res.json(out);
       }
     }
 
@@ -1027,6 +1044,7 @@ app.get('/api/products', async (req, res) => {
         price: { amount: Math.floor(Number(p.price || 0)), currency: 'ETB' },
         images: p.image ? [p.image] : [],
         shopId: shopLegacyId,
+        shopLocation: s.address || '',
         category: p.category || null,
         stock: (typeof p.inStock !== 'undefined') ? (p.inStock ? 1 : 0) : 0,
         status: 'active',
@@ -1073,6 +1091,17 @@ app.get('/api/products/:id', async (req, res) => {
         out.shopId = out.shopLegacyId || null;
         out.condition = out.condition || 'new';
         out.shopPhone = out.shopPhone || '';
+        // If product doesn't include shopLocation, try to read it from the Shop collection
+        if (!out.shopLocation || String(out.shopLocation).trim() === '') {
+          try {
+            if (typeof out.shopLegacyId !== 'undefined' && out.shopLegacyId !== null) {
+              const s = await ShopModel.findOne({ legacyId: Number(out.shopLegacyId) }).lean().exec();
+              if (s) out.shopLocation = s.address || '';
+            }
+          } catch (e) {
+            // ignore lookup failures
+          }
+        }
         out.shopLocation = out.shopLocation || '';
         out.inStock = typeof out.stock !== 'undefined' ? (out.stock > 0) : true;
         return res.json(out);

@@ -95,7 +95,10 @@ const ProductCard = ({ product, onAddToCart, shopId }) => {
       </p>
       
       {product.description && (
-        <p className="product-description">{product.description}</p>
+        <p className="product-description">{(function(){
+          const txt = String(product.description || '');
+          return txt.length > 120 ? txt.slice(0, 120).trim() + '…' : txt;
+        })()}</p>
       )}
       
       <div className="product-actions">
