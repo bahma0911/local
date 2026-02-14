@@ -17,9 +17,7 @@ const ProductDetails = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/products/${id}`);
-        if (!res.ok) throw new Error('Failed to load product');
-        const data = await res.json();
+        const data = await apiFetch(`/api/products/${id}`);
         setProduct(data);
         setMainIndex(0);
       } catch (e) {
@@ -31,20 +29,41 @@ const ProductDetails = () => {
     load();
   }, [id]);
 
-  useEffect(() => {
-    const loadReviews = async () => {
-      try {
-        const r = await fetch(`${API_BASE}/api/products/${id}/reviews`);
-        if (!r.ok) return;
-        const j = await r.json();
-        setReviews(j.reviews || []);
-        setReviewsMeta({ average: j.average || 0, count: j.count || 0 });
-      } catch (err) {
-        console.error('Failed to load reviews', err);
-      }
-    };
-    loadReviews();
-  }, [id]);
+  const loadReviews = async () => {
+    try {
+      const j = await apiFetch(`/api/products/${id}/reviews`);
+      setReviews(j.reviews || []);
+      setReviewsMeta({ average: j.average || 0, count: j.count || 0 });
+    } catch (err) {
+      // swallow - reviews may be unavailable to anonymous users
+      console.debug('Failed to load reviews', err && err.message ? err.message : err);
+    }
+  };
+
+  useEffect(() => { loadReviews(); }, [id]);
+
+  const [newRating, setNewRating] = useState(5);
+  const [newComment, setNewComment] = useState('');
+  const [posting, setPosting] = useState(false);
+
+  const handleSubmitReview = async (e) => {
+    e.preventDefault();
+    if (!newComment && !newRating) return;
+    setPosting(true);
+    try {
+      const payload = { rating: Number(newRating), comment: newComment };
+      await apiFetch(`/api/products/${id}/reviews`, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'application/json' } });
+      setNewComment('');
+      setNewRating(5);
+      await loadReviews();
+      try { window.dispatchEvent(new CustomEvent('review:created', { detail: { productId: id, review: {} } })); } catch (e) {}
+    } catch (err) {
+      console.error('Failed to post review', err);
+      alert(err && err.response && err.response.message ? err.response.message : 'Failed to post review');
+    } finally {
+      setPosting(false);
+    }
+  };
 
   if (!product) return <div style={{ padding: 20 }}>Loading...</div>;
   const images = (product.images && product.images.length) ? product.images : (product.image ? [product.image] : []);
