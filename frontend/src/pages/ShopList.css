@@ -27,7 +27,7 @@
   border-radius: var(--hx-radius-pill);
   font-size: 15px;
   outline: none;
-  background: rgba(12, 19, 34, 0.85);
+  background: rgba(29, 51, 98, 0.85);
   color: var(--hx-text);
   box-shadow: var(--hx-shadow-soft);
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
