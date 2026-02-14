@@ -58,8 +58,8 @@
   --text-muted: #64748b;
 
   /* 🧊 SURFACES (subtle cool contrast) */
-  --card-bg: #ffffff;
-  --input-bg: #ffffff;
+  --card-bg: #97b0db;
+  --input-bg: #4d4949;
   --navbar-bg: linear-gradient(
       120deg,
       #ff6b2c 0%,
@@ -87,7 +87,7 @@
 
   /* 🔘 BUTTONS */
   --button-bg: linear-gradient(120deg, #ff6b2c, #ff8c42);
-  --button-text: #ffffff;
+  --button-text: #8488f5;
   --button-hover: #e85b20;
 
   /* 🌫 OVERLAYS */
