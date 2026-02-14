@@ -6,11 +6,14 @@ import './styles/huxn-theme.css';
 import './styles/responsive.css';
 import App from './App.jsx';
 import { AppProvider } from './contex/AppContext.jsx';
+import { ThemeProvider } from './context/ThemeContext.jsx';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <AppProvider>
-      <App />
-    </AppProvider>
+    <ThemeProvider>
+      <AppProvider>
+        <App />
+      </AppProvider>
+    </ThemeProvider>
   </StrictMode>
 );

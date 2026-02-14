@@ -2,8 +2,8 @@
 
 .navbar {
   width: 100%;
-  background: rgba(5, 8, 22, 0.85);
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-color);
   position: sticky;
   top: 0;
   z-index: 40;
@@ -22,13 +22,13 @@
   padding: 6px 8px;
   border-radius: 8px;
 }
-.iconButton:hover { background: rgba(255,255,255,0.04); }
+.iconButton:hover { background: var(--overlay-1); }
 .badge {
   position: absolute;
   top: 6px;
   right: 4px;
-  background: #ff4d4f;
-  color: white;
+  background: var(--hx-primary);
+  color: var(--button-text);
   font-size: 0.7rem;
   padding: 2px 6px;
   border-radius: 999px;
@@ -40,8 +40,8 @@
   width: 300px;
   max-height: 360px;
   overflow: auto;
-  background: rgba(6,8,18,0.98);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
   box-shadow: 0 8px 24px rgba(2,6,24,0.6);
   border-radius: 8px;
   z-index: 120;
@@ -52,21 +52,21 @@
   font-weight: 600;
   border-bottom: 1px solid rgba(255,255,255,0.03);
 }
-.dropdownEmpty { padding: 12px; color: rgba(255,255,255,0.6); }
+.dropdownEmpty { padding: 12px; color: var(--text-secondary); }
 .notifItem {
   display: flex;
   gap: 8px;
   align-items: center;
   padding: 8px;
   border-radius: 6px;
-  background: rgba(255,255,255,0.02);
+  background: var(--overlay-1);
   margin: 6px 0;
 }
-.notifRead { display: flex; gap: 8px; align-items: center; padding: 8px; margin: 6px 0; color: rgba(255,255,255,0.6); }
+.notifRead { display: flex; gap: 8px; align-items: center; padding: 8px; margin: 6px 0; color: var(--text-secondary); }
 .notifMessage { font-size: 0.92rem; }
-.notifTime { font-size: 0.75rem; color: rgba(255,255,255,0.5); margin-top: 4px; }
-.markReadButton { background: none; border: 1px solid rgba(255,255,255,0.06); color: var(--hx-text); padding: 6px 8px; border-radius: 6px; cursor: pointer; }
-.markReadButton:hover { background: rgba(255,255,255,0.02); }
+.notifTime { font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px; }
+.markReadButton { background: none; border: 1px solid var(--border-color); color: var(--text-primary); padding: 6px 8px; border-radius: 6px; cursor: pointer; }
+.markReadButton:hover { background: var(--overlay-1); }
 
 .navbarContent {
   display: flex;

@@ -54,6 +54,9 @@ const ProductCard = ({ product, onAddToCart, shopId }) => {
 
   const available = (typeof product.inStock !== 'undefined') ? product.inStock : ((typeof product.stock !== 'undefined') ? (product.stock > 0) : true);
   const navigate = useNavigate();
+  const priceAmount = (product && product.price && typeof product.price === 'object' && typeof product.price.amount !== 'undefined')
+    ? product.price.amount
+    : (typeof product.price === 'number' ? product.price : 0);
 
   return (
     <div
@@ -94,7 +97,7 @@ const ProductCard = ({ product, onAddToCart, shopId }) => {
         </div>
       </div>
       
-      <p className="product-price">Price: {product.price} ETB
+      <p className="product-price">Price: {priceAmount} ETB
         <span style={{ marginLeft: 8, color: '#9ad' }}>
           {typeof product.stock !== 'undefined'
             ? (product.stock > 0 ? `${product.stock} in stock` : 'Out of stock')

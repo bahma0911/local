@@ -28,6 +28,58 @@
                  radial-gradient(circle at 20% 20%, rgba(34,211,238,0.35), transparent 45%);
 }
 
+/* Theme variable aliases for easier theming */
+:root {
+  --bg-primary: var(--hx-bg);
+  --bg-secondary: rgba(6,8,18,0.95);
+  --text-primary: var(--hx-text);
+  --text-secondary: var(--hx-text-muted);
+  --card-bg: var(--hx-card);
+  --border-color: rgba(255,255,255,0.08);
+  --button-bg: linear-gradient(120deg, var(--hx-primary), var(--hx-secondary));
+  --button-text: #0b0f1d;
+  --overlay-1: rgba(255,255,255,0.04);
+  --overlay-2: rgba(255,255,255,0.08);
+}
+
+/* Light theme overrides */
+[data-theme="light"] {
+  --hx-bg: #f8fafc;
+  --hx-surface: #ffffff;
+  --hx-card: #ffffff;
+  --hx-card-muted: #f1f5f9;
+  --hx-border: rgba(15, 23, 42, 0.06);
+  --hx-border-strong: rgba(2,6,23,0.08);
+  --hx-text: #0f172a;
+  --hx-text-muted: #475569;
+  --hx-primary: #2563eb;
+  --hx-primary-hover: #1e40af;
+  --hx-secondary: #2563eb;
+  --hx-accent: #0891b2;
+  --hx-accent: #0891b2;
+  --hx-success: #059669;
+  --hx-warning: #d97706;
+  --hx-danger: #ef4444;
+  --hx-gradient: none;
+
+  /* aliases */
+  --bg-primary: var(--hx-bg);
+  --bg-secondary: var(--hx-surface);
+  --text-primary: var(--hx-text);
+  --text-secondary: var(--hx-text-muted);
+  --card-bg: var(--hx-card);
+  --border-color: rgba(2,6,23,0.06);
+  --button-bg: linear-gradient(120deg, var(--hx-primary), var(--hx-secondary));
+  --button-text: #ffffff;
+  --overlay-1: rgba(2,6,23,0.03);
+  --overlay-2: rgba(2,6,23,0.06);
+}
+
+/* Smooth theme transitions */
+* {
+  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
 *,
 *::before,
 *::after {
@@ -156,7 +208,7 @@ input[type="submit"],
 .submit-order-btn,
 .nav-button {
   background: linear-gradient(120deg, var(--hx-primary), var(--hx-secondary));
-  color: #0b0f1d;
+  color: var(--button-text);
   font-weight: 600;
   padding: 0.85rem 1.4rem;
   border-radius: var(--hx-radius-pill);
@@ -191,8 +243,8 @@ button:disabled {
 }
 
 .btn-danger {
-  background: linear-gradient(120deg, #f87171, #fb7185);
-  color: #0b0f1d;
+  background: linear-gradient(120deg, var(--hx-danger), #fb7185);
+  color: var(--button-text);
 }
 
 input,
