@@ -155,7 +155,6 @@ const AppContent = () => {
               <span className="btn-text">Track</span>
             </button>
 
-            {/* Theme toggle moved to Profile page */}
 
             {/* Admin link: visible to admin users and shop owners (shop owners use same dashboard for 'My Shop') */}
             {(isAdmin || isShopOwner) && (

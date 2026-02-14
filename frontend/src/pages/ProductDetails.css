@@ -6,3 +6,13 @@
 .pd-thumbs img.active{outline:2px solid #2a9d8f;opacity:1}
 .pd-info{flex:1 1 320px;min-width:260px}
 @media(max-width:720px){.pd-container{flex-direction:column}.pd-gallery{order:0}.pd-info{order:1}}
+
+.pd-reviews{margin-top:24px;display:flex;flex-direction:column;gap:12px}
+.pd-reviews h3{margin:0 0 8px 0;color:var(--text-primary)}
+.pd-review-item{background:var(--card-bg);border:1px solid var(--border-color);padding:12px;border-radius:8px;box-shadow:var(--shadow-sm)}
+.pd-review-meta{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:0.95rem;color:var(--text-secondary)}
+.pd-review-user{font-weight:600;color:var(--text-primary)}
+.pd-review-verified{background:var(--bg-tertiary);color:var(--text-secondary);padding:2px 6px;border-radius:6px;font-size:0.8rem}
+.pd-review-date{margin-left:auto;font-size:0.85rem;color:var(--text-muted)}
+.pd-review-comment{color:var(--text-primary);line-height:1.4;margin-top:6px}
+

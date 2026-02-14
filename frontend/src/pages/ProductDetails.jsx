@@ -9,6 +9,8 @@ const ProductDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [product, setProduct] = useState(null);
+  const [reviews, setReviews] = useState([]);
+  const [reviewsMeta, setReviewsMeta] = useState({ average: 0, count: 0 });
   const [mainIndex, setMainIndex] = useState(0);
   const { addToCart } = useCart();
 
@@ -29,6 +31,21 @@ const ProductDetails = () => {
     load();
   }, [id]);
 
+  useEffect(() => {
+    const loadReviews = async () => {
+      try {
+        const r = await fetch(`${API_BASE}/api/products/${id}/reviews`);
+        if (!r.ok) return;
+        const j = await r.json();
+        setReviews(j.reviews || []);
+        setReviewsMeta({ average: j.average || 0, count: j.count || 0 });
+      } catch (err) {
+        console.error('Failed to load reviews', err);
+      }
+    };
+    loadReviews();
+  }, [id]);
+
   if (!product) return <div style={{ padding: 20 }}>Loading...</div>;
   const images = (product.images && product.images.length) ? product.images : (product.image ? [product.image] : []);
   const mainSrc = images[mainIndex] || images[0] || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=600&fit=crop';
@@ -36,6 +53,15 @@ const ProductDetails = () => {
   const priceAmount = (product && product.price && typeof product.price === 'object' && typeof product.price.amount !== 'undefined')
     ? product.price.amount
     : (typeof product.price === 'number' ? product.price : 0);
+
+  const renderStars = (count) => {
+    const stars = [];
+    for (let i = 1; i <= 5; i++) {
+      if (i <= count) stars.push(<span key={i} style={{ color: '#f59e0b', marginRight: 4 }}>★</span>);
+      else stars.push(<span key={i} style={{ color: '#cbd5e1', marginRight: 4 }}>☆</span>);
+    }
+    return stars;
+  };
 
   return (
     <div className="product-details" style={{ padding: 16 }}>
@@ -75,6 +101,22 @@ const ProductDetails = () => {
           <div style={{ marginTop: 16, display: 'flex', gap: 8 }}>
             <button disabled={!available} onClick={() => addToCart(product, 'Pickup', product.shopId || product.shopLegacyId || null)} style={{ padding: '10px 16px' }}>Add to Cart</button>
             <button disabled={!available} onClick={() => addToCart(product, 'Delivery', product.shopId || product.shopLegacyId || null)} style={{ padding: '10px 16px' }}>Buy with Delivery</button>
+          </div>
+          
+          <div style={{ marginTop: 24 }} className="pd-reviews">
+            <h3>Reviews ({reviewsMeta.count}) — Average: {reviewsMeta.average}</h3>
+            {reviews.length === 0 && <p>No reviews yet.</p>}
+            {reviews.map((rv) => (
+              <div key={rv.id} className="pd-review-item">
+                <div className="pd-review-head">
+                  <strong className="pd-review-user">{rv.user ? rv.user.username : 'Anonymous'}</strong>
+                  <div className="pd-review-stars">{renderStars(rv.rating)}</div>
+                  {rv.verifiedPurchase && <span className="pd-review-verified">Verified</span>}
+                </div>
+                <div className="pd-review-comment">{rv.comment}</div>
+                <div className="pd-review-meta">{new Date(rv.createdAt).toLocaleDateString()}</div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
