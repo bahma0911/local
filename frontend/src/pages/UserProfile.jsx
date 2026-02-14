@@ -83,6 +83,15 @@ const UserProfile = () => {
     try {
       const res = await updateCustomerProfile(profileData);
       if (res && res.ok) {
+        // ensure the form shows the saved values — prefer server-returned user when available
+        if (res.user) {
+          setProfileData({
+            email: res.user.email || profileData.email,
+            phone: res.user.phone || profileData.phone,
+            address: res.user.address || profileData.address,
+            city: res.user.city || profileData.city,
+          });
+        }
         setDirty(false);
         alert('Profile updated successfully!');
       } else {

@@ -79,7 +79,7 @@ export const useAuth = () => {
     } catch {
       return { ok: false, message: 'Network error' };
     }
-  }, [dispatch]);
+  }, [dispatch, state]);
 
   const logout = useCallback(async () => {
     try {
