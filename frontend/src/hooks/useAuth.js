@@ -117,7 +117,13 @@ export const useAuth = () => {
       // update local user state with returned user, but merge with existing to avoid losing fields
       if (data && data.user) {
         const current = state?.user || {};
+        // merge server user over current, but preserve client payload fields that server may not echo (e.g., name)
         const merged = { ...current, ...data.user };
+        // if caller attempted to update fields that the server doesn't persist (name/fullName), keep them
+        if (payload && typeof payload === 'object') {
+          if (payload.name) merged.name = payload.name;
+          if (payload.fullName) merged.fullName = payload.fullName;
+        }
         dispatch({ type: 'SET_USER', payload: merged });
         return { ok: true, user: merged };
       }
