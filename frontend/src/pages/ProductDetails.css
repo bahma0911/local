@@ -1,0 +1,8 @@
+.pd-container{display:flex;gap:20px;flex-wrap:wrap}
+.pd-gallery{flex:1 1 420px;max-width:720px}
+.pd-main img{width:100%;height:auto;border-radius:8px;object-fit:cover}
+.pd-thumbs{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.pd-thumbs img{width:64px;height:64px;object-fit:cover;border-radius:6px;cursor:pointer;opacity:0.85}
+.pd-thumbs img.active{outline:2px solid #2a9d8f;opacity:1}
+.pd-info{flex:1 1 320px;min-width:260px}
+@media(max-width:720px){.pd-container{flex-direction:column}.pd-gallery{order:0}.pd-info{order:1}}

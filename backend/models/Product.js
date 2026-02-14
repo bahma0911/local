@@ -10,6 +10,11 @@ const ProductSchema = new mongoose.Schema({
   description: { type: String, default: '' },
   price: { type: PriceSchema, required: true },
   images: { type: [String], default: [] },
+  // Product condition: 'new' or 'used' (default to 'new')
+  condition: { type: String, enum: ['new', 'used'], default: 'new' },
+  // Contact info for the shop that created the product (optional)
+  shopPhone: { type: String, default: '' },
+  shopLocation: { type: String, default: '' },
   shopId: { type: mongoose.Schema.Types.ObjectId, ref: 'Shop', required: true },
   shopLegacyId: { type: Number },
   category: { type: String },

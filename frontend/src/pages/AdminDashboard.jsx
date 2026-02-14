@@ -383,20 +383,42 @@ const AdminDashboard = () => {
   const addProductAPI = async (shopId, product) => {
     try {
       let payload = { ...product };
-      if (product.imageFile) {
+      // Support uploading multiple image files (imageFiles) or single imageFile
+      if (Array.isArray(product.imageFiles) && product.imageFiles.length > 0) {
+        payload.images = payload.images || [];
+        const ALLOWED = ['image/jpeg', 'image/png', 'image/webp'];
+        const MAX_BYTES = Number(import.meta.env.VITE_UPLOAD_MAX_BYTES ?? 5 * 1024 * 1024);
+        for (const f of product.imageFiles) {
+          if (!ALLOWED.includes(f.type)) throw new Error('Unsupported image type. Use JPG/PNG/WEBP.');
+          if (f.size > MAX_BYTES) throw new Error('Image too large. Max 5MB.');
+          const fd = new FormData();
+          fd.append('file', f);
+          const up = await uploadFile(fd);
+          if (!up) {
+            const attempts = (window._lastUploadAttempts || []).join(', ');
+            throw new Error(`Image upload failed: no response from server. Attempted: ${attempts}`);
+          }
+          if (!up.ok) {
+            const text = await up.text().catch(() => '');
+            throw new Error(`Image upload failed (${up.status}): ${text}`);
+          }
+          const upText = await up.text().catch(() => '');
+          let j;
+          try { j = upText ? JSON.parse(upText) : {}; } catch (e) { j = upText; }
+          if (j && j.url) payload.images.push(j.url);
+        }
+      } else if (product.imageFile) {
         // Client-side validation: enforce file type and size limits before uploading
         const ALLOWED = ['image/jpeg', 'image/png', 'image/webp']; // WHY: match server-side allowed types
-        const MAX_BYTES = Number(
-  import.meta.env.VITE_UPLOAD_MAX_BYTES ?? 5 * 1024 * 1024
-        );
-        if (!ALLOWED.includes(product.imageFile.type)) throw new Error('Unsupported image type. Use JPG/PNG/WEBP.'); // WHY: quick feedback to user
-        if (product.imageFile.size > MAX_BYTES) throw new Error('Image too large. Max 5MB.'); // WHY: avoid wasteful uploads
+        const MAX_BYTES = Number(import.meta.env.VITE_UPLOAD_MAX_BYTES ?? 5 * 1024 * 1024);
+        if (!ALLOWED.includes(product.imageFile.type)) throw new Error('Unsupported image type. Use JPG/PNG/WEBP.');
+        if (product.imageFile.size > MAX_BYTES) throw new Error('Image too large. Max 5MB.');
         const fd = new FormData();
         fd.append('file', product.imageFile);
         const up = await uploadFile(fd);
         if (!up) {
           const attempts = (window._lastUploadAttempts || []).join(', ');
-          throw new Error(`Image upload failed: no response from server. Attempted: ${attempts}. Ensure backend is running (cd backend; npm install; npm start) and that the Vite dev server proxy is active.`);
+          throw new Error(`Image upload failed: no response from server. Attempted: ${attempts}`);
         }
         if (!up.ok) {
           const text = await up.text().catch(() => '');
@@ -407,7 +429,6 @@ const AdminDashboard = () => {
         try { j = upText ? JSON.parse(upText) : {}; } catch (e) { j = upText; }
         console.debug('uploadFile response JSON:', j);
         payload.image = j.url;
-        // also provide images array for newer backend/Product API
         payload.images = [j.url];
       }
       delete payload.imageFile;
@@ -422,6 +443,10 @@ const AdminDashboard = () => {
       }
       // include shopId in body and send to JSON product creation endpoint
       payload.shopId = shopId;
+      // include product condition and shop contact details
+      payload.condition = product.condition || 'new';
+      payload.shopPhone = product.shopPhone || '';
+      payload.shopLocation = product.shopLocation || '';
       // Ensure stock is sent as a number. If an explicit stock value was provided, use it.
       if (typeof payload.stock !== 'undefined' && payload.stock !== null) {
         const n = Number(payload.stock);
@@ -456,7 +481,28 @@ const AdminDashboard = () => {
   const updateProductAPI = async (shopId, productId, product) => {
     try {
       let payload = { ...product };
-      if (product.imageFile) {
+      // Support multiple image uploads for updates as well
+      if (Array.isArray(product.imageFiles) && product.imageFiles.length > 0) {
+        payload.images = payload.images || [];
+        const ALLOWED = ['image/jpeg', 'image/png', 'image/webp'];
+        const MAX_BYTES = Number(import.meta.env.VITE_UPLOAD_MAX_BYTES ?? 5 * 1024 * 1024);
+        for (const f of product.imageFiles) {
+          if (!ALLOWED.includes(f.type)) throw new Error('Unsupported image type. Use JPG/PNG/WEBP.');
+          if (f.size > MAX_BYTES) throw new Error('Image too large. Max 5MB.');
+          const fd = new FormData();
+          fd.append('file', f);
+          const up = await uploadFile(fd);
+          if (!up) throw new Error('Image upload failed: no response from server');
+          if (!up.ok) {
+            const text = await up.text().catch(() => '');
+            throw new Error(`Image upload failed (${up.status}): ${text}`);
+          }
+          const upText = await up.text().catch(() => '');
+          let j;
+          try { j = upText ? JSON.parse(upText) : {}; } catch (e) { j = upText; }
+          if (j && j.url) payload.images.push(j.url);
+        }
+      } else if (product.imageFile) {
         const fd = new FormData();
         fd.append('file', product.imageFile);
         const up = await uploadFile(fd);
@@ -480,6 +526,10 @@ const AdminDashboard = () => {
       } else {
         payload.stock = 0;
       }
+      // include updated condition/contact info when provided
+      if (typeof product.condition !== 'undefined') payload.condition = product.condition;
+      if (typeof product.shopPhone !== 'undefined') payload.shopPhone = product.shopPhone;
+      if (typeof product.shopLocation !== 'undefined') payload.shopLocation = product.shopLocation;
       delete payload.imageFile;
       const res = await fetch(`${API_BASE}/api/shops/${shopId}/products/${productId}`, {
         method: 'PUT',
@@ -600,7 +650,7 @@ const AdminDashboard = () => {
     // product controls removed
 
   // product form state for shop owners
-  const [newProduct, setNewProduct] = useState({ name: '', price: '', image: '', imageFile: null, description: '', inStock: true, stock: 1, category: '' });
+  const [newProduct, setNewProduct] = useState({ name: '', price: '', image: '', images: [], imageFile: null, imageFiles: [], description: '', condition: 'new', shopPhone: '', shopLocation: '', inStock: true, stock: 1, category: '' });
   const [editingProductId, setEditingProductId] = useState(null);
   const [editingProduct, setEditingProduct] = useState(null);
   // declared above near top to ensure effects can reference it
@@ -778,8 +828,17 @@ const AdminDashboard = () => {
                 {shopCategories.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
               <input placeholder="Price in ETB" type="number" value={newProduct.price} onChange={e => setNewProduct(prev => ({ ...prev, price: Number(e.target.value) }))} />
-                <input type="file" accept="image/*" onChange={e => setNewProduct(prev => ({ ...prev, imageFile: e.target.files && e.target.files[0] ? e.target.files[0] : null }))} />
-              <input placeholder="Description" value={newProduct.description} onChange={e => setNewProduct(prev => ({ ...prev, description: e.target.value }))} />
+                <input type="file" accept="image/*" multiple onChange={e => {
+                  const files = e.target.files ? Array.from(e.target.files) : [];
+                  setNewProduct(prev => ({ ...prev, imageFiles: files, imageFile: files.length === 1 ? files[0] : null }));
+                }} />
+                <textarea placeholder="Detailed description" value={newProduct.description} onChange={e => setNewProduct(prev => ({ ...prev, description: e.target.value }))} />
+                <select value={newProduct.condition} onChange={e => setNewProduct(prev => ({ ...prev, condition: e.target.value }))}>
+                  <option value="new">New</option>
+                  <option value="used">Used</option>
+                </select>
+                <input placeholder="Shop phone number" value={newProduct.shopPhone} onChange={e => setNewProduct(prev => ({ ...prev, shopPhone: e.target.value }))} />
+                <input placeholder="Shop location / address" value={newProduct.shopLocation} onChange={e => setNewProduct(prev => ({ ...prev, shopLocation: e.target.value }))} />
               <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                 <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                   <input type="checkbox" checked={newProduct.inStock} onChange={e => setNewProduct(prev => ({ ...prev, inStock: e.target.checked }))} /> In stock
@@ -792,7 +851,7 @@ const AdminDashboard = () => {
               <div style={{ marginTop: 8 }}>
                 <button onClick={async () => {
                   const created = await addProductAPI(currentShop.id, newProduct);
-                  if (created) { setNewProduct({ name: '', price: '', image: '', imageFile: null, description: '', inStock: true, stock: 1 }); fetchShops(); setOwnerTab('products'); }
+                  if (created) { setNewProduct({ name: '', price: '', image: '', images: [], imageFile: null, imageFiles: [], description: '', condition: 'new', shopPhone: '', shopLocation: '', inStock: true, stock: 1 }); fetchShops(); setOwnerTab('products'); }
                 }}>Add Product</button>
               </div>
             </div>

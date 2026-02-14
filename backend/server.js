@@ -913,7 +913,7 @@ app.post('/api/products', requireAuth, requireShopOwner, validate(schemas.produc
     const shop = await ShopModel.findOne({ legacyId: legacyShopId }).exec();
     if (!shop) return res.status(404).json({ message: 'Shop not found' });
 
-    const { name, description = '', price, images = [], category, stock, inStock, status = 'draft', attributes = {} } = req.body;
+    const { name, description = '', price, images = [], category, stock, inStock, status = 'draft', attributes = {}, condition = 'new', shopPhone = '', shopLocation = '' } = req.body;
     // Basic required-field validation with clear messages
     if (!name || String(name).trim().length === 0) return res.status(400).json({ message: 'Product name is required' });
     // Normalize price into { amount, currency }
@@ -926,16 +926,25 @@ app.post('/api/products', requireAuth, requireShopOwner, validate(schemas.produc
       return res.status(400).json({ message: 'price.amount is required and must be a number' });
     }
 
-    // Validate images array
-    if (!Array.isArray(images) || images.length === 0) {
+    // Validate images array (accept single string as well)
+    const imagesArr = Array.isArray(images) ? images : (images ? [images] : []);
+    if (!Array.isArray(imagesArr) || imagesArr.length === 0) {
       return res.status(400).json({ message: 'images is required and must include at least one image URL' });
+    }
+
+    // Validate condition field
+    if (condition && !['new', 'used'].includes(String(condition))) {
+      return res.status(400).json({ message: 'condition must be either "new" or "used"' });
     }
 
     const product = await ProductModel.create({
       name,
       description,
       price: priceObj,
-      images: Array.isArray(images) ? images : (images ? [images] : []),
+      images: imagesArr,
+      condition: String(condition) || 'new',
+      shopPhone: shopPhone || '',
+      shopLocation: shopLocation || '',
       shopId: shop._id,
       shopLegacyId: shop.legacyId,
       category,
@@ -946,9 +955,12 @@ app.post('/api/products', requireAuth, requireShopOwner, validate(schemas.produc
     });
 
     // Return a friendly shape including `inStock` boolean for immediate UI use
+    // Ensure output shape is friendly for the frontend and provides backward-compatibility
+    const prodObj = product.toObject();
+    if ((!prodObj.images || prodObj.images.length === 0) && prodObj.image) prodObj.images = [prodObj.image];
     const prodOut = {
-      ...product.toObject(),
-      inStock: typeof product.stock !== 'undefined' ? (product.stock > 0) : true
+      ...prodObj,
+      inStock: typeof prodObj.stock !== 'undefined' ? (prodObj.stock > 0) : true
     };
 
     return res.status(201).json(prodOut);
@@ -988,7 +1000,10 @@ app.get('/api/products', async (req, res) => {
         name: d.name,
         description: d.description,
         price: d.price || { amount: 0, currency: 'ETB' },
-        images: d.images || [],
+        images: d.images || (d.image ? [d.image] : []),
+        condition: d.condition || 'new',
+        shopPhone: d.shopPhone || '',
+        shopLocation: d.shopLocation || '',
         shopId: d.shopLegacyId || null,
         category: d.category || null,
         stock: d.stock || 0,
@@ -1029,6 +1044,72 @@ app.get('/api/products', async (req, res) => {
     return res.json(sliced);
   } catch (e) {
     console.error('GET /api/products error', e && e.message ? e.message : e);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// GET single product by id (supports Mongo _id or legacy `${shopId}-${prodId}` format)
+app.get('/api/products/:id', async (req, res) => {
+  try {
+    const pid = req.params.id;
+    // Try MongoDB first when available
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      let doc = null;
+      try {
+        if (mongoose.Types.ObjectId.isValid(pid)) {
+          doc = await ProductModel.findById(pid).lean().exec();
+        }
+        // last resort: try matching by string id field (some old entries may store id differently)
+        if (!doc) doc = await ProductModel.findOne({ _id: pid }).lean().exec();
+      } catch (e) {
+        // ignore and fall back to legacy JSON below
+      }
+
+      if (doc) {
+        const out = { ...doc };
+        // Backwards compatibility: if `images` missing but `image` present, convert
+        if ((!out.images || out.images.length === 0) && out.image) out.images = [out.image];
+        out.id = out._id;
+        out.shopId = out.shopLegacyId || null;
+        out.condition = out.condition || 'new';
+        out.shopPhone = out.shopPhone || '';
+        out.shopLocation = out.shopLocation || '';
+        out.inStock = typeof out.stock !== 'undefined' ? (out.stock > 0) : true;
+        return res.json(out);
+      }
+    }
+
+    // Fallback to legacy shops.json products
+    const shops = readShops();
+    for (const s of (shops || [])) {
+      const shopLegacyId = s.id;
+      for (const p of (s.products || [])) {
+        const candidateId = `${shopLegacyId}-${p.id}`;
+        if (String(candidateId) === String(pid) || String(p.id) === String(pid)) {
+          const out = {
+            id: candidateId,
+            name: p.name,
+            description: p.description || '',
+            price: { amount: Math.floor(Number(p.price || 0)), currency: 'ETB' },
+            images: p.image ? [p.image] : [],
+            shopId: shopLegacyId,
+            category: p.category || null,
+            stock: (typeof p.stock !== 'undefined') ? Number(p.stock) : ((typeof p.inStock !== 'undefined') ? (p.inStock ? 1 : 0) : 0),
+            inStock: (typeof p.stock !== 'undefined') ? (Number(p.stock) > 0) : ((typeof p.inStock !== 'undefined') ? !!p.inStock : true),
+            status: 'active',
+            attributes: p.attributes || {},
+            condition: p.condition || 'new',
+            shopPhone: p.shopPhone || (s.phone || '') || '',
+            shopLocation: p.shopLocation || s.address || ''
+          };
+          return res.json(out);
+        }
+      }
+    }
+
+    return res.status(404).json({ message: 'Product not found' });
+  } catch (err) {
+    console.error('GET /api/products/:id error', err && err.message ? err.message : err);
     return res.status(500).json({ message: 'Server error' });
   }
 });

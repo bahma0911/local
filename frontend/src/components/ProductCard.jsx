@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useReviewsWishlist } from '../hooks/useReviewsWishlist';
 import { useAuth } from '../hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 import "./ProductCard.css";
 
 const ProductCard = ({ product, onAddToCart, shopId }) => {
@@ -52,17 +53,17 @@ const ProductCard = ({ product, onAddToCart, shopId }) => {
   };
 
   const available = (typeof product.inStock !== 'undefined') ? product.inStock : ((typeof product.stock !== 'undefined') ? (product.stock > 0) : true);
+  const navigate = useNavigate();
 
   return (
     <div className={`product-card ${available ? 'in-stock' : 'out-of-stock'}`}>
       <div className="product-image-container">
         <img 
-          src={product.image} 
+          src={product.image || (product.images && product.images[0])} 
           alt={product.name}
           className="product-image"
-          onError={(e) => {
-            e.target.src = "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=300&fit=crop";
-          }}
+          onError={(e) => { e.target.src = "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=300&fit=crop"; }}
+          onClick={() => navigate(`/product/${product.id || product._id || product.id}`)}
         />
         {!available && (
           <div className="out-of-stock-overlay">Out of Stock</div>

@@ -12,6 +12,7 @@ import UserProfile from "./pages/UserProfile";
 import OrderTracking from "./pages/OrderTracking";
 import Wishlist from "./pages/Wishlist";
 import CustomerDashboard from "./pages/CustomerDashboard";
+import ProductDetails from "./pages/ProductDetails";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -194,6 +195,7 @@ const AppContent = () => {
             {/* Customer Routes */}
             <Route path="/" element={<Home />} />
             <Route path="/cart" element={<CartPage />} />
+            <Route path="/product/:id" element={<ProductDetails />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
             <Route path="/tracking" element={<OrderTracking />} />
