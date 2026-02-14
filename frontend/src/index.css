@@ -48,14 +48,14 @@
 [data-theme="light"] {
 
   .search-input {
-  background: rgba(42, 55, 128);
+  background: rgba(29, 51, 98, 0.85);
   color: #fff;
 
 }
 
 .price-filter {
   
-  background: rgba(29, 51, 98, 0.85);
+  background: rgba(42, 55, 128);
 }
 
 .category-filter {
