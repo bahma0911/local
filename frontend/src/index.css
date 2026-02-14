@@ -66,8 +66,18 @@
 .product-name {
 
   color: #fff;
-
 }
+
+.random-products-title {
+
+  color: #fff;
+}
+
+.shop-list-container {
+
+  color: rgba(29, 51, 98, 0.85);
+}
+
 
   --hx-text: #222d43;
   --hx-text-muted: #a8b3cf;
