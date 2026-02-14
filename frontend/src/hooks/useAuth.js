@@ -114,9 +114,14 @@ export const useAuth = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      // update local user state with returned user
-      if (data && data.user) dispatch({ type: 'SET_USER', payload: data.user });
-      return { ok: true, user: data && data.user ? data.user : null };
+      // update local user state with returned user, but merge with existing to avoid losing fields
+      if (data && data.user) {
+        const current = state?.user || {};
+        const merged = { ...current, ...data.user };
+        dispatch({ type: 'SET_USER', payload: merged });
+        return { ok: true, user: merged };
+      }
+      return { ok: true, user: null };
     } catch (err) {
       // Fallback: if backend update fails (e.g., no Mongo or network), merge profile into local user state
       try {
