@@ -29,7 +29,7 @@ export const useAuth = () => {
     return () => {
       mounted = false;
     };
-  }, [dispatch, state]);
+  }, [dispatch]);
   const login = useCallback(async ({ username, password }) => {
     try {
       const data = await apiFetch(`${API_BASE}/api/login`, {
