@@ -1292,7 +1292,7 @@ app.post('/api/shops', authenticate, validate(schemas.shopCreate), async (req, r
         name: newShop.name,
         address: newShop.address,
         phone: newShop.phone || '',
-        deliveryFee: newShop.deliveryFee || 0,
+        deliveryFee: newShop.deliveryFee || '',
         deliveryServices: newShop.deliveryServices || [],
         owner: newShop.owner || {},
         products: newShop.products || []
