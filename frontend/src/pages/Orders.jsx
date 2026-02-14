@@ -405,6 +405,9 @@ const Orders = () => {
           <button className={filter === 'confirmed' ? 'active' : ''} onClick={() => setFilter('confirmed')}>
             Confirmed
           </button>
+          <button className={filter === 'picked_up' ? 'active' : ''} onClick={() => setFilter('picked_up')}>
+            Picked Up
+          </button>
           <button className={filter === 'delivered' ? 'active' : ''} onClick={() => setFilter('delivered')}>
             Delivered
           </button>
