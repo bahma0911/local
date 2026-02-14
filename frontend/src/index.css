@@ -59,7 +59,7 @@
   /* Surfaces */
   --card-bg: #889cc4;
   --input-bg: #889cc4;
-  --navbar-bg: linear-gradient(120deg, #ff6b2c, #fff);
+  --navbar-bg:#ff6b2c;
 
   /* Borders */
   --border-color: #e6eef6; /* very subtle cool border */
@@ -83,7 +83,7 @@
   --hx-gradient: none;
 
   /* Buttons */
-  --button-bg: linear-gradient(120deg, #ff6b2c, #ffffff); /* friendlier blue gradient */
+  --button-bg: linear-gradient(120deg, #ff6b2c, #ffffff);
   --button-text: #1a1d32fa;
   --button-hover: #1f5ed8;
 
