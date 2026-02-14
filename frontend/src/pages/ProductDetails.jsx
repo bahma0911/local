@@ -123,17 +123,20 @@ const ProductDetails = () => {
           </div>
           
           <div style={{ marginTop: 24 }} className="pd-reviews">
-            <h3>Reviews ({reviewsMeta.count}) — Average: {reviewsMeta.average}</h3>
+              <h3>Reviews ({reviewsMeta.count}) — Average: {reviewsMeta.average}</h3>
+              {reviewsMeta.count > 0 ? (
+                <div style={{ marginBottom: 8 }}>{renderStars(Math.round(Number(reviewsMeta.average) || 0))} <span style={{ marginLeft: 8, color: 'var(--text-secondary)' }}>{reviewsMeta.average.toFixed ? reviewsMeta.average.toFixed(1) : reviewsMeta.average}</span></div>
+              ) : null}
             {reviews.length === 0 && <p>No reviews yet.</p>}
             {reviews.map((rv) => (
               <div key={rv.id} className="pd-review-item">
                 <div className="pd-review-head">
-                  <strong className="pd-review-user">{rv.user ? rv.user.username : 'Anonymous'}</strong>
-                  <div className="pd-review-stars">{renderStars(rv.rating)}</div>
+                  <strong className="pd-review-user">{rv.user ? rv.user.username : (rv.username || 'Anonymous')}</strong>
+                  <div className="pd-review-stars">{renderStars(Math.round(Number(rv.rating) || 0))}</div>
                   {rv.verifiedPurchase && <span className="pd-review-verified">Verified</span>}
                 </div>
                 <div className="pd-review-comment">{rv.comment}</div>
-                <div className="pd-review-meta">{new Date(rv.createdAt).toLocaleDateString()}</div>
+                <div className="pd-review-meta">{new Date(rv.createdAt || rv.date || Date.now()).toLocaleDateString()}</div>
               </div>
             ))}
           </div>
