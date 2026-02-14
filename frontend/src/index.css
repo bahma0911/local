@@ -46,51 +46,55 @@
 
 /* Light theme overrides */
 [data-theme="light"] {
-  /* Page */
-  --bg-primary: #eed3beda;
-  --bg-secondary: #889cc4; 
-  --bg-tertiary: #96a3bf;  
 
-  /* Text */
+  /* 🌤 PAGE CANVAS (warm neutral) */
+  --bg-primary: #f7f3ef;
+  --bg-secondary: #f1ece6;
+  --bg-tertiary: #ebe5de;
+
+  /* 📝 TEXT (dark navy, softer than black) */
   --text-primary: #0f172a;
-  --text-secondary: #1b304d;
-  --text-muted: #122136;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
 
-  /* Surfaces */
-  --card-bg: #889cc4;
-  --input-bg: #889cc4;
-  --navbar-bg: linear-gradient( 120deg, #ff6b2c 0%, #ff6b2c 35%, #ffffff 100%);
+  /* 🧊 SURFACES (subtle cool contrast) */
+  --card-bg: #ffffff;
+  --input-bg: #ffffff;
+  --navbar-bg: linear-gradient(
+      120deg,
+      #ff6b2c 0%,
+      #ff8c42 35%,
+      #ffffff 100%
+  );
 
-  /* Borders */
-  --border-color: #e6eef6; /* very subtle cool border */
-  --border-light: #f3f6fa; /* ultra light border for card edges */
+  /* 🧱 BORDERS */
+  --border-color: #e7e1da;
+  --border-light: #f1ece6;
 
-  /* Brand / Accent */
-  --accent: #2563eb;
-  --accent-hover: #1b57d9;
+  /* 🍊 BRAND (orange system) */
+  --accent: #ff6b2c;
+  --accent-hover: #e85b20;
 
-  /* Status */
+  /* ✔ STATUS */
   --success: #16a34a;
   --danger: #dc2626;
   --warning: #f59e0b;
 
-  /* Effects */
-  --shadow-sm: 0 1px 4px rgba(2,6,23,0.04);
-  --shadow-md: 0 6px 18px rgba(2,6,23,0.06);
-  --shadow-lg: 0 10px 30px rgba(2,6,23,0.08);
+  /* 🌫 SHADOWS (warmer shadows!) */
+  --shadow-sm: 0 1px 4px rgba(15,23,42,0.04);
+  --shadow-md: 0 6px 18px rgba(15,23,42,0.08);
+  --shadow-lg: 0 10px 30px rgba(15,23,42,0.12);
 
-  /* remove dark decorative gradient in light theme */
-  --hx-gradient: none;
+  /* 🔘 BUTTONS */
+  --button-bg: linear-gradient(120deg, #ff6b2c, #ff8c42);
+  --button-text: #ffffff;
+  --button-hover: #e85b20;
 
-  /* Buttons */
-  --button-bg: linear-gradient(120deg, #ff6b2c, #ffffff);
-  --button-text: #1a1d32fa;
-  --button-hover: #1f5ed8;
-
-  /* Overlays */
-  --overlay-1: rgba(2,6,23,0.02);
-  --overlay-2: rgba(2,6,23,0.04);
+  /* 🌫 OVERLAYS */
+  --overlay-1: rgba(15,23,42,0.03);
+  --overlay-2: rgba(15,23,42,0.05);
 }
+
 
 /* Smooth theme transitions */
 * {
