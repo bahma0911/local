@@ -1,7 +1,7 @@
 .site-footer {
   border-top: 1px solid var(--border-color, #e6e6e6);
   padding: 12px 16px;
-  background: var(--bg-secondary, #ffffff);
+  background: var(--bg-secondary, #b12727);
   color: var(--text-primary, #222);
   font-size: 14px;
 }
