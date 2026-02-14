@@ -6,7 +6,15 @@ export const useCart = () => {
   const [cartItems, setCartItems] = useState(() => {
     try {
       const savedCart = localStorage.getItem("shopCart");
-      return savedCart ? JSON.parse(savedCart) : [];
+      if (savedCart) {
+        const parsed = JSON.parse(savedCart);
+        // normalize any legacy price objects to numeric prices
+        return Array.isArray(parsed) ? parsed.map(it => ({
+          ...it,
+          price: (it && it.price && typeof it.price === 'object' && typeof it.price.amount !== 'undefined') ? Number(it.price.amount) : (typeof it.price === 'number' ? it.price : 0)
+        })) : [];
+      }
+      return [];
     } catch (error) {
       console.error("Error loading cart from localStorage:", error);
       return [];
@@ -115,12 +123,17 @@ export const useCart = () => {
 
     setCartItems((prevItems) => {
       const existing = prevItems.find((item) => String(item.id) === String(pid));
+      // normalize numeric price for cart items
+      const numericPrice = (product && product.price && typeof product.price === 'object' && typeof product.price.amount !== 'undefined')
+        ? Number(product.price.amount)
+        : (typeof product.price === 'number' ? Number(product.price) : 0);
+
       if (existing) {
         return prevItems.map((item) =>
           String(item.id) === String(pid) ? { ...item, quantity: item.quantity + 1 } : item
         );
       } else {
-        const itemToAdd = { ...product, id: pid, quantity: 1, shopId };
+        const itemToAdd = { ...product, id: pid, quantity: 1, shopId, price: numericPrice };
         return [...prevItems, itemToAdd];
       }
     });
