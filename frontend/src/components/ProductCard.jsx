@@ -4,6 +4,7 @@ import { useReviewsWishlist } from '../hooks/useReviewsWishlist';
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../hooks/useCart';
+import reviewCache from '../utils/reviewCache';
 import "./ProductCard.css";
 
 const ProductCard = ({ product, onAddToCart, shopId, limitSingle = false }) => {
@@ -66,20 +67,17 @@ const ProductCard = ({ product, onAddToCart, shopId, limitSingle = false }) => {
     let mounted = true;
     const pid = product.id ?? product._id ?? product.productId ?? null;
     if (!pid) return;
-    const fetchRating = async () => {
-      try {
-        const res = await fetch(`/api/products/${pid}/reviews`);
-        if (!res.ok) return;
-        const data = await res.json();
-        if (!mounted) return;
-        if (data && typeof data.average !== 'undefined') {
-          setRemoteRating(Number(data.average) || 0);
-        }
-      } catch (err) {
-        // ignore
-      }
-    };
-    fetchRating();
+    const cached = reviewCache.getCachedRating(pid);
+    if (cached !== null) {
+      setRemoteRating(cached);
+      return () => { mounted = false; };
+    }
+
+    reviewCache.fetchRating(pid).then((val) => {
+      if (!mounted) return;
+      if (typeof val === 'number') setRemoteRating(val);
+    }).catch(() => {});
+
     return () => { mounted = false; };
   }, [product.id, product._id, product.productId]);
 
