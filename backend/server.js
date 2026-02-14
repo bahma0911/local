@@ -1607,7 +1607,16 @@ app.get('/api/products/:productId/reviews', async (req, res) => {
     const mongoose = (await import('mongoose')).default;
 
     const pidCandidates = [productId];
-    try { pidCandidates.push(new mongoose.Types.ObjectId(productId)); } catch (e) {}
+    try {
+      // support hyphenated ids like "<shopLegacyId>-<mongoObjectId>"
+      const hyphenMatch = String(productId).match(/^\d+-([0-9a-fA-F]{24})$/);
+      if (hyphenMatch && mongoose.Types.ObjectId.isValid(hyphenMatch[1])) {
+        pidCandidates.push(new mongoose.Types.ObjectId(hyphenMatch[1]));
+      }
+    } catch (e) {}
+    try {
+      if (mongoose.Types.ObjectId.isValid(productId)) pidCandidates.push(new mongoose.Types.ObjectId(productId));
+    } catch (e) {}
 
     const match = { productId: { $in: pidCandidates } };
 
