@@ -4,7 +4,7 @@
   background: linear-gradient(
       120deg,
       rgb(17, 45, 105) 0%,
-      rgba(49, 68, 108, 0.85) 55%,
+      rgba(49, 68, 108, 0.85) 35%,
       #fff 100%);
   color: var(--text-primary, #222);
   font-size: 14px;
@@ -22,7 +22,7 @@
   align-items: center;
 }
 .footer-link {
-  color: var(--link-color, #0366d6);
+  color: var(--link-color, #036ce3);
   text-decoration: none;
 }
 .footer-link:hover {
