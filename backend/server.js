@@ -756,6 +756,7 @@ app.get('/api/shops', async (req, res) => {
                   price: p.price.amount,
                   image: (p.images && p.images.length) ? p.images[0] : (p.image || ''),
                   description: p.description || '',
+                  details: p.details || p.description || '',
                   shopLocation: p.shopLocation || d.address || '',
                   shopPhone: p.shopPhone || (d && d.owner && d.owner.phone) || '',
                   category: (p.category || '').toString(),
@@ -771,6 +772,7 @@ app.get('/api/shops', async (req, res) => {
                 price: legacyPrice,
                 image: p.image || (p.images && p.images.length ? p.images[0] : ''),
                 description: p.description || '',
+                details: p.details || p.description || '',
                 shopLocation: p.shopLocation || d.address || '',
                 shopPhone: p.shopPhone || (d && d.owner && d.owner.phone) || '',
                 category: (p.category || '').toString(),
@@ -917,7 +919,7 @@ app.post('/api/products', requireAuth, requireShopOwner, validate(schemas.produc
     const shop = await ShopModel.findOne({ legacyId: legacyShopId }).exec();
     if (!shop) return res.status(404).json({ message: 'Shop not found' });
 
-    const { name, description = '', price, images = [], category, stock, inStock, status = 'draft', attributes = {}, condition = 'new', shopPhone = '', shopLocation = '' } = req.body;
+    const { name, description = '', details = '', price, images = [], category, stock, inStock, status = 'draft', attributes = {}, condition = 'new', shopPhone = '', shopLocation = '' } = req.body;
     // Basic required-field validation with clear messages
     if (!name || String(name).trim().length === 0) return res.status(400).json({ message: 'Product name is required' });
     // Normalize price into { amount, currency }
@@ -944,6 +946,7 @@ app.post('/api/products', requireAuth, requireShopOwner, validate(schemas.produc
     const product = await ProductModel.create({
       name,
       description,
+      details: details || '',
       price: priceObj,
       images: imagesArr,
       condition: String(condition) || 'new',
@@ -1016,6 +1019,7 @@ app.get('/api/products', async (req, res) => {
             id: d._id,
             name: d.name,
             description: d.description,
+            details: d.details || '',
             price: d.price || { amount: 0, currency: 'ETB' },
             images: d.images || (d.image ? [d.image] : []),
             condition: d.condition || 'new',
@@ -1119,6 +1123,7 @@ app.get('/api/products/:id', async (req, res) => {
             id: candidateId,
             name: p.name,
             description: p.description || '',
+            details: p.details || p.description || '',
             price: { amount: Math.floor(Number(p.price || 0)), currency: 'ETB' },
             images: p.image ? [p.image] : [],
             shopId: shopLegacyId,

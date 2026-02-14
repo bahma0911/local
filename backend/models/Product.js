@@ -8,6 +8,8 @@ const PriceSchema = new mongoose.Schema({
 const ProductSchema = new mongoose.Schema({
   name: { type: String, required: true },
   description: { type: String, default: '' },
+  // Short description shown on listing/home pages
+  details: { type: String, default: '' },
   price: { type: PriceSchema, required: true },
   images: { type: [String], default: [] },
   // Product condition: 'new' or 'used' (default to 'new')

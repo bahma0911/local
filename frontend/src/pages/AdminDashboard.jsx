@@ -443,6 +443,9 @@ const AdminDashboard = () => {
       }
       // include shopId in body and send to JSON product creation endpoint
       payload.shopId = shopId;
+      // include short description and detailed description
+      payload.description = product.description || '';
+      payload.details = product.details || product.description || '';
       // include product condition and shop contact details
       payload.condition = product.condition || 'new';
       payload.shopPhone = product.shopPhone || '';
@@ -526,6 +529,9 @@ const AdminDashboard = () => {
       } else {
         payload.stock = 0;
       }
+      // include short and detailed description when provided
+      if (typeof product.description !== 'undefined') payload.description = product.description;
+      if (typeof product.details !== 'undefined') payload.details = product.details;
       // include updated condition/contact info when provided
       if (typeof product.condition !== 'undefined') payload.condition = product.condition;
       if (typeof product.shopPhone !== 'undefined') payload.shopPhone = product.shopPhone;
@@ -650,7 +656,7 @@ const AdminDashboard = () => {
     // product controls removed
 
   // product form state for shop owners
-  const [newProduct, setNewProduct] = useState({ name: '', price: '', image: '', images: [], imageFile: null, imageFiles: [], description: '', condition: 'new', shopPhone: '', shopLocation: '', inStock: true, stock: 1, category: '' });
+  const [newProduct, setNewProduct] = useState({ name: '', price: '', image: '', images: [], imageFile: null, imageFiles: [], description: '', details: '', condition: 'new', shopPhone: '', shopLocation: '', inStock: true, stock: 1, category: '' });
   const [editingProductId, setEditingProductId] = useState(null);
   const [editingProduct, setEditingProduct] = useState(null);
   // declared above near top to ensure effects can reference it
@@ -828,11 +834,12 @@ const AdminDashboard = () => {
                 {shopCategories.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
               <input placeholder="Price in ETB" type="number" value={newProduct.price} onChange={e => setNewProduct(prev => ({ ...prev, price: Number(e.target.value) }))} />
+                <input placeholder="Short description" value={newProduct.description} onChange={e => setNewProduct(prev => ({ ...prev, description: e.target.value }))} />
                 <input type="file" accept="image/*" multiple onChange={e => {
                   const files = e.target.files ? Array.from(e.target.files) : [];
                   setNewProduct(prev => ({ ...prev, imageFiles: files, imageFile: files.length === 1 ? files[0] : null }));
                 }} />
-                <textarea placeholder="Detailed description" value={newProduct.description} onChange={e => setNewProduct(prev => ({ ...prev, description: e.target.value }))} />
+                <textarea placeholder="Detailed description" value={newProduct.details} onChange={e => setNewProduct(prev => ({ ...prev, details: e.target.value }))} />
                 <select value={newProduct.condition} onChange={e => setNewProduct(prev => ({ ...prev, condition: e.target.value }))}>
                   <option value="new">New</option>
                   <option value="used">Used</option>
@@ -851,7 +858,7 @@ const AdminDashboard = () => {
               <div style={{ marginTop: 8 }}>
                 <button onClick={async () => {
                   const created = await addProductAPI(currentShop.id, newProduct);
-                  if (created) { setNewProduct({ name: '', price: '', image: '', images: [], imageFile: null, imageFiles: [], description: '', condition: 'new', shopPhone: '', shopLocation: '', inStock: true, stock: 1 }); fetchShops(); setOwnerTab('products'); }
+                  if (created) { setNewProduct({ name: '', price: '', image: '', images: [], imageFile: null, imageFiles: [], description: '', details: '', condition: 'new', shopPhone: '', shopLocation: '', inStock: true, stock: 1 }); fetchShops(); setOwnerTab('products'); }
                 }}>Add Product</button>
               </div>
             </div>
@@ -927,6 +934,7 @@ const AdminDashboard = () => {
                 {editingProduct.image && <img src={editingProduct.image} alt="preview" style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 6 }} />}
               </div>
               <input value={editingProduct.description} onChange={e => setEditingProduct(prev => ({ ...prev, description: e.target.value }))} />
+              <textarea placeholder="Detailed description" value={editingProduct.details || ''} onChange={e => setEditingProduct(prev => ({ ...prev, details: e.target.value }))} />
               <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                 <input type="checkbox" checked={editingProduct.inStock} onChange={e => setEditingProduct(prev => ({ ...prev, inStock: e.target.checked }))} /> In stock
               </label>
