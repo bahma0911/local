@@ -47,14 +47,14 @@
 /* Light theme overrides */
 [data-theme="light"] {
   /* Page */
-  --bg-primary: #ffffff;
-  --bg-secondary: #f6f7f9; /* soft off-white page canvas for less glare */
-  --bg-tertiary: #f2f4f8;  /* subtle section background */
+  --bg-primary: #eed3beda;
+  --bg-secondary: #889cc4; /* soft off-white page canvas for less glare */
+  --bg-tertiary: #96a3bf;  /* subtle section background */
 
   /* Text */
   --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #64748b;
+  --text-secondary: #1b304d;
+  --text-muted: #122136;
 
   /* Surfaces */
   --card-bg: #ffffff;
