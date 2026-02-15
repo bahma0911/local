@@ -1,11 +1,8 @@
 .site-footer {
   border-top: 1px solid var(--border-color, #e6e6e6);
   padding: 12px 16px;
-  background: linear-gradient(
-      120deg,
-      rgb(17, 45, 105) 0%,
-      rgba(49, 68, 108, 0.85) 35%,
-      #fff 100%);
+  background: rgba(29, 51, 98, 0.85);
+
   color: var(--text-primary, #222);
   font-size: 14px;
 }
@@ -30,7 +27,7 @@
 .footer-phone { grid-column: 1; grid-row: 2; }
 .footer-copy { grid-column: 2; grid-row: 2; justify-self: end; align-self: center; color: var(--muted, #666); width: auto; }
 .footer-link {
-  color: var(--link-color, #036ce3);
+  color: var(--link-color, #ffffff);
   text-decoration: none;
 }
 .footer-link:hover {

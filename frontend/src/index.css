@@ -119,6 +119,14 @@
 .pd-review-date{color:#f9f9f9}
 .pd-review-comment{color:#adacbc}
 
+.site-footer {
+  background: linear-gradient(
+      120deg,
+      rgb(17, 45, 105) 0%,
+      rgba(49, 68, 108, 0.85) 55%,
+      #fff 100%);
+
+}
 
   --hx-text: #222d43;
   --hx-text-muted: #a8b3cf;
