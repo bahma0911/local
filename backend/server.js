@@ -1850,6 +1850,7 @@ app.post('/api/orders', ordersLimiter, validate(schemas.orderCreate), async (req
       // ignore fingerprint lookup errors
     }
     // Persist to Mongo if available. First, validate and decrement stock for each item.
+    let adjustments = [];
     if (mongoose.connection && mongoose.connection.readyState === 1) {
       // Validate stock availability
       for (const it of items) {
@@ -1860,7 +1861,13 @@ app.post('/api/orders', ordersLimiter, validate(schemas.orderCreate), async (req
           const prod = await ProductModel.findById(pid).exec();
           if (!prod) return res.status(404).json({ message: `Product not found: ${pid}` });
           const avail = Number(prod.stock || 0);
-          if (avail < qty) return res.status(400).json({ message: `Insufficient stock for product ${prod.name || pid}` });
+          if (avail <= 0) {
+            adjustments.push({ productId: pid, name: prod.name || pid, requested: qty, available: 0 });
+            it._adjustedQty = 0;
+          } else if (avail < qty) {
+            adjustments.push({ productId: pid, name: prod.name || pid, requested: qty, available: avail });
+            it._adjustedQty = avail;
+          }
         } else {
           // legacy product id: try to find in ShopModel embedded products
           const shopDoc = await ShopModel.findOne({ legacyId: Number(shopId) }).exec();
@@ -1869,7 +1876,13 @@ app.post('/api/orders', ordersLimiter, validate(schemas.orderCreate), async (req
             if (pidx !== -1) {
               const p = shopDoc.products[pidx];
               const avail = typeof p.stock !== 'undefined' ? Number(p.stock) : (p.inStock ? 1 : 0);
-              if (avail < qty) return res.status(400).json({ message: `Insufficient stock for product ${p.name || pid}` });
+              if (avail <= 0) {
+                adjustments.push({ productId: pid, name: p.name || pid, requested: qty, available: 0 });
+                it._adjustedQty = 0;
+              } else if (avail < qty) {
+                adjustments.push({ productId: pid, name: p.name || pid, requested: qty, available: avail });
+                it._adjustedQty = avail;
+              }
             }
           } else {
             // fallback to shops.json
@@ -1879,12 +1892,34 @@ app.post('/api/orders', ordersLimiter, validate(schemas.orderCreate), async (req
               const prodLegacy = (shops[shopIdx].products || []).find(p => String(p.id) === String(pid));
               if (prodLegacy) {
                 const avail = typeof prodLegacy.stock !== 'undefined' ? Number(prodLegacy.stock) : (prodLegacy.inStock ? 1 : 0);
-                if (avail < qty) return res.status(400).json({ message: `Insufficient stock for product ${prodLegacy.name || pid}` });
+                if (avail <= 0) {
+                  adjustments.push({ productId: pid, name: prodLegacy.name || pid, requested: qty, available: 0 });
+                  it._adjustedQty = 0;
+                } else if (avail < qty) {
+                  adjustments.push({ productId: pid, name: prodLegacy.name || pid, requested: qty, available: avail });
+                  it._adjustedQty = avail;
+                }
               }
             }
           }
         }
       }
+
+      // Apply adjustments: set qty fields or remove zero-qty items
+      for (let i = items.length - 1; i >= 0; i--) {
+        const it = items[i];
+        if (typeof it._adjustedQty !== 'undefined') {
+          const newQty = Math.floor(Number(it._adjustedQty || 0));
+          if (newQty <= 0) {
+            items.splice(i, 1);
+          } else {
+            it.qty = newQty;
+            it.quantity = newQty;
+          }
+          delete it._adjustedQty;
+        }
+      }
+      if (!items || items.length === 0) return res.status(400).json({ message: 'All requested items are out of stock', adjustedItems: adjustments });
 
       // Decrement stock for validated items
       for (const it of items) {
@@ -1960,7 +1995,7 @@ app.post('/api/orders', ordersLimiter, validate(schemas.orderCreate), async (req
         console.warn('Failed to create notification or update shop orders', e && e.message ? e.message : e);
       }
       info('Order created (mongo)', { requestId: req.id, orderId, shopId, createdBy: orderBase.createdBy });
-      return res.status(201).json({ message: 'Order created', order: orderDoc });
+      return res.status(201).json({ message: 'Order created', adjustedItems: adjustments, order: orderDoc });
     }
 
     // Fallback to legacy JSON storage
@@ -1968,18 +2003,39 @@ app.post('/api/orders', ordersLimiter, validate(schemas.orderCreate), async (req
     const shops = readShops();
     const shopIdx = shops.findIndex(s => s.id === Number(shopId));
     if (shopIdx === -1) return res.status(404).json({ message: 'Shop not found' });
-    // Validate availability
-    for (const it of items) {
-      const pid = it.productId;
-      const qty = Number(it.qty || it.quantity || 1);
-      const pidx = (shops[shopIdx].products || []).findIndex(p => String(p.id) === String(pid));
-      if (pidx === -1) continue; // product may not be listed, skip
-      const prod = shops[shopIdx].products[pidx];
-      const avail = typeof prod.stock !== 'undefined' ? Number(prod.stock) : (prod.inStock ? 1 : 0);
-      if (avail < qty) return res.status(400).json({ message: `Insufficient stock for product ${prod.name || pid}` });
-    }
+      // Validate availability and apply automatic capping where needed
+      for (const it of items) {
+        const pid = it.productId;
+        const qty = Number(it.qty || it.quantity || 1);
+        const pidx = (shops[shopIdx].products || []).findIndex(p => String(p.id) === String(pid));
+        if (pidx === -1) continue; // product may not be listed, skip
+        const prod = shops[shopIdx].products[pidx];
+        const avail = typeof prod.stock !== 'undefined' ? Number(prod.stock) : (prod.inStock ? 1 : 0);
+        if (avail <= 0) {
+          adjustments.push({ productId: pid, name: prod.name || pid, requested: qty, available: 0 });
+          it._adjustedQty = 0;
+        } else if (avail < qty) {
+          adjustments.push({ productId: pid, name: prod.name || pid, requested: qty, available: avail });
+          it._adjustedQty = avail;
+        }
+      }
+      // Apply adjustments: set qty fields or remove zero-qty items
+      for (let i = items.length - 1; i >= 0; i--) {
+        const it = items[i];
+        if (typeof it._adjustedQty !== 'undefined') {
+          const newQty = Math.floor(Number(it._adjustedQty || 0));
+          if (newQty <= 0) {
+            items.splice(i, 1);
+          } else {
+            it.qty = newQty;
+            it.quantity = newQty;
+          }
+          delete it._adjustedQty;
+        }
+      }
 
     // Decrement stock
+    if (!items || items.length === 0) return res.status(400).json({ message: 'All requested items are out of stock', adjustedItems: adjustments });
     for (const it of items) {
       const pid = it.productId;
       const qty = Number(it.qty || it.quantity || 1);
@@ -2020,7 +2076,7 @@ app.post('/api/orders', ordersLimiter, validate(schemas.orderCreate), async (req
     }
 
     info('Order created (legacy)', { requestId: req.id, orderId, shopId, createdBy: order.createdBy });
-    return res.status(201).json({ message: 'Order created', order });
+    return res.status(201).json({ message: 'Order created', adjustedItems: adjustments, order });
   } catch (err) {
     console.error('POST /api/orders error', err && err.message ? err.message : err);
     return res.status(500).json({ message: 'Failed to create order' });
