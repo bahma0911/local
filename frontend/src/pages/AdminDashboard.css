@@ -401,10 +401,7 @@
 
 /* Dark-mode override: keep other styles unchanged but make owner tab active button background white */
 html[data-theme="dark"] .owner-tabs button.active {
-    background-color: linear-gradient(
-      120deg,
-      rgb(17, 45, 105) 0%,
-      #e46318 100%);
+    background-color:#e46318;
 }
 
 .product-image-preview {
