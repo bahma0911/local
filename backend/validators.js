@@ -53,6 +53,7 @@ export const schemas = {
       z.object({ amount: z.number().int().nonnegative(), currency: z.string().optional() })
     ]).optional(),
     description: z.string().optional(),
+    details: z.string().optional(),
     images: z.array(z.string()).optional(),
     shopId: z.union([z.number(), z.string()]).optional(),
     category: z.string().optional(),
