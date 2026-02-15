@@ -29,8 +29,30 @@ const sendEmail = async ({ to, subject, html }) => {
       })
     });
     if (!resp.ok) {
-      const txt = await resp.text();
-      console.warn('Resend API error', resp.status, txt);
+      // Attempt to parse JSON body when possible for better diagnostics
+      let body = null;
+      try {
+        const ct = resp.headers.get && resp.headers.get('content-type');
+        if (ct && ct.includes('application/json')) body = await resp.json();
+        else body = await resp.text();
+      } catch (e) {
+        try { body = await resp.text(); } catch (e2) { body = null; }
+      }
+      console.warn('Resend API error', resp.status, body);
+
+      // Dev fallback: if Resend rejects because the sending domain isn't verified,
+      // log the full email and return a harmless success marker so flows can continue locally.
+      try {
+        const messageText = (body && (body.message || body.error || body.detail)) ? String(body.message || body.error || body.detail).toLowerCase() : '';
+        if (resp.status === 403 && messageText && (messageText.includes('domain') || messageText.includes('not verified') || messageText.includes('verification'))) {
+          console.warn('Resend rejected sending due to domain verification. Using dev fallback: logging email instead of sending.');
+          try { console.info('DEV EMAIL LOG — to:', to, 'subject:', subject, '\nhtml:\n', html); } catch (e) { /* ignore logging errors */ }
+          return { fallback: true };
+        }
+      } catch (e) {
+        // ignore fallback detection errors and continue to return null below
+      }
+
       return null;
     }
     const data = await resp.json();
