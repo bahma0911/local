@@ -125,8 +125,10 @@
       rgb(17, 45, 105) 0%,
       rgba(49, 68, 108, 0.85) 55%,
       #fff 100%);
-
 }
+
+  .cart-item-quantity { color: #fff;}
+
 
   --hx-text: #222d43;
   --hx-text-muted: #a8b3cf;
