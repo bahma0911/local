@@ -79,6 +79,23 @@
   color: #1976d2;
 }
 
+/* Tweak owner-tabs positioning so buttons align better and don't stick out on small screens */
+.owner-tabs {
+  margin-left: -12px;
+}
+
+@media (max-width: 600px) {
+  .owner-tabs {
+    margin-left: 0;
+    padding-left: 6px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .owner-tabs button {
+    flex: 0 0 auto;
+  }
+}
+
 .admin-actions {
   display: flex;
   gap: 15px;
