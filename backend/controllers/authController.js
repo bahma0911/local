@@ -92,7 +92,14 @@ export const resendVerification = async (req, res) => {
     const token = crypto.randomBytes(24).toString('hex');
     user.verificationToken = token;
     await user.save();
-    try { await sendVerificationEmail(user, token); } catch (e) { console.warn('Failed to resend verification email', e && e.message ? e.message : e); }
+    let sendResult = null;
+    try { sendResult = await sendVerificationEmail(user, token); } catch (e) { console.warn('Failed to resend verification email', e && e.message ? e.message : e); }
+    // If email controller indicated a dev fallback (e.g., Resend domain not verified), surface that to the client
+    if (sendResult && sendResult.fallback) {
+      const frontend = (process.env.FRONTEND_URL && process.env.FRONTEND_URL.trim()) ? process.env.FRONTEND_URL.replace(/\/+$/, '') : (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5173');
+      const link = `${frontend || ''}/verify-email?token=${encodeURIComponent(token)}`;
+      return res.json({ message: 'Verification email logged (dev fallback)', fallback: true, link });
+    }
     return res.json({ message: 'Verification email sent' });
   } catch (e) {
     console.error('resendVerification error', e && e.message ? e.message : e);

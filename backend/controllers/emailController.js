@@ -2,7 +2,9 @@ import fetch from 'node-fetch';
 import crypto from 'crypto';
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const FRONTEND_URL = (process.env.FRONTEND_URL || '').replace(/\/+$/, '');
+// Default to localhost frontend in non-production so verification links are usable during local development
+const _rawFrontend = (process.env.FRONTEND_URL && process.env.FRONTEND_URL.trim()) ? process.env.FRONTEND_URL : (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5173');
+const FRONTEND_URL = (_rawFrontend || '').replace(/\/+$/, '');
 const FROM_EMAIL = process.env.RESEND_FROM || 'no-reply@negadras.local';
 
 if (!RESEND_API_KEY) {
