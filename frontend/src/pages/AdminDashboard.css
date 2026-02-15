@@ -404,7 +404,7 @@ html[data-theme="dark"] .owner-tabs button.active {
     background-color: linear-gradient(
       120deg,
       rgb(17, 45, 105) 0%,
-      #e46318 100%);;
+      #e46318 100%);
 }
 
 .product-image-preview {
