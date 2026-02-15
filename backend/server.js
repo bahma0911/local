@@ -16,6 +16,9 @@ import { validate, schemas } from './validators.js';
 import { info, warn, error as logError } from './logger.js';
 import connectMongo from './mongo.js';
 import User from './models/User.js';
+import * as authController from './controllers/authController.js';
+import * as emailController from './controllers/emailController.js';
+import requireVerifiedEmail from './middleware/requireVerifiedEmail.js';
 import ShopModel from './models/Shop.js';
 import OrderModel from './models/Order.js';
 import CartModel from './models/Cart.js';
@@ -507,40 +510,16 @@ app.post('/api/login', loginRegisterLimiter, validate(schemas.authLogin), async 
 });
 
 // Register a new customer
-app.post('/api/register', loginRegisterLimiter, validate(schemas.authRegister), async (req, res) => {
-  const { username, password, email, phone, address } = req.body || {};
-  if (!username || !password || !email) return res.status(400).json({ message: 'username, password and email required' });
+app.post('/api/register', loginRegisterLimiter, validate(schemas.authRegister), authController.registerWithVerification);
 
-  try {
-    // If MongoDB connected, create in Mongo; otherwise fallback to local JSON file
-    if (mongoose.connection && mongoose.connection.readyState === 1) {
-      const UserModel = (await import('./models/User.js')).default;
-      const exists = await UserModel.findOne({ $or: [{ username }, { email }] }).lean().exec();
-      if (exists) return res.status(409).json({ message: 'User with that username or email already exists' });
-      const hashed = await bcrypt.hash(String(password), 10);
-      const userDoc = await UserModel.create({ username, email, password: hashed, phone: phone || '', address: address || '', role: 'customer' });
-      const token = signToken({ username: userDoc.username, role: 'customer' });
-      res.cookie(AUTH_COOKIE_NAME, token, getAuthCookieOptions());
-      const userSafe = { username: userDoc.username, email: userDoc.email, role: 'customer' };
-      return res.status(201).json({ user: userSafe });
-    }
+// Google OAuth verification endpoint
+app.post('/api/auth/google', validate(schemas.authGoogle), authController.handleGoogleAuth);
 
-    // Local JSON fallback
-    const locals = readCustomers();
-    const existsLocal = locals.find(c => c.username === username || c.email === email);
-    if (existsLocal) return res.status(409).json({ message: 'User with that username or email already exists' });
-    const hashed = await bcrypt.hash(String(password), 10);
-    const newUser = { username, email, password: hashed, phone: phone || '', address: address || '' };
-    locals.unshift(newUser);
-    if (!writeCustomers(locals)) return res.status(500).json({ message: 'Failed to persist user' });
-    const token = signToken({ username: newUser.username, role: 'customer' });
-    res.cookie(AUTH_COOKIE_NAME, token, getAuthCookieOptions());
-    return res.status(201).json({ user: { username: newUser.username, email: newUser.email, role: 'customer' } });
-  } catch (e) {
-    console.error('Register error', e && e.message ? e.message : e);
-    return res.status(500).json({ message: 'Server error' });
-  }
-});
+// Email verification endpoint
+app.post('/api/auth/verify-email', authController.handleVerifyEmail);
+
+// continue existing register error handling fallback (if any)
+// (register handled above by authController.registerWithVerification)
 
 // Temporary test route (no CSRF needed)
 app.post("/api/test-login", async (req, res) => {
@@ -914,7 +893,7 @@ app.get('/api/db/users', async (req, res) => {
 });
 
 // Create product (shop owners only)
-app.post('/api/products', requireAuth, requireShopOwner, validate(schemas.productCreate), async (req, res) => {
+app.post('/api/products', requireAuth, requireVerifiedEmail, requireShopOwner, validate(schemas.productCreate), async (req, res) => {
   try {
     if (!mongoose.connection || mongoose.connection.readyState !== 1) return res.status(503).json({ message: 'MongoDB not connected' });
     // Ensure client sent JSON (no multipart/form-data here)
@@ -1789,6 +1768,8 @@ app.post('/api/orders', ordersLimiter, validate(schemas.orderCreate), async (req
   // Require authenticated user for creating orders
   const authUser = await getUserFromRequest(req);
   if (!authUser) return res.status(401).json({ message: 'Authentication required' });
+  // require verified email
+  if (typeof authUser.emailVerified !== 'undefined' && !authUser.emailVerified) return res.status(403).json({ message: 'Please verify your email before placing orders' });
   const { shopId, items: rawItems, total, paymentMethod } = payload;
   // authUser already resolved above (used to decide captcha requirement)
   // Development debug logging to help diagnose order creation issues
@@ -1994,6 +1975,15 @@ app.post('/api/orders', ordersLimiter, validate(schemas.orderCreate), async (req
       } catch (e) {
         console.warn('Failed to create notification or update shop orders', e && e.message ? e.message : e);
       }
+      // send notification emails (best-effort)
+      try {
+        const shop = await ShopModel.findOne({ legacyId: Number(shopId) }).lean().exec();
+        const shopOwnerEmail = shop && shop.owner && shop.owner.email ? shop.owner.email : null;
+        const shopOwnerName = shop && shop.owner && shop.owner.username ? shop.owner.username : null;
+        if (shopOwnerEmail) await emailController.sendOrderEmails(orderDoc.toObject ? orderDoc.toObject() : orderDoc, shopOwnerEmail, shopOwnerName);
+      } catch (e) {
+        console.warn('Failed to send order emails', e && e.message ? e.message : e);
+      }
       info('Order created (mongo)', { requestId: req.id, orderId, shopId, createdBy: orderBase.createdBy });
       return res.status(201).json({ message: 'Order created', adjustedItems: adjustments, order: orderDoc });
     }
@@ -2075,6 +2065,15 @@ app.post('/api/orders', ordersLimiter, validate(schemas.orderCreate), async (req
       console.warn('Failed to add legacy shop order record:', err && err.message ? err.message : err);
     }
 
+    // attempt to send emails (best-effort)
+    try {
+      const shop = shops[shopIdx];
+      const shopOwnerEmail = shop && shop.owner && shop.owner.email ? shop.owner.email : null;
+      const shopOwnerName = shop && shop.owner && shop.owner.username ? shop.owner.username : null;
+      if (shopOwnerEmail) await emailController.sendOrderEmails(order, shopOwnerEmail, shopOwnerName);
+    } catch (e) {
+      console.warn('Failed to send legacy order emails', e && e.message ? e.message : e);
+    }
     info('Order created (legacy)', { requestId: req.id, orderId, shopId, createdBy: order.createdBy });
     return res.status(201).json({ message: 'Order created', adjustedItems: adjustments, order });
   } catch (err) {
@@ -2170,6 +2169,10 @@ app.patch('/api/orders/:id/status', requireAuth, validate(schemas.orderStatusUpd
             message: `Your order ${orderId} status is now ${normalizedStatus}`,
             isRead: false
           });
+        }
+        // Send status update email (best-effort) for confirmed or cancelled
+        if (['confirmed', 'cancelled'].includes(normalizedStatus)) {
+          try { await emailController.sendOrderStatusEmail(order.toObject ? order.toObject() : order, normalizedStatus); } catch (e) { console.warn('Failed to send order status email', e && e.message ? e.message : e); }
         }
       } catch (e) {
         console.warn('Failed to create notification', e && e.message ? e.message : e);

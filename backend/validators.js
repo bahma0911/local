@@ -10,6 +10,7 @@ export const schemas = {
     phone: z.string().optional(),
     address: z.string().optional(),
   }),
+  authGoogle: z.object({ idToken: z.string().min(1) }),
   resetPassword: z.object({ email: z.string().email(), newPassword: z.string().min(6) }),
   orderCreate: z.object({
     shopId: z.union([z.string(), z.number()]),
