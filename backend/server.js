@@ -397,7 +397,7 @@ const getUserFromRequest = async (req) => {
       try {
         const UserModel = (await import('./models/User.js')).default;
         const user = await UserModel.findOne({ username: payload.username }).lean().exec();
-        if (user) return { username: user.username, email: user.email, phone: user.phone, address: user.address, city: user.city, name: user.name, role: 'customer' };
+        if (user) return { username: user.username, email: user.email, phone: user.phone, address: user.address, city: user.city, name: user.name, role: 'customer', emailVerified: !!user.emailVerified };
       } catch (e) {
         // ignore DB errors, fall back to token payload
       }
@@ -517,6 +517,9 @@ app.post('/api/auth/google', validate(schemas.authGoogle), authController.handle
 
 // Email verification endpoint
 app.post('/api/auth/verify-email', authController.handleVerifyEmail);
+
+// Resend verification token (authenticated)
+app.post('/api/auth/resend-verification', requireAuth, authController.resendVerification);
 
 // continue existing register error handling fallback (if any)
 // (register handled above by authController.registerWithVerification)

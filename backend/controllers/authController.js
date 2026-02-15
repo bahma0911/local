@@ -81,3 +81,21 @@ export const registerWithVerification = async (req, res) => {
     return res.status(500).json({ message: 'Register error' });
   }
 };
+
+export const resendVerification = async (req, res) => {
+  try {
+    const username = req.user && req.user.username ? req.user.username : null;
+    if (!username) return res.status(401).json({ message: 'Not authenticated' });
+    const user = await UserModel.findOne({ username }).exec();
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (user.emailVerified) return res.status(400).json({ message: 'Email already verified' });
+    const token = crypto.randomBytes(24).toString('hex');
+    user.verificationToken = token;
+    await user.save();
+    try { await sendVerificationEmail(user, token); } catch (e) { console.warn('Failed to resend verification email', e && e.message ? e.message : e); }
+    return res.json({ message: 'Verification email sent' });
+  } catch (e) {
+    console.error('resendVerification error', e && e.message ? e.message : e);
+    return res.status(500).json({ message: 'Failed to resend verification' });
+  }
+};

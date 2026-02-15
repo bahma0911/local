@@ -34,6 +34,7 @@ const Checkout = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [preflightAdjustments, setPreflightAdjustments] = useState([]);
   const [showPreflightModal, setShowPreflightModal] = useState(false);
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [orderCompleted, setOrderCompleted] = useState(false);
   const [captchaToken, setCaptchaToken] = useState(null);
   const [orderNumber, setOrderNumber] = useState('');
@@ -193,6 +194,12 @@ const Checkout = () => {
       return;
     }
 
+    // If user's email is not verified, block checkout and prompt to verify
+    if (user && user.emailVerified === false) {
+      setShowVerifyModal(true);
+      return;
+    }
+
     // Preflight: check local availability and block if any item qty > available
     const localAdjustments = [];
     for (const it of cartItems) {
@@ -311,6 +318,16 @@ const Checkout = () => {
       alert('Something went wrong while placing your order. Please try again.');
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    try {
+      await apiFetch(`${API_BASE}/api/auth/resend-verification`, { method: 'POST' });
+      alert('Verification email resent. Please check your inbox (and spam).');
+    } catch (e) {
+      console.error('Resend verification failed', e);
+      alert('Failed to resend verification email. Please try again later.');
     }
   };
 
@@ -484,6 +501,28 @@ const Checkout = () => {
     );
   };
 
+  // Verify email modal: shown when user attempts checkout without verified email
+  const VerifyEmailModal = () => {
+    if (!showVerifyModal) return null;
+    return (
+      <div className="preflight-modal-overlay">
+        <div className="preflight-modal">
+          <h3>Please verify your email</h3>
+          <p>
+            Your account email appears to be unverified. Please verify your email before placing orders.
+            We sent the original verification to <strong>{user?.email || 'your email'}</strong>.
+          </p>
+          <div style={{ marginTop: 12 }}>
+            <button onClick={handleResendVerification} className="apply-adjustments-btn">Resend verification email</button>
+            <button onClick={() => { setShowVerifyModal(false); }} className="cancel-adjustments-btn" style={{ marginLeft: 8 }}>Cancel</button>
+            <button onClick={() => { setShowVerifyModal(false); window.location.reload(); }} className="apply-adjustments-btn" style={{ marginLeft: 8 }}>I have verified — refresh</button>
+          </div>
+          <p style={{ marginTop: 10, fontSize: 13 }}>If you still don't receive the email, check your spam folder or update your address in your <a href="/profile">profile</a>.</p>
+        </div>
+      </div>
+    );
+  };
+
   if (cartItems.length === 0) {
     return (
       <div className="empty-cart">
@@ -504,6 +543,7 @@ const Checkout = () => {
   return (
     <div className="checkout-container">
       <PreflightModal />
+      <VerifyEmailModal />
       <div className="checkout-grid">
         <div className="customer-form">
           <h1 className="checkout-title">Checkout</h1>
