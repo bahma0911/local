@@ -107,7 +107,7 @@ const ProductDetails = () => {
 
           <div style={{ marginTop: 12 }}>
             <strong>Details</strong>
-            <p style={{ whiteSpace: 'pre-wrap' }}>{product.details || product.description || ''}</p>
+            <p style={{ whiteSpace: 'pre-wrap' }}>{product.description || product.details || ''}</p>
           </div>
 
           <div style={{ marginTop: 12 }}>
