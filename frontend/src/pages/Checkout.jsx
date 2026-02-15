@@ -15,7 +15,8 @@ const Checkout = () => {
     itemsTotal, 
     totalItems,
     clearCart,
-    deliveryOptions
+    deliveryOptions,
+    applyAdjustments
   } = useCart();
 
   const { user, csrfToken } = useAuth();
@@ -39,6 +40,7 @@ const Checkout = () => {
   const [pickupLocations, setPickupLocations] = useState([]);
   const [showDeliveryPaymentMessage, setShowDeliveryPaymentMessage] = useState(false);
   const [finalTotal, setFinalTotal] = useState(null);
+  const [serverAdjustments, setServerAdjustments] = useState([]);
   
   // deliveryOptions will be used to detect per-shop pickup vs delivery
 
@@ -249,6 +251,16 @@ const Checkout = () => {
       // Persist successful server-created orders for guest users so they can view them locally
       try {
         const created = serverResults.filter(r => r.ok).map(r => (r.data && r.data.order) ? r.data.order : null).filter(Boolean);
+        // collect any server-side adjustments and apply to cart
+        const adjustments = serverResults.filter(r => r.ok && r.data && Array.isArray(r.data.adjustedItems)).flatMap(r => r.data.adjustedItems || []);
+        if (adjustments.length > 0) {
+          try {
+            applyAdjustments(adjustments);
+            setServerAdjustments(adjustments);
+          } catch (e) {
+            console.warn('Failed to apply server adjustments locally', e && e.message ? e.message : e);
+          }
+        }
         if (created && created.length) {
           const existing = JSON.parse(localStorage.getItem('guestOrders') || '[]');
           const merged = (existing || []).concat(created);
@@ -360,6 +372,20 @@ const Checkout = () => {
           <p className="confirmation-total">
             Total Amount: <strong>{(finalTotal ?? totalAmount)} ETB</strong>
           </p>
+          {serverAdjustments && serverAdjustments.length > 0 && (
+            <div className="adjustments-summary">
+              <h4>Order adjustments</h4>
+              <p>The server adjusted some item quantities due to limited stock:</p>
+              <ul>
+                {serverAdjustments.map((a, i) => (
+                  <li key={`${a.productId}-${i}`}>
+                    {a.name || a.productId}: requested {a.requested}, available {a.available}
+                  </li>
+                ))}
+              </ul>
+              <p>Please review your cart — items have been updated to match availability.</p>
+            </div>
+          )}
           {/* Show pickup locations if any */}
           {pickupLocations && pickupLocations.length > 0 && (
             <div className="pickup-locations">

@@ -196,6 +196,27 @@ export const useCart = () => {
     setDeliveryOptions({});
   };
 
+  // Apply server-side adjustments: array of { productId, requested, available }
+  const applyAdjustments = (adjustments = []) => {
+    if (!Array.isArray(adjustments) || adjustments.length === 0) return [];
+    setCartItems(prevItems => {
+      let items = prevItems.slice();
+      for (const adj of adjustments) {
+        const pid = adj.productId ?? adj.id ?? adj.productId;
+        const idx = items.findIndex(it => String(it.id) === String(pid));
+        if (idx === -1) continue;
+        const available = Number(adj.available || 0);
+        if (available <= 0) {
+          items.splice(idx, 1);
+        } else {
+          items[idx] = { ...items[idx], quantity: Math.floor(available) };
+        }
+      }
+      return items;
+    });
+    return adjustments;
+  };
+
   // ✅ Get low stock alerts for shop owners
   const getLowStockProducts = (shopId) => {
     const currentShops = getCurrentShops();
@@ -222,5 +243,6 @@ export const useCart = () => {
     clearCart,
     checkProductStock,
     getLowStockProducts,
+    applyAdjustments,
   };
 };
