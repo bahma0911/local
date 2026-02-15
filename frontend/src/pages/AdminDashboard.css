@@ -399,10 +399,9 @@
   border-color: #c82333;
 }
 
-/* In dark mode, ensure the owner tab buttons (Orders, Products, Reviews, Add Product)
-   show white text when active without changing other styles. */
-html:not([data-theme="light"]) .owner-tabs button.active {
-  color: #ffffff !important;
+/* Dark-mode override: keep other styles unchanged but make owner tab active button background white */
+html[data-theme="dark"] .owner-tabs button.active {
+  background-color: #b8560b !important;
 }
 
 .product-image-preview {
