@@ -44,6 +44,8 @@ const sendEmail = async ({ to, subject, html }) => {
 export const sendVerificationEmail = async (user, token) => {
   try {
     const link = `${FRONTEND_URL || ''}/verify-email?token=${encodeURIComponent(token)}`;
+    // Always log the verification link to server console for easier local testing
+    try { console.info('Verification link:', link); } catch (e) { /* ignore */ }
     const html = `
       <p>Hello ${user.name || user.username || ''},</p>
       <p>Thank you for creating an account. Please verify your email by clicking the link below:</p>
