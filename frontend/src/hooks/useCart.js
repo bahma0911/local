@@ -41,24 +41,19 @@ export const useCart = () => {
   const checkProductStock = (productId = 1) => {
     const currentShops = getCurrentShops();
     const product = currentShops
-      .flatMap(shop => shop.products)
-      .find(p => String(p.id) === String(productId));
-    
+      .flatMap(shop => shop.products || [])
+      .find(p => String(p.id) === String(productId) || String(p._id || p._id?.$oid) === String(productId));
+
     if (!product) {
-      return { inStock: false, available: 0, message: "Product not found" };
+      return { inStock: false, available: 0, message: 'Product not found' };
     }
-    
-    if (!product.inStock) {
-      return { inStock: false, available: 0, message: "Product is out of stock" };
+
+    const available = typeof product.stock !== 'undefined' ? Number(product.stock) : (product.inStock ? 1 : 0);
+    if (!available || available <= 0) {
+      return { inStock: false, available: 0, message: 'Product is out of stock' };
     }
-    
-    // For demo purposes - you can enhance this with actual stock tracking
-    // Currently just checks if product.inStock is true
-    return { 
-      inStock: true, 
-      available: 999, // Unlimited stock for demo
-      message: "Product is available" 
-    };
+
+    return { inStock: true, available, message: 'Product is available' };
   };
 
   // Save to localStorage
@@ -129,10 +124,19 @@ export const useCart = () => {
         : (typeof product.price === 'number' ? Number(product.price) : 0);
 
       if (existing) {
+        const newQty = existing.quantity + 1;
+        if (typeof stockCheck.available === 'number' && newQty > Number(stockCheck.available)) {
+          alert(`Cannot add more than available stock (${stockCheck.available}) for ${existing.name || pid}`);
+          return prevItems;
+        }
         return prevItems.map((item) =>
-          String(item.id) === String(pid) ? { ...item, quantity: item.quantity + 1 } : item
+          String(item.id) === String(pid) ? { ...item, quantity: newQty } : item
         );
       } else {
+        if (typeof stockCheck.available === 'number' && 1 > Number(stockCheck.available)) {
+          alert(`Cannot add item — no stock available for ${product.name || pid}`);
+          return prevItems;
+        }
         const itemToAdd = { ...product, id: pid, quantity: 1, shopId, price: numericPrice };
         return [...prevItems, itemToAdd];
       }
@@ -152,8 +156,11 @@ export const useCart = () => {
   // ✅ FIXED: increaseQuantity with proper inventory check
   const increaseQuantity = (productId) => {
     const stockCheck = checkProductStock(productId);
-    if (!stockCheck.inStock) {
-      alert(`Cannot add more - ${stockCheck.message}`);
+    const existing = cartItems.find(it => String(it.id) === String(productId));
+    const currentQty = existing ? Number(existing.quantity || 0) : 0;
+    const available = Number(stockCheck.available || 0);
+    if (!stockCheck.inStock || currentQty + 1 > available) {
+      alert(`Cannot add more - only ${available} available`);
       return;
     }
 

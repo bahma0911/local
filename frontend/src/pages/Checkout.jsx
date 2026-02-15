@@ -16,7 +16,8 @@ const Checkout = () => {
     totalItems,
     clearCart,
     deliveryOptions,
-    applyAdjustments
+    applyAdjustments,
+    checkProductStock
   } = useCart();
 
   const { user, csrfToken } = useAuth();
@@ -31,6 +32,8 @@ const Checkout = () => {
   });
 
   const [isProcessing, setIsProcessing] = useState(false);
+  const [preflightAdjustments, setPreflightAdjustments] = useState([]);
+  const [showPreflightModal, setShowPreflightModal] = useState(false);
   const [orderCompleted, setOrderCompleted] = useState(false);
   const [captchaToken, setCaptchaToken] = useState(null);
   const [orderNumber, setOrderNumber] = useState('');
@@ -190,6 +193,22 @@ const Checkout = () => {
       return;
     }
 
+    // Preflight: check local availability and block if any item qty > available
+    const localAdjustments = [];
+    for (const it of cartItems) {
+      const pid = it.id ?? it.productId ?? it._id;
+      const qty = Number(it.quantity ?? it.qty ?? it.quantity ?? 1);
+      const stock = checkProductStock(pid);
+      if (!stock.inStock || stock.available < qty) {
+        localAdjustments.push({ productId: pid, name: it.name || it.title || pid, requested: qty, available: stock.available });
+      }
+    }
+    if (localAdjustments.length > 0) {
+      setPreflightAdjustments(localAdjustments);
+      setShowPreflightModal(true);
+      return; // stop submission until user confirms adjustments
+    }
+
     setIsProcessing(true);
 
     try {
@@ -251,15 +270,14 @@ const Checkout = () => {
       // Persist successful server-created orders for guest users so they can view them locally
       try {
         const created = serverResults.filter(r => r.ok).map(r => (r.data && r.data.order) ? r.data.order : null).filter(Boolean);
-        // collect any server-side adjustments and apply to cart
+        // collect any server-side adjustments (should be rare if preflight passed)
         const adjustments = serverResults.filter(r => r.ok && r.data && Array.isArray(r.data.adjustedItems)).flatMap(r => r.data.adjustedItems || []);
         if (adjustments.length > 0) {
-          try {
-            applyAdjustments(adjustments);
-            setServerAdjustments(adjustments);
-          } catch (e) {
-            console.warn('Failed to apply server adjustments locally', e && e.message ? e.message : e);
-          }
+          // show a modal instead of silently applying adjustments
+          setPreflightAdjustments(adjustments);
+          setShowPreflightModal(true);
+          setIsProcessing(false);
+          return;
         }
         if (created && created.length) {
           const existing = JSON.parse(localStorage.getItem('guestOrders') || '[]');
@@ -331,6 +349,30 @@ const Checkout = () => {
 
     return Promise.all(promises);
   }
+
+  // User confirms to apply adjustments and continue checkout
+  const confirmAdjustmentsAndProceed = async (applyAndProceed = true) => {
+    setShowPreflightModal(false);
+    if (!applyAndProceed) {
+      // user chose to review cart instead
+      return;
+    }
+    try {
+      // apply adjustments to local cart
+      applyAdjustments(preflightAdjustments || []);
+      setServerAdjustments(preflightAdjustments || []);
+      // re-run submission after applying adjustments
+      // build a new order and submit
+      // small delay to ensure cart state updates
+      await new Promise(r => setTimeout(r, 200));
+      // call handleSubmitOrder again programmatically to continue
+      // to avoid recursion complexity, simply reload page to let user review updated cart
+      // and then re-submit when they're ready
+      window.location.reload();
+    } catch (e) {
+      console.error('Failed to apply adjustments', e);
+    }
+  };
   
 
   if (orderCompleted) {
@@ -418,6 +460,30 @@ const Checkout = () => {
     );
   }
 
+  // Preflight modal UI: show when some quantities exceed available stock
+  const PreflightModal = () => {
+    if (!showPreflightModal) return null;
+    return (
+      <div className="preflight-modal-overlay">
+        <div className="preflight-modal">
+          <h3>Stock limits detected</h3>
+          <p>Some items in your cart exceed current stock. You can either adjust the quantities to available amounts and continue, or cancel to review your cart.</p>
+          <ul>
+            {preflightAdjustments.map((a, i) => (
+              <li key={`${a.productId}-${i}`}>
+                {a.name || a.productId}: requested {a.requested}, available {a.available}
+              </li>
+            ))}
+          </ul>
+          <div className="preflight-actions">
+            <button onClick={() => confirmAdjustmentsAndProceed(true)} className="apply-adjustments-btn">Adjust quantities and continue</button>
+            <button onClick={() => { setShowPreflightModal(false); }} className="cancel-adjustments-btn">Cancel and review cart</button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (cartItems.length === 0) {
     return (
       <div className="empty-cart">
@@ -433,8 +499,11 @@ const Checkout = () => {
     );
   }
 
+  
+
   return (
     <div className="checkout-container">
+      <PreflightModal />
       <div className="checkout-grid">
         <div className="customer-form">
           <h1 className="checkout-title">Checkout</h1>
