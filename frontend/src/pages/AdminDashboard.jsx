@@ -736,8 +736,8 @@ const AdminDashboard = () => {
           <div className="owner-tabs" style={{ display: 'flex', gap: 8, marginTop: 12 }}>
             <button className={ownerTab === 'orders' ? 'active' : ''} onClick={() => { setOwnerTab('orders'); fetchShopOrders(currentShop.id || assignedShop); }}>Orders</button>
             <button className={ownerTab === 'products' ? 'active' : ''} onClick={() => setOwnerTab('products')}>Products</button>
-            <button className={ownerTab === 'reviews' ? 'active' : ''} onClick={() => setOwnerTab('reviews')}>Reviews</button>
             <button className={ownerTab === 'add' ? 'active' : ''} onClick={() => setOwnerTab('add')}>Add Product</button>
+            <button className={ownerTab === 'reviews' ? 'active' : ''} onClick={() => setOwnerTab('reviews')}>Reviews</button>
           </div>
 
           {ownerTab === 'orders' && (
