@@ -172,13 +172,8 @@ export const useCart = () => {
   };
 
   const removeFromCart = (productId) => {
-    setCartItems((prevItems) =>
-      prevItems
-        .map((item) =>
-          String(item.id) === String(productId) ? { ...item, quantity: item.quantity - 1 } : item
-        )
-        .filter((item) => item.quantity > 0)
-    );
+    // Remove all items with the matching product id from the cart
+    setCartItems((prevItems) => prevItems.filter((item) => String(item.id) !== String(productId)));
   };
 
   const updateDeliveryOption = (shopId, option) => {
