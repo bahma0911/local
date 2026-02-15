@@ -21,6 +21,7 @@ const UserProfile = () => {
     city: user?.city || ''
   });
   const [dirty, setDirty] = useState(false);
+  const [isResending, setIsResending] = useState(false);
 
   useEffect(() => {
     // only sync profile data from `user` when the form is not being edited
@@ -202,6 +203,42 @@ const UserProfile = () => {
               <button onClick={logout} className="btn-logout">
                 Logout
               </button>
+            </div>
+
+            <div style={{ marginTop: 18 }}>
+              {user.emailVerified ? (
+                <div style={{ color: 'green', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span>✅</span>
+                  <span>Your email is verified</span>
+                </div>
+              ) : (
+                <div style={{ color: '#b33', display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div>
+                    <div style={{ fontWeight: 600 }}>Email not verified</div>
+                    <div style={{ fontSize: 13 }}>Please verify your email to enable orders and notifications.</div>
+                  </div>
+                  <div>
+                    <button
+                      onClick={async () => {
+                        try {
+                          setIsResending(true);
+                          await apiFetch(`${API_BASE}/api/auth/resend-verification`, { method: 'POST' });
+                          alert('Verification email resent. Check your inbox and spam folder.');
+                        } catch (e) {
+                          console.error('Resend failed', e);
+                          alert('Failed to resend verification email. Try again later.');
+                        } finally {
+                          setIsResending(false);
+                        }
+                      }}
+                      className="btn-resend"
+                      disabled={isResending}
+                    >
+                      {isResending ? 'Resending…' : 'Resend verification'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
