@@ -22,7 +22,17 @@ const Register = () => {
       if (res.fallback && res.link) {
         setError(null);
         alert('Verification link (dev fallback): ' + res.link);
-        navigate('/verify-email?token=' + encodeURIComponent(new URL(res.link).searchParams.get('token') || ''));
+        // support absolute or relative links returned by dev fallback
+        try {
+          const parsed = new URL(res.link, window.location.origin);
+          const token = parsed.searchParams.get('token') || '';
+          navigate('/verify-email?token=' + encodeURIComponent(token));
+        } catch (e) {
+          // fallback: try to extract token with simple regex
+          const m = String(res.link).match(/[?&]token=([^&]+)/);
+          const token = m ? decodeURIComponent(m[1]) : '';
+          navigate('/verify-email?token=' + encodeURIComponent(token));
+        }
         return;
       }
       setError('Check your email for a verification link');

@@ -105,14 +105,17 @@ export const startRegister = async (req, res) => {
 export const completeRegister = async (req, res) => {
   try {
     const { token, username, password, phone, address } = req.body || {};
-    if (!token || !username || !password) return res.status(400).json({ message: 'token, username and password required' });
+    if (!token) return res.status(400).json({ message: 'token required' });
 
     const pending = await PendingUser.findOne({ verificationToken: token }).exec();
     if (!pending) return res.status(404).json({ message: 'Invalid or expired token' });
     if (pending.expiresAt && pending.expiresAt < new Date()) return res.status(410).json({ message: 'Token expired' });
+    // Determine username to use: prefer provided, then pending stored username
+    const finalUsername = username || pending.username;
+    if (!finalUsername) return res.status(400).json({ message: 'username required' });
 
     // Ensure username/email not taken by existing user
-    const conflict = await UserModel.findOne({ $or: [{ username }, { email: pending.email }] }).lean().exec();
+    const conflict = await UserModel.findOne({ $or: [{ username: finalUsername }, { email: pending.email }] }).lean().exec();
     if (conflict) return res.status(409).json({ message: 'Username or email already in use' });
 
     let passwordToUseHash = null;
@@ -124,7 +127,7 @@ export const completeRegister = async (req, res) => {
       return res.status(400).json({ message: 'Password required' });
     }
 
-    const userDoc = await UserModel.create({ username, email: pending.email, password: passwordToUseHash, phone: phone || '', address: address || '', role: 'customer', emailVerified: true });
+    const userDoc = await UserModel.create({ username: finalUsername, email: pending.email, password: passwordToUseHash, phone: phone || '', address: address || '', role: 'customer', emailVerified: true });
 
     // Clean up pending reservation
     try { await PendingUser.deleteOne({ _id: pending._id }).exec(); } catch (e) { /* ignore cleanup errors */ }
