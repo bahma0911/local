@@ -18,7 +18,14 @@ const Register = () => {
     const res = await register(form);
     setLoading(false);
     if (res.ok) {
-      navigate('/');
+      // Inform user to check email for verification link/token
+      if (res.fallback && res.link) {
+        setError(null);
+        alert('Verification link (dev fallback): ' + res.link);
+        navigate('/verify-email?token=' + encodeURIComponent(new URL(res.link).searchParams.get('token') || ''));
+        return;
+      }
+      setError('Check your email for a verification link');
     } else {
       setError(res.message || 'Registration failed');
     }

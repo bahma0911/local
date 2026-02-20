@@ -93,15 +93,15 @@ export const useAuth = () => {
 
   const register = useCallback(async (payload) => {
     try {
-      const data = await apiFetch(`${API_BASE}/api/register`, {
+      // Start two-step registration: this sends a verification email and reserves the email/username.
+      const data = await apiFetch(`${API_BASE}/api/auth/start-register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
-      dispatch({ type: 'SET_USER', payload: data.user });
-
-      return { ok: true, user: data.user };
+      // We do not log the user in yet — they must verify via email link.
+      return { ok: true, message: data.message || 'Verification email sent', fallback: data.fallback, link: data.link };
     } catch (err) {
       return { ok: false, message: (err && err.response && err.response.message) ? err.response.message : 'Network error' };
     }

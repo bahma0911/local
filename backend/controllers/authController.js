@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import UserModel from '../models/User.js';
+import PendingUser from '../models/PendingUser.js';
 import { sendVerificationEmail } from './emailController.js';
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
@@ -58,6 +59,83 @@ export const handleVerifyEmail = async (req, res) => {
   } catch (e) {
     console.error('handleVerifyEmail error', e && e.message ? e.message : e);
     return res.status(500).json({ message: 'Email verification failed' });
+  }
+};
+
+export const startRegister = async (req, res) => {
+  try {
+    const { email, username, password } = req.body || {};
+    if (!email) return res.status(400).json({ message: 'email required' });
+
+    // Check existing users
+    const existsQuery = username ? { $or: [{ email }, { username }] } : { email };
+    const exists = await UserModel.findOne(existsQuery).lean().exec();
+    if (exists) return res.status(409).json({ message: 'User with that email or username already exists' });
+
+    // Check pending reservations
+    const pendingExistsQuery = username ? { $or: [{ email }, { username }] } : { email };
+    const pendingExists = await PendingUser.findOne(pendingExistsQuery).lean().exec();
+    if (pendingExists) return res.status(409).json({ message: 'A registration is already pending for that email or username' });
+
+    const verificationToken = crypto.randomBytes(24).toString('hex');
+    const expiresAt = new Date(Date.now() + (15 * 60 * 1000)); // 15 minutes
+    let passwordHash = null;
+    if (password) {
+      try { passwordHash = await bcrypt.hash(String(password), 10); } catch (e) { /* ignore */ }
+    }
+
+    const pending = await PendingUser.create({ email, username: username || null, passwordHash: passwordHash || null, verificationToken, expiresAt });
+
+    let sendResult = null;
+    try { sendResult = await sendVerificationEmail(pending, verificationToken); } catch (e) { console.warn('Failed to send verification email', e && e.message ? e.message : e); }
+
+    if (sendResult && sendResult.fallback) {
+      const frontend = (process.env.FRONTEND_URL && process.env.FRONTEND_URL.trim()) ? process.env.FRONTEND_URL.replace(/\/+$/, '') : (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5173');
+      const link = `${frontend || ''}/verify-email?token=${encodeURIComponent(verificationToken)}`;
+      return res.json({ message: 'Verification email logged (dev fallback)', fallback: true, link });
+    }
+
+    return res.json({ message: 'Verification email sent' });
+  } catch (e) {
+    console.error('startRegister error', e && e.message ? e.message : e);
+    return res.status(500).json({ message: 'Failed to start registration' });
+  }
+};
+
+export const completeRegister = async (req, res) => {
+  try {
+    const { token, username, password, phone, address } = req.body || {};
+    if (!token || !username || !password) return res.status(400).json({ message: 'token, username and password required' });
+
+    const pending = await PendingUser.findOne({ verificationToken: token }).exec();
+    if (!pending) return res.status(404).json({ message: 'Invalid or expired token' });
+    if (pending.expiresAt && pending.expiresAt < new Date()) return res.status(410).json({ message: 'Token expired' });
+
+    // Ensure username/email not taken by existing user
+    const conflict = await UserModel.findOne({ $or: [{ username }, { email: pending.email }] }).lean().exec();
+    if (conflict) return res.status(409).json({ message: 'Username or email already in use' });
+
+    let passwordToUseHash = null;
+    if (password) {
+      passwordToUseHash = await bcrypt.hash(String(password), 10);
+    } else if (pending.passwordHash) {
+      passwordToUseHash = pending.passwordHash;
+    } else {
+      return res.status(400).json({ message: 'Password required' });
+    }
+
+    const userDoc = await UserModel.create({ username, email: pending.email, password: passwordToUseHash, phone: phone || '', address: address || '', role: 'customer', emailVerified: true });
+
+    // Clean up pending reservation
+    try { await PendingUser.deleteOne({ _id: pending._id }).exec(); } catch (e) { /* ignore cleanup errors */ }
+
+    const jwtToken = jwt.sign({ username: userDoc.username, role: 'customer' }, JWT_SECRET, { expiresIn: '12h' });
+    res.cookie('auth_token', jwtToken, { httpOnly: true });
+    const userSafe = { username: userDoc.username, email: userDoc.email, role: 'customer' };
+    return res.status(201).json({ user: userSafe });
+  } catch (e) {
+    console.error('completeRegister error', e && e.message ? e.message : e);
+    return res.status(500).json({ message: 'Failed to complete registration' });
   }
 };
 

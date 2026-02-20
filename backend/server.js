@@ -512,6 +512,11 @@ app.post('/api/login', loginRegisterLimiter, validate(schemas.authLogin), async 
 // Register a new customer
 app.post('/api/register', loginRegisterLimiter, validate(schemas.authRegister), authController.registerWithVerification);
 
+// Two-step registration: reserve email/username and send verification
+app.post('/api/auth/start-register', loginRegisterLimiter, authController.startRegister);
+// Complete registration after email verification: provide token + username + password
+app.post('/api/auth/complete-register', loginRegisterLimiter, authController.completeRegister);
+
 // Google OAuth verification endpoint
 app.post('/api/auth/google', validate(schemas.authGoogle), authController.handleGoogleAuth);
 
