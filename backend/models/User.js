@@ -9,8 +9,12 @@ const UserSchema = new mongoose.Schema({
   city: { type: String, default: '' },
   name: { type: String, default: '' },
   googleId: { type: String, index: true, sparse: true },
+  // Email verification: initially false until user verifies their email address
   emailVerified: { type: Boolean, default: false },
+  // cryptographically-random token stored for verification; cleared after use
   verificationToken: { type: String, default: null },
+  // expiration timestamp for the verification token (Date)
+  verificationExpires: { type: Date, default: null },
   role: { type: String, enum: ['customer', 'admin', 'shop_owner'], default: 'customer' },
   joinDate: { type: Date, default: () => new Date() },
   createdAt: { type: Date, default: () => new Date() }

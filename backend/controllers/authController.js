@@ -52,8 +52,14 @@ export const handleVerifyEmail = async (req, res) => {
     if (!token) return res.status(400).json({ message: 'Missing token' });
     const user = await UserModel.findOne({ verificationToken: token }).exec();
     if (!user) return res.status(404).json({ message: 'Invalid token' });
+    // Check expiry
+    if (user.verificationExpires && user.verificationExpires < new Date()) {
+      return res.status(410).json({ message: 'Verification token expired' });
+    }
+    // Mark verified and prevent token reuse
     user.emailVerified = true;
     user.verificationToken = null;
+    user.verificationExpires = undefined;
     await user.save();
     return res.json({ message: 'Email verified successfully' });
   } catch (e) {
@@ -150,13 +156,41 @@ export const registerWithVerification = async (req, res) => {
     if (exists) return res.status(409).json({ message: 'User with that username or email already exists' });
     const hashed = await bcrypt.hash(String(password), 10);
     const verificationToken = crypto.randomBytes(24).toString('hex');
-    const userDoc = await UserModel.create({ username, email, password: hashed, phone: phone || '', address: address || '', role: 'customer', emailVerified: false, verificationToken });
-    // send verification email
+    const verificationExpires = new Date(Date.now() + (60 * 60 * 1000)); // 1 hour
+    // create user but do NOT log them in until they verify their email
+    let userDoc;
+    try {
+      userDoc = await UserModel.create({
+        username,
+        email,
+        password: hashed,
+        phone: phone || '',
+        address: address || '',
+        role: 'customer',
+        emailVerified: false,
+        verificationToken,
+        verificationExpires
+      });
+    } catch (err) {
+      // Handle Mongo duplicate key errors (E11000)
+      if (err && (err.code === 11000 || err.name === 'MongoServerError')) {
+        try {
+          // keyPattern is more reliable to determine which field caused the conflict
+          const kp = err.keyPattern || {};
+          const kv = err.keyValue || {};
+          if (kp.email || kv.email) return res.status(400).json({ message: 'Email already registered' });
+          if (kp.username || kv.username) return res.status(400).json({ message: 'Username already taken' });
+        } catch (e) {
+          // ignore parsing error
+        }
+        // Fallback for other duplicate key cases
+        return res.status(409).json({ message: 'User already exists' });
+      }
+      throw err;
+    }
+    // send verification email (best-effort)
     try { await sendVerificationEmail(userDoc, verificationToken); } catch (e) { console.warn('Failed to send verification email', e && e.message ? e.message : e); }
-    const token = jwt.sign({ username: userDoc.username, role: 'customer' }, JWT_SECRET, { expiresIn: '12h' });
-    res.cookie('auth_token', token, { httpOnly: true });
-    const userSafe = { username: userDoc.username, email: userDoc.email, role: 'customer' };
-    return res.status(201).json({ user: userSafe });
+    return res.status(201).json({ message: 'Account created. Please verify your email before logging in.' });
   } catch (e) {
     console.error('registerWithVerification error', e && e.message ? e.message : e);
     return res.status(500).json({ message: 'Register error' });
@@ -172,6 +206,7 @@ export const resendVerification = async (req, res) => {
     if (user.emailVerified) return res.status(400).json({ message: 'Email already verified' });
     const token = crypto.randomBytes(24).toString('hex');
     user.verificationToken = token;
+    user.verificationExpires = new Date(Date.now() + (60 * 60 * 1000)); // 1 hour
     await user.save();
     let sendResult = null;
     try { sendResult = await sendVerificationEmail(user, token); } catch (e) { console.warn('Failed to resend verification email', e && e.message ? e.message : e); }

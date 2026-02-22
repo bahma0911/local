@@ -498,6 +498,11 @@ app.post('/api/login', loginRegisterLimiter, validate(schemas.authLogin), async 
     }
 
     if (customer && customer.password) {
+      // Require email verification for customers when the flag is present
+      if (typeof customer.emailVerified !== 'undefined' && !customer.emailVerified) {
+        warn('Login blocked: email not verified', { requestId: req.id, username });
+        return res.status(403).json({ message: 'Please verify your email before logging in' });
+      }
       const ok = await bcrypt.compare(String(password), String(customer.password));
       if (ok) {
         const token = signToken({ username: customer.username, role: 'customer' });
@@ -528,6 +533,9 @@ app.post('/api/auth/complete-register', loginRegisterLimiter, authController.com
 app.post('/api/auth/google', validate(schemas.authGoogle), authController.handleGoogleAuth);
 
 // Email verification endpoint
+// Support a user-facing GET route for browser verification links (e.g. https://www.bahma.com.et/verify-email?token=...)
+app.get('/verify-email', (req, res) => authController.handleVerifyEmail(req, res));
+
 app.post('/api/auth/verify-email', authController.handleVerifyEmail);
 
 // Resend verification token (authenticated)
