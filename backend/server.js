@@ -41,21 +41,28 @@ if (IS_PRODUCTION && (!process.env.FRONTEND_ORIGIN || process.env.FRONTEND_ORIGI
 const app = express();
 // trust proxy so secure cookies work behind proxies (Heroku, nginx, dev proxies)
 app.set('trust proxy', 1);
-// In production restrict origin via environment variable FRONTEND_ORIGIN
-// Normalize FRONTEND_ORIGIN to avoid trailing-slash mismatches and define corsOptions
-const frontendOrigin = (process.env.FRONTEND_ORIGIN || '').replace(/\/+$/, '') || undefined;
+// Support multiple allowed origins via environment variable.
+// The environment may provide a single origin in `FRONTEND_ORIGIN` or a
+// comma-separated list in `FRONTEND_ORIGINS`. Values are normalized (trim,
+// strip trailing slashes) and used to dynamically validate request origins.
+const rawOrigins = (process.env.FRONTEND_ORIGINS && process.env.FRONTEND_ORIGINS.trim()) || (process.env.FRONTEND_ORIGIN && process.env.FRONTEND_ORIGIN.trim()) || '';
+const allowedOrigins = rawOrigins.split(',').map(s => String(s || '').trim().replace(/\/+$/, '')).filter(Boolean);
+
 const corsOptions = {
   origin: (origin, callback) => {
-    // Allow all when FRONTEND_ORIGIN is not configured (convenient for dev/local)
-    if (!frontendOrigin) return callback(null, true);
-    // Allow non-browser requests (curl, servers) when origin is not provided
+    // When no allowed origins configured, allow all (convenient for local dev).
+    if (!allowedOrigins.length) return callback(null, true);
+    // Allow non-browser requests (curl, server-to-server) where origin is not present.
     if (!origin) return callback(null, true);
-    return origin === frontendOrigin ? callback(null, true) : callback(new Error('Not allowed by CORS'));
+    // Normalize incoming origin by stripping trailing slashes before comparison.
+    const normalized = String(origin).replace(/\/+$/, '');
+    if (allowedOrigins.includes(normalized)) return callback(null, true);
+    return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
   // Include PATCH and commonly used custom headers to satisfy preflight checks
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-CSRF-Token", "X-Requested-With", "X-Captcha-Token", "x-captcha-token"],
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-CSRF-Token", "X-Requested-With", "X-Captcha-Token", "x-captcha-token"],
 };
 
 app.use(cors(corsOptions));
