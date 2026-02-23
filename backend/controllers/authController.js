@@ -98,7 +98,7 @@ export const startRegister = async (req, res) => {
     } catch (e) {
       console.warn('Failed to send verification email via Resend:', e && e.message ? e.message : e);
       const frontend = (process.env.FRONTEND_URL && process.env.FRONTEND_URL.trim()) ? process.env.FRONTEND_URL.replace(/\/+$/, '') : (process.env.NODE_ENV === 'production' ? '' : 'https://www.bahma.com.et');
-      const link = `${frontend || ''}/verify-email?token=${encodeURIComponent(verificationToken)}`;
+      const link = `${frontend || ''}/#/verify-email?token=${encodeURIComponent(verificationToken)}`;
       return res.json({ message: 'Verification email logged (dev fallback)', fallback: true, link });
     }
   } catch (e) {
@@ -194,7 +194,7 @@ export const registerWithVerification = async (req, res) => {
     } catch (e) {
       console.warn('Failed to send verification email via Resend:', e && e.message ? e.message : e);
       const frontend = (process.env.FRONTEND_URL && process.env.FRONTEND_URL.trim()) ? process.env.FRONTEND_URL.replace(/\/+$/, '') : (process.env.NODE_ENV === 'production' ? '' : 'https://www.bahma.com.et');
-      const link = `${frontend || ''}/verify-email?token=${encodeURIComponent(verificationToken)}`;
+      const link = `${frontend || ''}/#/verify-email?token=${encodeURIComponent(verificationToken)}`;
       return res.status(201).json({ message: 'Account created. Verification email logged (dev fallback)', fallback: true, link });
     }
   } catch (e) {
@@ -220,7 +220,7 @@ export const resendVerification = async (req, res) => {
     } catch (e) {
       console.warn('Failed to resend verification email via Resend:', e && e.message ? e.message : e);
       const frontend = (process.env.FRONTEND_URL && process.env.FRONTEND_URL.trim()) ? process.env.FRONTEND_URL.replace(/\/+$/, '') : (process.env.NODE_ENV === 'production' ? '' : 'https://www.bahma.com.et');
-      const link = `${frontend || ''}/verify-email?token=${encodeURIComponent(token)}`;
+      const link = `${frontend || ''}/#/verify-email?token=${encodeURIComponent(token)}`;
       return res.json({ message: 'Verification email logged (dev fallback)', fallback: true, link });
     }
   } catch (e) {

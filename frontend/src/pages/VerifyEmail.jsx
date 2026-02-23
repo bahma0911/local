@@ -23,7 +23,7 @@ const VerifyEmail = () => {
         return;
       }
       try {
-        const data = await apiFetch(`${API_BASE}/api/auth/complete-register`, {
+        const data = await apiFetch(`${API_BASE}/api/auth/verify-email`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token }),
