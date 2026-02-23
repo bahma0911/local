@@ -79,6 +79,14 @@
   color: #1976d2;
 }
 
+/* Disable color/background color changes on hover inside the admin dashboard
+   Keep other hover effects like transform/box-shadow intact. */
+.admin-dashboard *:hover {
+  background-color: transparent !important;
+  color: inherit !important;
+  border-color: inherit !important;
+}
+
 /* Tweak owner-tabs positioning so buttons align better and don't stick out on small screens */
 .owner-tabs {
   margin-left: -12px;

@@ -97,7 +97,7 @@ export const startRegister = async (req, res) => {
       return res.json({ message: 'Verification email sent' });
     } catch (e) {
       console.warn('Failed to send verification email via Resend:', e && e.message ? e.message : e);
-      const frontend = (process.env.FRONTEND_URL && process.env.FRONTEND_URL.trim()) ? process.env.FRONTEND_URL.replace(/\/+$/, '') : (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5173');
+      const frontend = (process.env.FRONTEND_URL && process.env.FRONTEND_URL.trim()) ? process.env.FRONTEND_URL.replace(/\/+$/, '') : (process.env.NODE_ENV === 'production' ? '' : 'https://www.bahma.com.et');
       const link = `${frontend || ''}/verify-email?token=${encodeURIComponent(verificationToken)}`;
       return res.json({ message: 'Verification email logged (dev fallback)', fallback: true, link });
     }
@@ -193,7 +193,7 @@ export const registerWithVerification = async (req, res) => {
       return res.status(201).json({ message: 'Account created. Please verify your email before logging in.' });
     } catch (e) {
       console.warn('Failed to send verification email via Resend:', e && e.message ? e.message : e);
-      const frontend = (process.env.FRONTEND_URL && process.env.FRONTEND_URL.trim()) ? process.env.FRONTEND_URL.replace(/\/+$/, '') : (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5173');
+      const frontend = (process.env.FRONTEND_URL && process.env.FRONTEND_URL.trim()) ? process.env.FRONTEND_URL.replace(/\/+$/, '') : (process.env.NODE_ENV === 'production' ? '' : 'https://www.bahma.com.et');
       const link = `${frontend || ''}/verify-email?token=${encodeURIComponent(verificationToken)}`;
       return res.status(201).json({ message: 'Account created. Verification email logged (dev fallback)', fallback: true, link });
     }
@@ -219,7 +219,7 @@ export const resendVerification = async (req, res) => {
       return res.json({ message: 'Verification email sent' });
     } catch (e) {
       console.warn('Failed to resend verification email via Resend:', e && e.message ? e.message : e);
-      const frontend = (process.env.FRONTEND_URL && process.env.FRONTEND_URL.trim()) ? process.env.FRONTEND_URL.replace(/\/+$/, '') : (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5173');
+      const frontend = (process.env.FRONTEND_URL && process.env.FRONTEND_URL.trim()) ? process.env.FRONTEND_URL.replace(/\/+$/, '') : (process.env.NODE_ENV === 'production' ? '' : 'https://www.bahma.com.et');
       const link = `${frontend || ''}/verify-email?token=${encodeURIComponent(token)}`;
       return res.json({ message: 'Verification email logged (dev fallback)', fallback: true, link });
     }

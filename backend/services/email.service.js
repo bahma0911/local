@@ -3,7 +3,7 @@ import { Resend } from 'resend';
 const API_KEY = process.env.RESEND_API_KEY;
 const resend = API_KEY ? new Resend(API_KEY) : null;
 
-const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
+const FRONTEND_URL = (process.env.FRONTEND_URL || 'https://www.bahma.com.et').replace(/\/+$/, '');
 const FROM_EMAIL = process.env.RESEND_FROM || `no-reply@${(process.env.FRONTEND_URL || 'negadras.local').replace(/^https?:\/\//, '')}`;
 
 async function sendVerificationEmail(toEmail, token) {
