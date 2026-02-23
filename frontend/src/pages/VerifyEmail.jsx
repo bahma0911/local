@@ -23,6 +23,30 @@ const VerifyEmail = () => {
         return;
       }
       try {
+        // First attempt: try to complete a pending two-step registration.
+        // If the PendingUser stored a username and passwordHash, this will create the account.
+        try {
+          const complete = await apiFetch(`${API_BASE}/api/auth/complete-register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token }),
+          });
+          if (!mounted) return;
+          setStatus('success');
+          setMessage('Account created and verified — signing you in. Redirecting...');
+          setTimeout(() => navigate('/'), 1400);
+          return;
+        } catch (errComplete) {
+          // If complete-register failed because token not found, fall through to try verify-email.
+          const msg = (errComplete && errComplete.response && errComplete.response.message) ? errComplete.response.message : '';
+          // If error indicates missing username/password, redirect to register so user can finish.
+          if (errComplete && (errComplete.status === 400 || /username required|Password required/i.test(msg))) {
+            navigate('/register?token=' + encodeURIComponent(token));
+            return;
+          }
+          // Otherwise, try verifying an existing User record.
+        }
+
         const data = await apiFetch(`${API_BASE}/api/auth/verify-email`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -33,9 +57,6 @@ const VerifyEmail = () => {
         setMessage('Email verified — signing you in. Redirecting...');
         setTimeout(() => navigate('/'), 1400);
       } catch (err) {
-        // If token not found in UserModel, it may be a PendingUser token used by the two-step
-        // registration flow. Redirect users to the registration completion page so they can
-        // finish creating their account with the token.
         const msg = (err && err.response && err.response.message) ? err.response.message : '';
         if (err && (err.status === 404 || /invalid token|not found/i.test(msg))) {
           navigate('/register?token=' + encodeURIComponent(token));
