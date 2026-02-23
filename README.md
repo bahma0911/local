@@ -29,7 +29,16 @@ Running the test flow
 MONGODB_URI='mongodb://localhost:27017/negadras' node backend/tests/auth.flow.test.js
 ```
 
+
 Notes:
 - The test script expects Node 18+ (native fetch not required since it uses `axios`).
-- Ensure `RESEND_API_KEY` and `RESEND_FROM` are configured in production if you want real email delivery; otherwise the server will log a dev fallback verification link.
+- Ensure `RESEND_API_KEY` and `RESEND_FROM` are configured in production for real email delivery; otherwise the server will log a dev fallback verification link.
+
+Environment variables
+
+- `RESEND_API_KEY` — your Resend API key (required for sending emails)
+- `RESEND_FROM` — verified sending identity in Resend (must exactly match the verified sender)
+- `FRONTEND_URL` — the frontend base URL used to build verification links (e.g., https://www.bahma.com.et)
+- `JWT_SECRET` — secret used for signing auth tokens
+
 

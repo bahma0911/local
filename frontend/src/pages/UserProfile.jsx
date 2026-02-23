@@ -9,7 +9,7 @@ import { API_BASE } from '../utils/api';
 import "./UserProfile.css";
 
 const UserProfile = () => {
-  const { user, updateCustomerProfile, logout } = useAuth();
+  const { user, updateCustomerProfile, logout, deleteAccount } = useAuth();
   const { getUserWishlist } = useReviewsWishlist();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('profile');
@@ -22,6 +22,7 @@ const UserProfile = () => {
   });
   const [dirty, setDirty] = useState(false);
   const [isResending, setIsResending] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     // only sync profile data from `user` when the form is not being edited
@@ -202,6 +203,35 @@ const UserProfile = () => {
             <div className="logout-section">
               <button onClick={logout} className="btn-logout">
                 Logout
+              </button>
+            </div>
+
+            <div className="delete-section" style={{ marginTop: 12 }}>
+              <button
+                onClick={async () => {
+                  const ok = window.confirm('Are you sure you want to permanently delete your account? This cannot be undone.');
+                  if (!ok) return;
+                  try {
+                    setIsDeleting(true);
+                    const res = await deleteAccount();
+                    if (res && res.ok) {
+                      alert('Your account has been deleted.');
+                      navigate('/');
+                    } else {
+                      alert('Failed to delete account: ' + (res && res.message ? res.message : 'Unknown error'));
+                    }
+                  } catch (e) {
+                    console.error('Delete account failed', e);
+                    alert('Failed to delete account. Try again later.');
+                  } finally {
+                    setIsDeleting(false);
+                  }
+                }}
+                className="btn-delete"
+                disabled={isDeleting}
+                style={{ background: '#c93b3b', color: 'white' }}
+              >
+                {isDeleting ? 'Deleting…' : 'Delete Account'}
               </button>
             </div>
 

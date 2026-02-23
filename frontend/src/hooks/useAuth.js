@@ -152,6 +152,19 @@ export const useAuth = () => {
     }
   }, [dispatch, state]);
 
+  const deleteAccount = useCallback(async () => {
+    try {
+      const data = await apiFetch(`${API_BASE}/api/me`, {
+        method: 'DELETE',
+      });
+      // clear local user state regardless of backend result
+      dispatch({ type: 'SET_USER', payload: null });
+      return { ok: true, message: data && data.message };
+    } catch (err) {
+      return { ok: false, message: (err && err.response && err.response.message) ? err.response.message : 'Network error' };
+    }
+  }, [dispatch]);
+
   const assignedShop =
     user && user.shopId !== undefined && user.shopId !== null
       ? Number(user.shopId)
@@ -167,6 +180,7 @@ export const useAuth = () => {
     logout,
     register,
     updateCustomerProfile,
+    deleteAccount,
     assignedShop,
   };
 };

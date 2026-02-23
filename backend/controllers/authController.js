@@ -4,7 +4,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import UserModel from '../models/User.js';
 import PendingUser from '../models/PendingUser.js';
-import { sendVerificationEmail } from './emailController.js';
+import { sendVerificationEmail } from '../services/email.service.js';
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const oauthClient = new OAuth2Client(GOOGLE_CLIENT_ID);
@@ -92,16 +92,15 @@ export const startRegister = async (req, res) => {
 
     const pending = await PendingUser.create({ email, username: username || null, passwordHash: passwordHash || null, verificationToken, expiresAt });
 
-    let sendResult = null;
-    try { sendResult = await sendVerificationEmail(pending, verificationToken); } catch (e) { console.warn('Failed to send verification email', e && e.message ? e.message : e); }
-
-    if (sendResult && sendResult.fallback) {
+    try {
+      await sendVerificationEmail(pending.email, verificationToken);
+      return res.json({ message: 'Verification email sent' });
+    } catch (e) {
+      console.warn('Failed to send verification email via Resend:', e && e.message ? e.message : e);
       const frontend = (process.env.FRONTEND_URL && process.env.FRONTEND_URL.trim()) ? process.env.FRONTEND_URL.replace(/\/+$/, '') : (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5173');
       const link = `${frontend || ''}/verify-email?token=${encodeURIComponent(verificationToken)}`;
       return res.json({ message: 'Verification email logged (dev fallback)', fallback: true, link });
     }
-
-    return res.json({ message: 'Verification email sent' });
   } catch (e) {
     console.error('startRegister error', e && e.message ? e.message : e);
     return res.status(500).json({ message: 'Failed to start registration' });
@@ -188,9 +187,16 @@ export const registerWithVerification = async (req, res) => {
       }
       throw err;
     }
-    // send verification email (best-effort)
-    try { await sendVerificationEmail(userDoc, verificationToken); } catch (e) { console.warn('Failed to send verification email', e && e.message ? e.message : e); }
-    return res.status(201).json({ message: 'Account created. Please verify your email before logging in.' });
+    // send verification email (best-effort). If sending fails, return a dev fallback link.
+    try {
+      await sendVerificationEmail(userDoc.email, verificationToken);
+      return res.status(201).json({ message: 'Account created. Please verify your email before logging in.' });
+    } catch (e) {
+      console.warn('Failed to send verification email via Resend:', e && e.message ? e.message : e);
+      const frontend = (process.env.FRONTEND_URL && process.env.FRONTEND_URL.trim()) ? process.env.FRONTEND_URL.replace(/\/+$/, '') : (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5173');
+      const link = `${frontend || ''}/verify-email?token=${encodeURIComponent(verificationToken)}`;
+      return res.status(201).json({ message: 'Account created. Verification email logged (dev fallback)', fallback: true, link });
+    }
   } catch (e) {
     console.error('registerWithVerification error', e && e.message ? e.message : e);
     return res.status(500).json({ message: 'Register error' });
@@ -208,15 +214,15 @@ export const resendVerification = async (req, res) => {
     user.verificationToken = token;
     user.verificationExpires = new Date(Date.now() + (60 * 60 * 1000)); // 1 hour
     await user.save();
-    let sendResult = null;
-    try { sendResult = await sendVerificationEmail(user, token); } catch (e) { console.warn('Failed to resend verification email', e && e.message ? e.message : e); }
-    // If email controller indicated a dev fallback (e.g., Resend domain not verified), surface that to the client
-    if (sendResult && sendResult.fallback) {
+    try {
+      await sendVerificationEmail(user.email, token);
+      return res.json({ message: 'Verification email sent' });
+    } catch (e) {
+      console.warn('Failed to resend verification email via Resend:', e && e.message ? e.message : e);
       const frontend = (process.env.FRONTEND_URL && process.env.FRONTEND_URL.trim()) ? process.env.FRONTEND_URL.replace(/\/+$/, '') : (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5173');
       const link = `${frontend || ''}/verify-email?token=${encodeURIComponent(token)}`;
       return res.json({ message: 'Verification email logged (dev fallback)', fallback: true, link });
     }
-    return res.json({ message: 'Verification email sent' });
   } catch (e) {
     console.error('resendVerification error', e && e.message ? e.message : e);
     return res.status(500).json({ message: 'Failed to resend verification' });
