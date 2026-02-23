@@ -219,48 +219,7 @@ if (hasCloudinary) {
     resource_type: 'auto', // WHY: let Cloudinary detect type (helps avoid "empty file" or resource-type mismatches)
   });
 
-  // DELETE /api/me - delete current authenticated customer's account
-  app.delete('/api/me', authenticate, async (req, res) => {
-    try {
-      const authUser = await getUserFromRequest(req);
-      if (!authUser) return res.status(401).json({ message: 'Not authenticated' });
-
-      if (authUser.role !== 'customer') {
-        return res.status(403).json({ message: 'Only customers can delete account' });
-      }
-
-      // Try deleting from MongoDB when available
-      if (mongoose.connection && mongoose.connection.readyState === 1) {
-        try {
-          const UserModel = (await import('./models/User.js')).default;
-          await UserModel.deleteOne({ username: authUser.username }).exec();
-          // clear auth cookie
-          try { res.clearCookie(AUTH_COOKIE_NAME, getAuthCookieOptions()); } catch (e) { /* ignore */ }
-          return res.json({ message: 'Account deleted' });
-        } catch (err) {
-          console.error('DELETE /api/me - mongo delete error', err && err.message ? err.message : err);
-          return res.status(500).json({ message: 'Failed to delete account' });
-        }
-      }
-
-      // Fallback: remove from local customers.json
-      try {
-        const locals = readCustomers() || [];
-        const filtered = (locals || []).filter(c => String(c.username) !== String(authUser.username) && String(c.email) !== String(authUser.email));
-        if (filtered.length !== (locals || []).length) {
-          writeCustomers(filtered);
-        }
-        try { res.clearCookie(AUTH_COOKIE_NAME, getAuthCookieOptions()); } catch (e) { /* ignore */ }
-        return res.json({ message: 'Account deleted' });
-      } catch (err) {
-        console.error('DELETE /api/me - local delete error', err && err.message ? err.message : err);
-        return res.status(500).json({ message: 'Failed to delete account' });
-      }
-    } catch (e) {
-      console.error('DELETE /api/me unexpected error', e && e.message ? e.message : e);
-      return res.status(500).json({ message: 'Server error' });
-    }
-  });
+  
   upload = multer({
     storage: clStorage,
     limits: { fileSize: Number(process.env.UPLOAD_MAX_BYTES || 5 * 1024 * 1024) }, // WHY: protect server by capping upload size
@@ -678,6 +637,49 @@ app.post("/api/test-login", async (req, res) => {
       return res.status(503).json({ message: 'Profile updates are not available' });
     } catch (e) {
       console.error('PUT /api/me unexpected error', e && e.message ? e.message : e);
+      return res.status(500).json({ message: 'Server error' });
+    }
+  });
+
+  // DELETE /api/me - delete current authenticated customer's account
+  app.delete('/api/me', authenticate, async (req, res) => {
+    try {
+      const authUser = await getUserFromRequest(req);
+      if (!authUser) return res.status(401).json({ message: 'Not authenticated' });
+
+      if (authUser.role !== 'customer') {
+        return res.status(403).json({ message: 'Only customers can delete account' });
+      }
+
+      // Try deleting from MongoDB when available
+      if (mongoose.connection && mongoose.connection.readyState === 1) {
+        try {
+          const UserModel = (await import('./models/User.js')).default;
+          await UserModel.deleteOne({ username: authUser.username }).exec();
+          // clear auth cookie
+          try { res.clearCookie(AUTH_COOKIE_NAME, getAuthCookieOptions()); } catch (e) { /* ignore */ }
+          return res.json({ message: 'Account deleted' });
+        } catch (err) {
+          console.error('DELETE /api/me - mongo delete error', err && err.message ? err.message : err);
+          return res.status(500).json({ message: 'Failed to delete account' });
+        }
+      }
+
+      // Fallback: remove from local customers.json
+      try {
+        const locals = readCustomers() || [];
+        const filtered = (locals || []).filter(c => String(c.username) !== String(authUser.username) && String(c.email) !== String(authUser.email));
+        if (filtered.length !== (locals || []).length) {
+          writeCustomers(filtered);
+        }
+        try { res.clearCookie(AUTH_COOKIE_NAME, getAuthCookieOptions()); } catch (e) { /* ignore */ }
+        return res.json({ message: 'Account deleted' });
+      } catch (err) {
+        console.error('DELETE /api/me - local delete error', err && err.message ? err.message : err);
+        return res.status(500).json({ message: 'Failed to delete account' });
+      }
+    } catch (e) {
+      console.error('DELETE /api/me unexpected error', e && e.message ? e.message : e);
       return res.status(500).json({ message: 'Server error' });
     }
   });
