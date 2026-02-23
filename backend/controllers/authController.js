@@ -228,3 +228,31 @@ export const resendVerification = async (req, res) => {
     return res.status(500).json({ message: 'Failed to resend verification' });
   }
 };
+
+export const resendRegister = async (req, res) => {
+  try {
+    const { email } = req.body || {};
+    if (!email) return res.status(400).json({ message: 'email required' });
+
+    const pending = await PendingUser.findOne({ email }).exec();
+    if (!pending) return res.status(404).json({ message: 'No pending registration found for that email' });
+
+    const token = crypto.randomBytes(24).toString('hex');
+    pending.verificationToken = token;
+    pending.expiresAt = new Date(Date.now() + (15 * 60 * 1000));
+    await pending.save();
+
+    try {
+      await sendVerificationEmail(pending.email, token);
+      return res.json({ message: 'Verification email resent' });
+    } catch (e) {
+      console.warn('Failed to send verification email via Resend (resendRegister):', e && e.message ? e.message : e);
+      const frontend = (process.env.FRONTEND_URL && process.env.FRONTEND_URL.trim()) ? process.env.FRONTEND_URL.replace(/\/+$/, '') : (process.env.NODE_ENV === 'production' ? '' : 'https://www.bahma.com.et');
+      const link = `${frontend || ''}/#/verify-email?token=${encodeURIComponent(token)}`;
+      return res.json({ message: 'Verification email logged (dev fallback)', fallback: true, link });
+    }
+  } catch (e) {
+    console.error('resendRegister error', e && e.message ? e.message : e);
+    return res.status(500).json({ message: 'Failed to resend verification' });
+  }
+};

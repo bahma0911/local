@@ -11,6 +11,17 @@ const Register = () => {
   const tokenFromQuery = query.get('token');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [awaitingVerification, setAwaitingVerification] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+  const cooldownSeconds = 120; // 2 minutes
+
+  React.useEffect(() => {
+    let t = null;
+    if (cooldown > 0) {
+      t = setInterval(() => setCooldown(c => Math.max(0, c - 1)), 1000);
+    }
+    return () => { if (t) clearInterval(t); };
+  }, [cooldown]);
 
   const handleChange = (e) => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
@@ -43,6 +54,8 @@ const Register = () => {
     setLoading(false);
     if (res.ok) {
       // Inform user to check email for verification link/token
+      setAwaitingVerification(true);
+      setCooldown(cooldownSeconds);
       if (res.fallback && res.link) {
         setError(null);
         alert('Verification link (dev fallback): ' + res.link);
@@ -65,6 +78,30 @@ const Register = () => {
     }
   };
 
+  const handleResend = async () => {
+    if (!form.email) return setError('Please provide your email to resend');
+    try {
+      setError(null);
+      const resp = await fetch(`${API_BASE}/api/auth/resend-register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: form.email }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) {
+        setError(data && data.message ? data.message : 'Failed to resend');
+        return;
+      }
+      setAwaitingVerification(true);
+      setCooldown(cooldownSeconds);
+      if (data && data.fallback && data.link) {
+        alert('Verification link (dev fallback): ' + data.link);
+      }
+    } catch (e) {
+      setError('Network error');
+    }
+  };
+
   return (
     <div style={{ padding: '2rem' }}>
       <h2>Create an account</h2>
@@ -78,6 +115,18 @@ const Register = () => {
           <button type="button" onClick={() => navigate('/login')} style={{ marginLeft: 8 }}>Back to login</button>
         </div>
       </form>
+      {awaitingVerification && (
+        <div style={{ marginTop: 12 }}>
+          <div>Verification email sent to <strong>{form.email}</strong>.</div>
+          <button
+            onClick={handleResend}
+            disabled={cooldown > 0}
+            style={{ marginTop: 8 }}
+          >
+            {cooldown > 0 ? `Resend available in ${Math.floor(cooldown/60)}:${String(cooldown%60).padStart(2,'0')}` : 'Resend verification email'}
+          </button>
+        </div>
+      )}
     </div>
   );
 };

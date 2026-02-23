@@ -543,6 +543,9 @@ app.post('/api/auth/verify-email', authController.handleVerifyEmail);
 // Resend verification token (authenticated)
 app.post('/api/auth/resend-verification', requireAuth, authController.resendVerification);
 
+// Resend verification for pending registration (no auth required)
+app.post('/api/auth/resend-register', authController.resendRegister);
+
 // continue existing register error handling fallback (if any)
 // (register handled above by authController.registerWithVerification)
 
