@@ -220,9 +220,9 @@ if (hasCloudinary) {
   });
 
   // DELETE /api/me - delete current authenticated customer's account
-  app.delete('/api/me', requireAuth, async (req, res) => {
+  app.delete('/api/me', authenticate, async (req, res) => {
     try {
-      const authUser = req.user || null;
+      const authUser = await getUserFromRequest(req);
       if (!authUser) return res.status(401).json({ message: 'Not authenticated' });
 
       if (authUser.role !== 'customer') {
