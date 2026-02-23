@@ -33,8 +33,16 @@ const VerifyEmail = () => {
         setMessage('Email verified — signing you in. Redirecting...');
         setTimeout(() => navigate('/'), 1400);
       } catch (err) {
+        // If token not found in UserModel, it may be a PendingUser token used by the two-step
+        // registration flow. Redirect users to the registration completion page so they can
+        // finish creating their account with the token.
+        const msg = (err && err.response && err.response.message) ? err.response.message : '';
+        if (err && (err.status === 404 || /invalid token|not found/i.test(msg))) {
+          navigate('/register?token=' + encodeURIComponent(token));
+          return;
+        }
         setStatus('error');
-        setMessage((err && err.response && err.response.message) ? err.response.message : 'Verification failed');
+        setMessage(msg || 'Verification failed');
       }
     })();
     return () => { mounted = false; };

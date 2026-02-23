@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { API_BASE } from '../utils/api';
 
 const Register = () => {
   const navigate = useNavigate();
   const { register } = useAuth();
   const [form, setForm] = useState({ username: '', email: '', password: '' });
+  const query = new URLSearchParams(window.location.search);
+  const tokenFromQuery = query.get('token');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -15,7 +18,28 @@ const Register = () => {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const res = await register(form);
+    let res;
+    if (tokenFromQuery) {
+      // Complete two-step registration using token
+      try {
+        const data = await fetch(`${API_BASE}/api/auth/complete-register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: tokenFromQuery, username: form.username, password: form.password, phone: '', address: '' }),
+          credentials: 'include'
+        });
+        const payload = await data.json();
+        if (!data.ok) {
+          res = { ok: false, message: payload && payload.message ? payload.message : 'Registration failed' };
+        } else {
+          res = { ok: true, user: payload.user };
+        }
+      } catch (err) {
+        res = { ok: false, message: 'Network error' };
+      }
+    } else {
+      res = await register(form);
+    }
     setLoading(false);
     if (res.ok) {
       // Inform user to check email for verification link/token

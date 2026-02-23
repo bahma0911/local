@@ -13,7 +13,7 @@ async function sendVerificationEmail(toEmail, token) {
     throw err;
   }
 
-  const link = `${FRONTEND_URL}/verify-email?token=${encodeURIComponent(token)}`;
+  const link = `${FRONTEND_URL}/#/verify-email?token=${encodeURIComponent(token)}`;
   const html = `
     <p>Hello,</p>
     <p>Please verify your email by clicking the link below:</p>
