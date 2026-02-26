@@ -211,6 +211,13 @@ const Checkout = () => {
 
     // Ensure captcha is solved
     if (!captchaToken) {
+      // if Turnstile is available, execute an invisible challenge and wait for callback
+      if (window.turnstile && typeof window.turnstile.execute === 'function') {
+        window.turnstile.execute();
+        // user will need to submit again after callback sets token
+        return;
+      }
+      // otherwise fall back to the original alert
       alert('Please verify that you are not a robot');
       return;
     }
