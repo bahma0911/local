@@ -61,7 +61,9 @@ const Checkout = () => {
       if (!widgetRef.current || widgetId !== null) return;
       const id = window.turnstile.render(widgetRef.current, {
         sitekey: import.meta.env.VITE_TURNSTILE_SITE_KEY,
-        size: 'invisible',
+        // Turnstile does not actually support "invisible" size (it logs an error),
+        // so use the normal widget and hide it ourselves. the user will never see it
+        size: 'normal',
         callback: (token) => setCaptchaToken(token),
         'expired-callback': () => setCaptchaToken(null),
         'error-callback': () => setCaptchaToken(null)
@@ -702,7 +704,17 @@ const Checkout = () => {
             </div>
 
             {/* Turnstile widget - required before placing order */}
-            <div style={{ margin: '18px 0' }} ref={widgetRef} />
+            {/* container is visually hidden; token is acquired programmatically */}
+            <div
+              style={{
+                position: 'absolute',
+                left: '-9999px',
+                width: 1,
+                height: 1,
+                overflow: 'hidden',
+              }}
+              ref={widgetRef}
+            />
 
             <button
               type="submit"
