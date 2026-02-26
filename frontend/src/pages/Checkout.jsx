@@ -37,10 +37,12 @@ const Checkout = () => {
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [orderCompleted, setOrderCompleted] = useState(false);
   const [captchaToken, setCaptchaToken] = useState(null);
+  const [widgetId, setWidgetId] = useState(null);
+  const widgetRef = React.useRef(null);
   if (import.meta.env.DEV && !import.meta.env.VITE_TURNSTILE_SITE_KEY) {
     console.warn('Turnstile site key not set; captcha will not work');
   }
-  // load turnstile script once and wire callbacks
+  // load turnstile script once and render invisible widget programmatically
   useEffect(() => {
     // remove any leftover reCAPTCHA library just in case an old page added it
     document.querySelectorAll('script[src*="recaptcha"]').forEach(s => s.remove());
@@ -49,15 +51,29 @@ const Checkout = () => {
       const s = document.createElement('script');
       s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
       s.async = true;
+      s.onload = () => renderWidget();
       document.body.appendChild(s);
+    } else {
+      renderWidget();
     }
-    window.onTurnstileSuccess = (token) => setCaptchaToken(token);
-    window.onTurnstileExpired = () => setCaptchaToken(null);
+
+    function renderWidget() {
+      if (!widgetRef.current || widgetId !== null) return;
+      const id = window.turnstile.render(widgetRef.current, {
+        sitekey: import.meta.env.VITE_TURNSTILE_SITE_KEY,
+        size: 'invisible',
+        callback: (token) => setCaptchaToken(token),
+        'expired-callback': () => setCaptchaToken(null),
+        'error-callback': () => setCaptchaToken(null)
+      });
+      setWidgetId(id);
+    }
+
     return () => {
       window.onTurnstileSuccess = null;
       window.onTurnstileExpired = null;
     };
-  }, []);
+  }, [widgetId]);
   const [orderNumber, setOrderNumber] = useState('');
   const [completionMessage, setCompletionMessage] = useState('');
   const [recentCheckoutUrl, setRecentCheckoutUrl] = useState('');
@@ -211,13 +227,18 @@ const Checkout = () => {
 
     // Ensure captcha is solved
     if (!captchaToken) {
-      // if Turnstile is available, execute an invisible challenge and wait for callback
-      if (window.turnstile && typeof window.turnstile.execute === 'function') {
-        window.turnstile.execute();
+      // if we have a widget id we can reset before executing to avoid reuse warning
+      if (window.turnstile && widgetId !== null) {
+        try {
+          window.turnstile.reset(widgetId);
+        } catch (e) {
+          // ignore if reset isn't supported
+        }
+        window.turnstile.execute(widgetId);
         // user will need to submit again after callback sets token
         return;
       }
-      // otherwise fall back to the original alert
+      // if Turnstile isn't initialized, let the request fail validation server-side
       alert('Please verify that you are not a robot');
       return;
     }
@@ -681,12 +702,7 @@ const Checkout = () => {
             </div>
 
             {/* Turnstile widget - required before placing order */}
-            <div style={{ margin: '18px 0' }}>
-              <div
-                className="cf-turnstile"
-                data-sitekey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
-              />
-            </div>
+            <div style={{ margin: '18px 0' }} ref={widgetRef} />
 
             <button
               type="submit"
