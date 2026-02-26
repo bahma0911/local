@@ -1,6 +1,6 @@
 // src/pages/Checkout.jsx - CLEAN WORKING VERSION
-import React, { useState } from 'react';
-import ReCAPTCHA from 'react-google-recaptcha';
+import React, { useState, useEffect } from 'react';
+/* Cloudflare Turnstile replaces reCAPTCHA */
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../hooks/useCart';
 import { useAuth } from '../hooks/useAuth';
@@ -37,6 +37,27 @@ const Checkout = () => {
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [orderCompleted, setOrderCompleted] = useState(false);
   const [captchaToken, setCaptchaToken] = useState(null);
+  if (import.meta.env.DEV && !import.meta.env.VITE_TURNSTILE_SITE_KEY) {
+    console.warn('Turnstile site key not set; captcha will not work');
+  }
+  // load turnstile script once and wire callbacks
+  useEffect(() => {
+    // remove any leftover reCAPTCHA library just in case an old page added it
+    document.querySelectorAll('script[src*="recaptcha"]').forEach(s => s.remove());
+
+    if (!window.turnstile) {
+      const s = document.createElement('script');
+      s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+      s.async = true;
+      document.body.appendChild(s);
+    }
+    window.onTurnstileSuccess = (token) => setCaptchaToken(token);
+    window.onTurnstileExpired = () => setCaptchaToken(null);
+    return () => {
+      window.onTurnstileSuccess = null;
+      window.onTurnstileExpired = null;
+    };
+  }, []);
   const [orderNumber, setOrderNumber] = useState('');
   const [completionMessage, setCompletionMessage] = useState('');
   const [recentCheckoutUrl, setRecentCheckoutUrl] = useState('');
@@ -652,11 +673,11 @@ const Checkout = () => {
               </div>
             </div>
 
-            {/* reCAPTCHA - required before placing order */}
+            {/* Turnstile widget - required before placing order */}
             <div style={{ margin: '18px 0' }}>
-              <ReCAPTCHA
-                sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
-                onChange={(token) => setCaptchaToken(token)}
+              <div
+                className="cf-turnstile"
+                data-sitekey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
               />
             </div>
 

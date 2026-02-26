@@ -1,14 +1,15 @@
 import axios from "axios";
 
+// verifyCaptcha now supports Cloudflare Turnstile
 export async function verifyCaptcha(token) {
   if (!token) return false;
   try {
     const response = await axios.post(
-      "https://www.google.com/recaptcha/api/siteverify",
+      "https://challenges.cloudflare.com/turnstile/v0/siteverify",
       null,
       {
         params: {
-          secret: process.env.RECAPTCHA_SECRET,
+          secret: process.env.TURNSTILE_SECRET,
           response: token,
         },
       }
