@@ -43,7 +43,7 @@
 
 .cart-clear-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 15px 35px rgba(249, 115, 22, 0.28);
+  box-shadow: 0 15px 35px rgba(249, 116, 22, 0.768);
 }
 
 .cart-empty {
