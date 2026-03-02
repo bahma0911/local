@@ -244,11 +244,24 @@ const Checkout = () => {
   }, [user]);
 
   const handleSubmitOrder = async (e) => {
-    e.preventDefault();
+    if (e && typeof e.preventDefault === 'function') e.preventDefault();
 
-    if (isProcessing) return;
+    // log current customer info and persisted copy for debugging
+    try {
+      console.debug('handleSubmitOrder start; customerInfo=', customerInfo, 'localStorage=', localStorage.getItem('checkoutCustomerInfo'));
+    } catch (e) {
+      /* ignore */
+    }
 
-    if (!validateCustomerInfo()) return;
+    if (isProcessing) {
+      console.debug('handleSubmitOrder aborted because isProcessing');
+      return;
+    }
+
+    if (!validateCustomerInfo()) {
+      console.debug('handleSubmitOrder validation failed, customerInfo=', customerInfo);
+      return;
+    }
 
     // Require login before placing order
     if (!user) {
@@ -342,6 +355,7 @@ const Checkout = () => {
             city: customerInfo.city || ''
           }
         };
+        console.debug('built order payload for shop', shopId, payload.customer);
         // warn if address or city are still blank despite validation
         if (!payload.customer.address || !payload.customer.city) {
           console.warn('Submitting order with empty address/city', payload.customer);
