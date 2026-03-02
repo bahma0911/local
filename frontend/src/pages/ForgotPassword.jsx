@@ -49,6 +49,8 @@ const ForgotPassword = () => {
     setError(null);
     setLoading(true);
     try {
+      // Debug: log payload so we can confirm the token being sent
+      try { console.debug('Reset submit payload', { token, newPassword }); } catch (e) { /* ignore */ }
       const res = await resetPassword({ token, newPassword });
       if (res.ok) {
         setStep('done');
