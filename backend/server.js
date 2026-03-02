@@ -2016,7 +2016,15 @@ app.post('/api/orders', ordersLimiter, validate(schemas.orderCreate), async (req
   }
 
   const orderId = `ORD-${Date.now()}`;
-  const customerPayload = payload.customer || {};
+  // merge client-supplied customer info with whatever we know about the authenticated user
+  const rawCustomer = (payload.customer && typeof payload.customer === 'object') ? payload.customer : {};
+  const customerPayload = {
+    fullName: rawCustomer.fullName || authUser?.fullName || authUser?.username || '',
+    email: rawCustomer.email || authUser?.email || '',
+    phone: rawCustomer.phone || authUser?.phone || '',
+    address: rawCustomer.address || '',
+    city: rawCustomer.city || ''
+  };
   const createdBy = authUser && authUser.username ? authUser.username : (customerPayload.username || null);
   // customer's username/email is used for indexing but we keep full payload structure
   const orderBase = {
@@ -2028,11 +2036,13 @@ app.post('/api/orders', ordersLimiter, validate(schemas.orderCreate), async (req
     status: 'pending',
     createdAt: new Date().toISOString(),
     createdBy,
-    // deep copy the entire payload so any additional fields are retained
-    customer: { ...(customerPayload || {}) }
+    // store the merged payload; keep any extra client data as well
+    customer: { ...customerPayload, ...(rawCustomer || {}) }
   };
-  // DEBUG: show exactly what customer info the server received
+  // DEBUG: show exactly what customer info the server received and what we merged
   if (process.env.NODE_ENV !== 'production') {
+    console.log('order rawCustomer', JSON.stringify(rawCustomer));
+    console.log('order merged customerPayload', JSON.stringify(customerPayload));
     console.log('orderBase.customer', JSON.stringify(orderBase.customer));
   }
 
