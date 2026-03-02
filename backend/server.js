@@ -2018,8 +2018,7 @@ app.post('/api/orders', ordersLimiter, validate(schemas.orderCreate), async (req
   const orderId = `ORD-${Date.now()}`;
   const customerPayload = payload.customer || {};
   const createdBy = authUser && authUser.username ? authUser.username : (customerPayload.username || null);
-  const customerUsername = customerPayload.username || (authUser && authUser.username ? authUser.username : null);
-  const customerEmail = customerPayload.email || (authUser && authUser.email ? authUser.email : null);
+  // customer's username/email is used for indexing but we keep full payload structure
   const orderBase = {
     id: orderId,
     shopId: Number(shopId),
@@ -2029,10 +2028,8 @@ app.post('/api/orders', ordersLimiter, validate(schemas.orderCreate), async (req
     status: 'pending',
     createdAt: new Date().toISOString(),
     createdBy,
-    customer: {
-      username: customerUsername,
-      email: customerEmail,
-    }
+    // deep copy the entire payload so any additional fields are retained
+    customer: { ...(customerPayload || {}) }
   };
 
   // compute fingerprint for deduplication (shop, items, total, customer identity)
