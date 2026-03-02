@@ -15,6 +15,9 @@ const UserSchema = new mongoose.Schema({
   verificationToken: { type: String, default: null },
   // expiration timestamp for the verification token (Date)
   verificationExpires: { type: Date, default: null },
+  // Password reset token + expiry (added so reset tokens persist in MongoDB)
+  resetPasswordToken: { type: String, default: null },
+  resetPasswordExpires: { type: Date, default: null },
   role: { type: String, enum: ['customer', 'admin', 'shop_owner'], default: 'customer' },
   joinDate: { type: Date, default: () => new Date() },
   createdAt: { type: Date, default: () => new Date() }
