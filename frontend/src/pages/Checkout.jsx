@@ -88,7 +88,9 @@ const Checkout = () => {
   // deliveryOptions will be used to detect per-shop pickup vs delivery
 
   const validateCustomerInfo = () => {
-    if (!customerInfo.fullName || !customerInfo.email || !customerInfo.phone || !customerInfo.address || !customerInfo.city) {
+    // simple trim-check to ensure user didn't submit only whitespace
+    const f = (s) => typeof s === 'string' && s.trim() !== '';
+    if (!f(customerInfo.fullName) || !f(customerInfo.email) || !f(customerInfo.phone) || !f(customerInfo.address) || !f(customerInfo.city)) {
       alert('Please fill in all required fields');
       return false;
     }
@@ -213,6 +215,19 @@ const Checkout = () => {
     }));
   };
 
+  // when the user object becomes available, pre-populate the form
+  useEffect(() => {
+    if (user) {
+      setCustomerInfo(prev => ({
+        fullName: prev.fullName || user.fullName || user.username || '',
+        email: prev.email || user.email || '',
+        phone: prev.phone || user.phone || '',
+        address: prev.address || user.address || '',
+        city: prev.city || user.city || ''
+      }));
+    }
+  }, [user]);
+
   const handleSubmitOrder = async (e) => {
     e.preventDefault();
 
@@ -297,17 +312,18 @@ const Checkout = () => {
       const serverResults = [];
       for (const [shopId, shopData] of Object.entries(buildItemsByShop())) {
         const shopItems = shopData.items || [];
+        // ensure we always send all five keys (use empty string instead of undefined)
         const payload = {
           shopId: Number(shopId),
           items: shopItems.map(i => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity })),
           total: shopItems.reduce((s, it) => s + (it.price * it.quantity), 0),
           paymentMethod: 'cash_on_delivery',
           customer: {
-            fullName: customerInfo.fullName,
-            email: customerInfo.email,
-            phone: customerInfo.phone,
-            address: customerInfo.address,
-            city: customerInfo.city
+            fullName: customerInfo.fullName || '',
+            email: customerInfo.email || '',
+            phone: customerInfo.phone || '',
+            address: customerInfo.address || '',
+            city: customerInfo.city || ''
           }
         };
         // debug: ensure payload contains all expected customer fields
