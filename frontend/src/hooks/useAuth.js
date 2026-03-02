@@ -16,11 +16,11 @@ export const useAuth = () => {
       try {
         const data = await apiFetch(`${API_BASE}/api/me`);
 
-        if (mounted) {
+        if (mounted && typeof dispatch === 'function') {
           dispatch({ type: 'SET_USER', payload: data.user });
         }
       } catch {
-        if (mounted) {
+        if (mounted && typeof dispatch === 'function') {
           dispatch({ type: 'SET_USER', payload: null });
         }
       } finally {
@@ -133,7 +133,7 @@ export const useAuth = () => {
           if (payload.name) merged.name = payload.name;
           if (payload.fullName) merged.fullName = payload.fullName;
         }
-        dispatch({ type: 'SET_USER', payload: merged });
+        if (typeof dispatch === 'function') dispatch({ type: 'SET_USER', payload: merged });
         return { ok: true, user: merged };
       }
       return { ok: true, user: null };
@@ -151,7 +151,7 @@ export const useAuth = () => {
             ...(payload.address ? { address: payload.address } : {}),
             ...(payload.city ? { city: payload.city } : {}),
           };
-          dispatch({ type: 'SET_USER', payload: merged });
+          if (typeof dispatch === 'function') dispatch({ type: 'SET_USER', payload: merged });
           return { ok: true, user: merged, fallback: true };
         }
       } catch (e) {
@@ -174,29 +174,26 @@ export const useAuth = () => {
     }
   }, [dispatch]);
 
-  // check whether an account exists for the given email (forgot password flow)
-  const checkEmail = useCallback(async (email) => {
+  // request a password‑reset email containing a token
+  const requestPasswordReset = useCallback(async (email) => {
     try {
-      const data = await apiFetch(`${API_BASE}/api/auth/check-email`, {
+      const data = await apiFetch(`${API_BASE}/api/auth/request-password-reset`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       });
-      return { ok: true, exists: data.exists };
+      return { ok: true, message: data.message || 'If an account exists, instructions have been sent', fallback: data.fallback, link: data.link };
     } catch (err) {
-      if (err && err.response && err.response.status === 404) {
-        return { ok: false, message: 'Email not found' };
-      }
       return { ok: false, message: (err && err.response && err.response.message) ? err.response.message : 'Network error' };
     }
   }, []);
 
-  const resetPassword = useCallback(async ({ email, newPassword }) => {
+  const resetPassword = useCallback(async ({ token, newPassword }) => {
     try {
       const data = await apiFetch(`${API_BASE}/api/auth/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, newPassword }),
+        body: JSON.stringify({ token, newPassword }),
       });
       return { ok: true, message: data.message || 'Password updated' };
     } catch (err) {

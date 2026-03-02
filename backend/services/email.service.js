@@ -37,5 +37,35 @@ async function sendVerificationEmail(toEmail, token) {
   }
 }
 
+async function sendPasswordResetEmail(toEmail, token) {
+  if (!resend) {
+    const err = new Error('RESEND_API_KEY not configured');
+    err.code = 'NO_RESEND_KEY';
+    throw err;
+  }
+
+  const link = `${FRONTEND_URL}/#/forgot-password?token=${encodeURIComponent(token)}`;
+  const html = `
+    <p>Hello,</p>
+    <p>You requested to reset your password. Click the link below to choose a new password:</p>
+    <p><a href="${link}">Reset password</a></p>
+    <p>If you didn't request this, you can safely ignore this message.</p>
+  `;
+
+  try {
+    const resp = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: toEmail,
+      subject: 'Reset your password',
+      html
+    });
+    return { ok: true, id: resp.id, resp };
+  } catch (e) {
+    const out = new Error('Failed to send password reset email');
+    out.cause = e;
+    throw out;
+  }
+}
+
 export default sendVerificationEmail;
-export { sendVerificationEmail };
+export { sendVerificationEmail, sendPasswordResetEmail };

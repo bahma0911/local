@@ -6,7 +6,7 @@ const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URI || '';
 
 const wait = ms => new Promise(r => setTimeout(r, ms));
 
-async function getTokenFromMongo(email) {
+async function getTokenFromMongo(email, field = 'verificationToken') {
   if (!MONGODB_URI) return null;
   try {
     await mongoose.connect(MONGODB_URI, { dbName: process.env.MONGO_DBNAME || undefined });
@@ -14,7 +14,7 @@ async function getTokenFromMongo(email) {
     const u = await User.findOne({ email }).lean().exec();
     await mongoose.disconnect();
     if (!u) return null;
-    return u.verificationToken || null;
+    return u[field] || null;
   } catch (e) {
     try { await mongoose.disconnect(); } catch (e2) {}
     return null;
@@ -92,10 +92,35 @@ async function main() {
     process.exit(1);
   }
 
-  console.log('STEP 5: Resetting password');
+  console.log('STEP 5: Requesting password reset');
+  try {
+    const req = await axios.post(`${BASE}/api/auth/request-password-reset`, { email }, { timeout: 10000 });
+    console.log('RESET-REQ =>', req.status, req.data);
+    // capture token if dev fallback link returned
+    if (req.data && req.data.link) {
+      const m = String(req.data.link).match(/[?&]token=([^&]+)/);
+      if (m) token = decodeURIComponent(m[1]);
+    }
+  } catch (err) {
+    const status = err.response ? err.response.status : 'NO_RESPONSE';
+    console.error('RESET-REQ ERROR =>', status, err.response ? err.response.data : err.message);
+    process.exit(1);
+  }
+
+  if (!token) {
+    console.log('Token not found from response, retrieving from Mongo');
+    token = await getTokenFromMongo(email, 'resetPasswordToken');
+  }
+
+  if (!token) {
+    console.error('Could not obtain reset token');
+    process.exit(1);
+  }
+
+  console.log('STEP 6: Resetting password with token');
   const newPassword = password + '2';
   try {
-    const rp = await axios.post(`${BASE}/api/auth/reset-password`, { email, newPassword }, { timeout: 10000 });
+    const rp = await axios.post(`${BASE}/api/auth/reset-password`, { token, newPassword }, { timeout: 10000 });
     console.log('RESET-PASSWORD =>', rp.status, rp.data);
   } catch (err) {
     const status = err.response ? err.response.status : 'NO_RESPONSE';
@@ -103,7 +128,7 @@ async function main() {
     process.exit(1);
   }
 
-  console.log('STEP 6: Logging in with new password');
+  console.log('STEP 7: Logging in with new password');
   try {
     const login2 = await axios.post(`${BASE}/api/login`, { username: email, password: newPassword }, { timeout: 10000 });
     console.log('LOGIN2 =>', login2.status, login2.data);
@@ -113,7 +138,7 @@ async function main() {
     process.exit(1);
   }
 
-  console.log('STEP 7: Logging out');
+  console.log('STEP 8: Logging out');
   try {
     const lo = await axios.post(`${BASE}/api/logout`, {}, { timeout: 10000 });
     console.log('LOGOUT =>', lo.status, lo.data);

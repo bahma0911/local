@@ -11,7 +11,10 @@ export const schemas = {
     address: z.string().optional(),
   }),
   authGoogle: z.object({ idToken: z.string().min(1) }),
-  resetPassword: z.object({ email: z.string().email(), newPassword: z.string().min(6) }),
+  // request a password reset by email; sends a token email if the account exists
+  passwordResetRequest: z.object({ email: z.string().email() }),
+  // complete reset using token delivered by email
+  passwordResetComplete: z.object({ token: z.string().min(1), newPassword: z.string().min(6) }),
   orderCreate: z.object({
     shopId: z.union([z.string(), z.number()]),
     customer: z.object({ username: z.string().optional(), email: z.string().email().optional() }).optional(),

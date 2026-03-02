@@ -19,6 +19,7 @@ import connectMongo from './mongo.js';
 import User from './models/User.js';
 import * as authController from './controllers/authController.js';
 import * as emailController from './controllers/emailController.js';
+import { sendPasswordResetEmail } from './services/email.service.js';
 import requireVerifiedEmail from './middleware/requireVerifiedEmail.js';
 import ShopModel from './models/Shop.js';
 import OrderModel from './models/Order.js';
@@ -379,6 +380,31 @@ const getAuthCookieOptions = () => ({
   partitioned: true,
 });
 
+// helper that wraps res.cookie() and makes sure the Partitioned marker is present
+const setAuthCookie = (res, token) => {
+  res.cookie(AUTH_COOKIE_NAME, token, getAuthCookieOptions());
+  try {
+    const header = res.getHeader('Set-Cookie');
+    if (header) {
+      const arr = Array.isArray(header) ? header : [header];
+      const newArr = arr.map(h => {
+        const str = h.toString();
+        if (str.toLowerCase().includes('partitioned')) return str;
+        return str + '; Partitioned';
+      });
+      res.setHeader('Set-Cookie', newArr);
+    }
+  } catch (e) {
+    // ignore header manipulation errors
+  }
+};
+
+const clearAuthCookie = (res) => {
+  res.clearCookie(AUTH_COOKIE_NAME, getAuthCookieOptions());
+  // no need to mark partitioned when clearing
+};
+
+
 // JWT helpers: sign and verify tokens stored in httpOnly cookie
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_jwt_secret_change_me';
 const signToken = (payload, opts = {}) => {
@@ -449,7 +475,7 @@ app.post('/api/login', loginRegisterLimiter, validate(schemas.authLogin), async 
     const match = username === process.env.ADMIN_USER && password === process.env.ADMIN_PASS;
     if (match) {
       const token = signToken({ username, role: 'admin' });
-      res.cookie(AUTH_COOKIE_NAME, token, getAuthCookieOptions());
+      setAuthCookie(res, token);
       info('Login success', { requestId: req.id, username, role: 'admin' });
       return res.json({ user: { username, role: 'admin' } });
     }
@@ -463,7 +489,7 @@ app.post('/api/login', loginRegisterLimiter, validate(schemas.authLogin), async 
     const ok = await bcrypt.compare(String(password), String(shop.owner.password));
     if (ok) {
       const token = signToken({ username, role: 'shop_owner', shopId: shop.id });
-      res.cookie(AUTH_COOKIE_NAME, token, getAuthCookieOptions());
+      setAuthCookie(res, token);
       info('Login success', { requestId: req.id, username, role: 'shop_owner', shopId: shop.id });
       return res.json({ user: { username, role: 'shop_owner', shopId: shop.id, shopName: shop.name } });
     }
@@ -513,7 +539,7 @@ app.post('/api/login', loginRegisterLimiter, validate(schemas.authLogin), async 
       if (ok) {
         const token = signToken({ username: customer.username, role: 'customer' });
         const userSafe = { username: customer.username, email: customer.email, role: 'customer' };
-        res.cookie(AUTH_COOKIE_NAME, token, getAuthCookieOptions());
+        setAuthCookie(res, token);
         info('Login success', { requestId: req.id, username: customer.username, role: 'customer' });
         return res.json({ user: userSafe });
       }
@@ -559,18 +585,77 @@ app.post('/api/auth/check-email', validate(z.object({ email: z.string().email() 
   return res.status(404).json({ message: 'Email not found' });
 });
 
-// perform the actual password update once email has been verified
-app.post('/api/auth/reset-password', loginRegisterLimiter, validate(schemas.resetPassword), async (req, res) => {
-  const { email, newPassword } = req.body || {};
-  if (!email || !newPassword) return res.status(400).json({ message: 'email and newPassword required' });
+// request a password reset token; always return OK for security
+app.post('/api/auth/request-password-reset', loginRegisterLimiter, validate(schemas.passwordResetRequest), async (req, res) => {
+  const { email } = req.body || {};
+  if (!email) return res.status(400).json({ message: 'email required' });
 
-  // try updating Mongo user first
+  let token = crypto.randomBytes(24).toString('hex');
+  const expires = new Date(Date.now() + 60 * 60 * 1000); // 1h
+
+  // try mongoose first
   try {
     if (mongoose.connection && mongoose.connection.readyState === 1) {
       const User = (await import('./models/User.js')).default;
       const user = await User.findOne({ email }).exec();
       if (user) {
+        user.resetPasswordToken = token;
+        user.resetPasswordExpires = expires;
+        await user.save();
+        try {
+          await sendPasswordResetEmail(email, token);
+        } catch (e) {
+          console.warn('request-password-reset: failed to send email', e && e.message ? e.message : e);
+          const frontend = (process.env.FRONTEND_URL && process.env.FRONTEND_URL.trim()) ? process.env.FRONTEND_URL.replace(/\/+$/, '') : (process.env.NODE_ENV === 'production' ? '' : 'https://www.bahma.com.et');
+          const link = `${frontend || ''}/#/forgot-password?token=${encodeURIComponent(token)}`;
+          return res.json({ message: 'Password reset link logged (dev fallback)', fallback: true, link });
+        }
+        return res.json({ message: 'If an account exists, a reset link has been sent to the email.' });
+      }
+    }
+  } catch (e) {
+    console.warn('request-password-reset mongoose error', e && e.message ? e.message : e);
+  }
+
+  // fallback to local customers
+  try {
+    const locals = readCustomers();
+    const idx = locals.findIndex(c => c.email === email);
+    if (idx !== -1) {
+      locals[idx].resetPasswordToken = token;
+      locals[idx].resetPasswordExpires = expires;
+      writeCustomers(locals);
+      try {
+        await sendPasswordResetEmail(email, token);
+      } catch (e) {
+        console.warn('request-password-reset email fallback failed', e && e.message ? e.message : e);
+        const frontend = (process.env.FRONTEND_URL && process.env.FRONTEND_URL.trim()) ? process.env.FRONTEND_URL.replace(/\/+$/, '') : (process.env.NODE_ENV === 'production' ? '' : 'https://www.bahma.com.et');
+        const link = `${frontend || ''}/#/forgot-password?token=${encodeURIComponent(token)}`;
+        return res.json({ message: 'Password reset link logged (dev fallback)', fallback: true, link });
+      }
+    }
+  } catch (e) {
+    console.warn('request-password-reset local lookup error', e && e.message ? e.message : e);
+  }
+
+  // Always respond success so attackers cannot enumerate emails
+  return res.json({ message: 'If an account exists, a reset link has been sent to the email.' });
+});
+
+// perform the actual password update using token
+app.post('/api/auth/reset-password', loginRegisterLimiter, validate(schemas.passwordResetComplete), async (req, res) => {
+  const { token, newPassword } = req.body || {};
+  if (!token || !newPassword) return res.status(400).json({ message: 'token and newPassword required' });
+
+  // try updating Mongo user first
+  try {
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      const User = (await import('./models/User.js')).default;
+      const user = await User.findOne({ resetPasswordToken: token }).exec();
+      if (user && user.resetPasswordExpires && user.resetPasswordExpires > new Date()) {
         user.password = await bcrypt.hash(String(newPassword), 10);
+        user.resetPasswordToken = null;
+        user.resetPasswordExpires = undefined;
         await user.save();
         return res.json({ message: 'Password updated' });
       }
@@ -580,17 +665,23 @@ app.post('/api/auth/reset-password', loginRegisterLimiter, validate(schemas.rese
   }
 
   // fallback to local customers
-  const locals = readCustomers();
-  const idx = locals.findIndex(c => c.email === email);
-  if (idx !== -1) {
-    const hashed = await bcrypt.hash(String(newPassword), 10);
-    locals[idx].password = hashed;
-    writeCustomers(locals);
-    return res.json({ message: 'Password updated' });
+  try {
+    const locals = readCustomers();
+    const idx = locals.findIndex(c => c.resetPasswordToken === token && c.resetPasswordExpires && new Date(c.resetPasswordExpires) > new Date());
+    if (idx !== -1) {
+      const hashed = await bcrypt.hash(String(newPassword), 10);
+      locals[idx].password = hashed;
+      locals[idx].resetPasswordToken = null;
+      locals[idx].resetPasswordExpires = undefined;
+      writeCustomers(locals);
+      return res.json({ message: 'Password updated' });
+    }
+  } catch (e) {
+    console.warn('reset-password local update failed', e && e.message ? e.message : e);
   }
 
-  // nothing found
-  return res.status(404).json({ message: 'Email not found' });
+  // token invalid or expired
+  return res.status(400).json({ message: 'Invalid or expired token' });
 });
 
 // Google OAuth verification endpoint
@@ -629,7 +720,7 @@ app.post("/api/test-login", async (req, res) => {
 
   app.post('/api/logout', (req, res) => {
     try {
-      res.clearCookie(AUTH_COOKIE_NAME, getAuthCookieOptions());
+      clearAuthCookie(res);
       return res.json({ message: 'Logged out' });
     } catch (e) {
       return res.status(500).json({ message: 'Failed to logout' });
@@ -640,7 +731,10 @@ app.post("/api/test-login", async (req, res) => {
   app.get('/api/me', async (req, res) => {
     try {
       const payload = await getUserFromRequest(req);
-      if (!payload) return res.status(401).json({ message: 'Not authenticated' });
+      if (!payload) {
+        // not logged in; return empty user rather than 401 so clients can treat as guest
+        return res.json({ user: null });
+      }
 
       // Enrich shop owner payload with shop name when possible
       if (payload.role === 'shop_owner' && payload.shopId) {
@@ -722,7 +816,7 @@ app.post("/api/test-login", async (req, res) => {
           const UserModel = (await import('./models/User.js')).default;
           await UserModel.deleteOne({ username: authUser.username }).exec();
           // clear auth cookie
-          try { res.clearCookie(AUTH_COOKIE_NAME, getAuthCookieOptions()); } catch (e) { /* ignore */ }
+          try { clearAuthCookie(res); } catch (e) { /* ignore */ }
           return res.json({ message: 'Account deleted' });
         } catch (err) {
           console.error('DELETE /api/me - mongo delete error', err && err.message ? err.message : err);
