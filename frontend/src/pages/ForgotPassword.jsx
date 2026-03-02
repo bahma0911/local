@@ -64,10 +64,27 @@ const ForgotPassword = () => {
 
   // determine token from query if present
   React.useEffect(() => {
-    const q = new URLSearchParams(window.location.search);
-    const t = q.get('token');
+    // Support both regular querystring (`/forgot-password?token=...`) and
+    // hash-based routing used by the app (`/#/forgot-password?token=...`).
+    const q = new URLSearchParams(window.location.search || '');
+    let t = q.get('token');
+    if (!t) {
+      // window.location.hash may look like "#/forgot-password?token=..."
+      const hash = window.location.hash || '';
+      const idx = hash.indexOf('?');
+      if (idx !== -1) {
+        const hashQuery = hash.slice(idx + 1);
+        const hq = new URLSearchParams(hashQuery);
+        t = hq.get('token');
+      }
+    }
+
     if (t) {
-      setToken(t);
+      try {
+        setToken(decodeURIComponent(t));
+      } catch (e) {
+        setToken(t);
+      }
       setStep('reset');
     }
   }, []);
