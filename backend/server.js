@@ -12,6 +12,7 @@ import bcrypt from 'bcrypt';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import jwt from 'jsonwebtoken';
+import { z } from 'zod';
 import { validate, schemas } from './validators.js';
 import { info, warn, error as logError } from './logger.js';
 import connectMongo from './mongo.js';
@@ -530,6 +531,64 @@ app.post('/api/register', loginRegisterLimiter, validate(schemas.authRegister), 
 app.post('/api/auth/start-register', loginRegisterLimiter, authController.startRegister);
 // Complete registration after email verification: provide token + username + password
 app.post('/api/auth/complete-register', loginRegisterLimiter, authController.completeRegister);
+
+// Password reset helpers ---------------------------------------------------
+// simple check whether an account exists for given email
+app.post('/api/auth/check-email', validate(z.object({ email: z.string().email() })), async (req, res) => {
+  const { email } = req.body || {};
+  if (!email) return res.status(400).json({ message: 'email required' });
+  // first, try mongoose lookup (if available)
+  try {
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      const User = (await import('./models/User.js')).default;
+      const user = await User.findOne({ email }).lean().exec();
+      if (user) return res.json({ exists: true });
+    }
+  } catch (e) {
+    // ignore mongodb errors, we'll fallback to file storage
+    console.warn('check-email mongoose lookup failed', e && e.message ? e.message : e);
+  }
+  // fallback to local customers.json
+  const locals = readCustomers();
+  if (locals.find(c => c.email === email)) {
+    return res.json({ exists: true });
+  }
+  return res.status(404).json({ message: 'Email not found' });
+});
+
+// perform the actual password update once email has been verified
+app.post('/api/auth/reset-password', loginRegisterLimiter, validate(schemas.resetPassword), async (req, res) => {
+  const { email, newPassword } = req.body || {};
+  if (!email || !newPassword) return res.status(400).json({ message: 'email and newPassword required' });
+
+  // try updating Mongo user first
+  try {
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      const User = (await import('./models/User.js')).default;
+      const user = await User.findOne({ email }).exec();
+      if (user) {
+        user.password = await bcrypt.hash(String(newPassword), 10);
+        await user.save();
+        return res.json({ message: 'Password updated' });
+      }
+    }
+  } catch (e) {
+    console.warn('reset-password mongoose update failed', e && e.message ? e.message : e);
+  }
+
+  // fallback to local customers
+  const locals = readCustomers();
+  const idx = locals.findIndex(c => c.email === email);
+  if (idx !== -1) {
+    const hashed = await bcrypt.hash(String(newPassword), 10);
+    locals[idx].password = hashed;
+    writeCustomers(locals);
+    return res.json({ message: 'Password updated' });
+  }
+
+  // nothing found
+  return res.status(404).json({ message: 'Email not found' });
+});
 
 // Google OAuth verification endpoint
 app.post('/api/auth/google', validate(schemas.authGoogle), authController.handleGoogleAuth);

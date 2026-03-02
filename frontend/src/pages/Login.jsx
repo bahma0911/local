@@ -9,6 +9,7 @@ const Login = () => {
   const { login } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -37,9 +38,32 @@ const Login = () => {
             <input className="form-input" placeholder="you@example.com" value={username} onChange={e => setUsername(e.target.value)} required />
           </div>
 
-          <div className="form-group">
+          <div className="form-group" style={{ position: 'relative' }}>
             <label className="form-label">Password</label>
-            <input className="form-input" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required />
+            <input
+              className="form-input"
+              type={showPassword ? 'text' : 'password'}
+              placeholder="••••••••"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(p => !p)}
+              style={{
+                position: 'absolute',
+                right: '12px',
+                top: '35px',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '0.9rem',
+                color: '#4f46e5'
+              }}
+            >
+              {showPassword ? 'Hide' : 'Show'}
+            </button>
           </div>
 
           {error && <div className="error-message">{error}</div>}
@@ -47,6 +71,9 @@ const Login = () => {
           <div style={{ display: 'flex', gap: 8, marginTop: '1rem' }}>
             <button type="submit" className="login-btn" disabled={loading}>{loading ? 'Signing in...' : 'Sign in'}</button>
             <button type="button" className="secondary-btn" onClick={() => navigate('/register')}>Create account</button>
+          </div>
+          <div style={{ marginTop: '0.75rem', textAlign: 'right' }}>
+            <button className="forgot-link" type="button" onClick={() => navigate('/forgot-password')}>Forgot password?</button>
           </div>
         </form>
       </div>

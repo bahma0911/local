@@ -165,6 +165,36 @@ export const useAuth = () => {
     }
   }, [dispatch]);
 
+  // check whether an account exists for the given email (forgot password flow)
+  const checkEmail = useCallback(async (email) => {
+    try {
+      const data = await apiFetch(`${API_BASE}/api/auth/check-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      return { ok: true, exists: data.exists };
+    } catch (err) {
+      if (err && err.response && err.response.status === 404) {
+        return { ok: false, message: 'Email not found' };
+      }
+      return { ok: false, message: (err && err.response && err.response.message) ? err.response.message : 'Network error' };
+    }
+  }, []);
+
+  const resetPassword = useCallback(async ({ email, newPassword }) => {
+    try {
+      const data = await apiFetch(`${API_BASE}/api/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, newPassword }),
+      });
+      return { ok: true, message: data.message || 'Password updated' };
+    } catch (err) {
+      return { ok: false, message: (err && err.response && err.response.message) ? err.response.message : 'Network error' };
+    }
+  }, []);
+
   const assignedShop =
     user && user.shopId !== undefined && user.shopId !== null
       ? Number(user.shopId)

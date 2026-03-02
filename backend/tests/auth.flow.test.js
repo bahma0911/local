@@ -81,6 +81,38 @@ async function main() {
     process.exit(1);
   }
 
+  // verify forgot-password endpoints
+  console.log('STEP 4: Checking email existence');
+  try {
+    const ck = await axios.post(`${BASE}/api/auth/check-email`, { email }, { timeout: 10000 });
+    console.log('CHECK-EMAIL =>', ck.status, ck.data);
+  } catch (err) {
+    const status = err.response ? err.response.status : 'NO_RESPONSE';
+    console.error('CHECK-EMAIL ERROR =>', status, err.response ? err.response.data : err.message);
+    process.exit(1);
+  }
+
+  console.log('STEP 5: Resetting password');
+  const newPassword = password + '2';
+  try {
+    const rp = await axios.post(`${BASE}/api/auth/reset-password`, { email, newPassword }, { timeout: 10000 });
+    console.log('RESET-PASSWORD =>', rp.status, rp.data);
+  } catch (err) {
+    const status = err.response ? err.response.status : 'NO_RESPONSE';
+    console.error('RESET-PASSWORD ERROR =>', status, err.response ? err.response.data : err.message);
+    process.exit(1);
+  }
+
+  console.log('STEP 6: Logging in with new password');
+  try {
+    const login2 = await axios.post(`${BASE}/api/login`, { username: email, password: newPassword }, { timeout: 10000 });
+    console.log('LOGIN2 =>', login2.status, login2.data);
+  } catch (err) {
+    const status = err.response ? err.response.status : 'NO_RESPONSE';
+    console.error('LOGIN2 ERROR =>', status, err.response ? err.response.data : err.message);
+    process.exit(1);
+  }
+
   console.log('Auth flow completed successfully');
   process.exit(0);
 }

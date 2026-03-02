@@ -7,6 +7,7 @@ const Register = () => {
   const navigate = useNavigate();
   const { register } = useAuth();
   const [form, setForm] = useState({ username: '', email: '', password: '' });
+  const [showPassword, setShowPassword] = useState(false);
   const query = new URLSearchParams(window.location.search);
   const tokenFromQuery = query.get('token');
   const [loading, setLoading] = useState(false);
@@ -108,7 +109,35 @@ const Register = () => {
       <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '0.5rem', maxWidth: 360 }}>
         <label>Username<input name="username" value={form.username} onChange={handleChange} required /></label>
         <label>Email<input name="email" type="email" value={form.email} onChange={handleChange} required /></label>
-        <label>Password<input name="password" type="password" value={form.password} onChange={handleChange} required minLength={6} /></label>
+        <label style={{ position: 'relative', display: 'block' }}>
+          Password
+          <input
+            name="password"
+            type={showPassword ? 'text' : 'password'}
+            value={form.password}
+            onChange={handleChange}
+            required
+            minLength={6}
+            style={{ paddingRight: '4rem' }}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(p => !p)}
+            style={{
+              position: 'absolute',
+              right: '8px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '0.9rem',
+              color: '#4f46e5'
+            }}
+          >
+            {showPassword ? 'Hide' : 'Show'}
+          </button>
+        </label>
         {error && <div style={{ color: 'red' }}>{error}</div>}
         <div>
           <button type="submit" disabled={loading}>{loading ? 'Creating...' : 'Create account'}</button>
