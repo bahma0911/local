@@ -136,6 +136,11 @@
   box-shadow: none;
 }
 
+/* general informational text in login/reset forms */
+.info-message {
+  color: #111827; /* dark/black for readability */
+}
+
 .form-input:disabled {
   background-color: #e9ecef;
   cursor: not-allowed;

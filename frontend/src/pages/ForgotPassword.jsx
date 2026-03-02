@@ -117,7 +117,7 @@ const ForgotPassword = () => {
         )}
 
         {step === 'sent' && (
-          <div style={{ textAlign: 'center' }}>
+          <div style={{ textAlign: 'center' }} className="info-message">
             <p>If an account exists for <strong>{email}</strong>, you will receive an email with a reset link.</p>
             <p>Check your inbox and follow the instructions.</p>
           </div>
@@ -174,7 +174,7 @@ const ForgotPassword = () => {
         )}
 
         {step === 'done' && (
-          <div style={{ textAlign: 'center' }}>
+          <div style={{ textAlign: 'center' }} className="info-message">
             <p>Password updated successfully.</p>
             <button className="login-btn" onClick={() => navigate('/login')}>Go to login</button>
           </div>
