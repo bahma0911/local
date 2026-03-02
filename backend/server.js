@@ -2031,6 +2031,10 @@ app.post('/api/orders', ordersLimiter, validate(schemas.orderCreate), async (req
     // deep copy the entire payload so any additional fields are retained
     customer: { ...(customerPayload || {}) }
   };
+  // DEBUG: show exactly what customer info the server received
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('orderBase.customer', JSON.stringify(orderBase.customer));
+  }
 
   // compute fingerprint for deduplication (shop, items, total, customer identity)
   try {
