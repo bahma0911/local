@@ -19,16 +19,20 @@ const ForgotPassword = () => {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const res = await requestPasswordReset(email);
-    setLoading(false);
-    if (res.ok) {
-      setStep('sent');
-      // optionally show dev fallback link
-      if (res.fallback && res.link) {
-        alert('Reset link (dev fallback): ' + res.link);
+    try {
+      const res = await requestPasswordReset(email);
+      if (res.ok) {
+        setStep('sent');
+        if (res.fallback && res.link) {
+          alert('Reset link (dev fallback): ' + res.link);
+        }
+      } else {
+        setError(res.message || 'Request failed');
       }
-    } else {
-      setError(res.message || 'Request failed');
+    } catch (err) {
+      setError((err && err.message) ? err.message : 'Request failed');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -44,12 +48,17 @@ const ForgotPassword = () => {
     }
     setError(null);
     setLoading(true);
-    const res = await resetPassword({ token, newPassword });
-    setLoading(false);
-    if (res.ok) {
-      setStep('done');
-    } else {
-      setError(res.message || 'Reset failed');
+    try {
+      const res = await resetPassword({ token, newPassword });
+      if (res.ok) {
+        setStep('done');
+      } else {
+        setError(res.message || 'Reset failed');
+      }
+    } catch (err) {
+      setError((err && err.message) ? err.message : 'Reset failed');
+    } finally {
+      setLoading(false);
     }
   };
 

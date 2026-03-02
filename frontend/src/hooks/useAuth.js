@@ -217,6 +217,8 @@ export const useAuth = () => {
     register,
     updateCustomerProfile,
     deleteAccount,
+    requestPasswordReset,
+    resetPassword,
     assignedShop,
   };
 };
