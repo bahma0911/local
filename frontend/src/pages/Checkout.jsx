@@ -310,6 +310,8 @@ const Checkout = () => {
             city: customerInfo.city
           }
         };
+        // debug: ensure payload contains all expected customer fields
+        try { console.debug('Submitting order payload', payload); } catch (e) {}
         try {
           const data = await apiFetch(`${API_BASE}/api/orders`, {
             method: 'POST',
