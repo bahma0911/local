@@ -31,6 +31,21 @@ const Checkout = () => {
     city: user?.city || '',
   });
 
+  // persist the form so reloads (e.g. after adjustments) don't wipe it
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('checkoutCustomerInfo');
+      if (saved) {
+        setCustomerInfo(prev => ({ ...prev, ...JSON.parse(saved) }));
+      }
+    } catch (e) { /* ignore parse errors */ }
+  }, []);
+  useEffect(() => {
+    try {
+      localStorage.setItem('checkoutCustomerInfo', JSON.stringify(customerInfo));
+    } catch (e) { /* ignore */ }
+  }, [customerInfo]);
+
   const [isProcessing, setIsProcessing] = useState(false);
   const [preflightAdjustments, setPreflightAdjustments] = useState([]);
   const [showPreflightModal, setShowPreflightModal] = useState(false);
@@ -327,6 +342,10 @@ const Checkout = () => {
             city: customerInfo.city || ''
           }
         };
+        // warn if address or city are still blank despite validation
+        if (!payload.customer.address || !payload.customer.city) {
+          console.warn('Submitting order with empty address/city', payload.customer);
+        }
         // debug: ensure payload contains all expected customer fields
         try { console.debug('Submitting order payload', payload); } catch (e) {}
         try {
@@ -449,13 +468,12 @@ const Checkout = () => {
       applyAdjustments(preflightAdjustments || []);
       setServerAdjustments(preflightAdjustments || []);
       // re-run submission after applying adjustments
-      // build a new order and submit
+      // build a new order and submit automatically so user doesn't need to reload
       // small delay to ensure cart state updates
       await new Promise(r => setTimeout(r, 200));
       // call handleSubmitOrder again programmatically to continue
-      // to avoid recursion complexity, simply reload page to let user review updated cart
-      // and then re-submit when they're ready
-      window.location.reload();
+      // simulate a submit event since we don't have one handy
+      await handleSubmitOrder({ preventDefault: () => {} });
     } catch (e) {
       console.error('Failed to apply adjustments', e);
     }
@@ -463,6 +481,8 @@ const Checkout = () => {
   
 
   if (orderCompleted) {
+    // wipe the persisted form to avoid leaking into future checkouts
+    try { localStorage.removeItem('checkoutCustomerInfo'); } catch (e) {}
     return (
       <div className="order-confirmation">
         <div className="confirmation-card">
