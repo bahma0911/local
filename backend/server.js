@@ -2044,7 +2044,7 @@ app.post('/api/orders', ordersLimiter, validate(schemas.orderCreate), async (req
     // expose fingerprint to outer scope via orderBase.__fingerprint
     orderBase.__fingerprint = fingerprint;
   } catch (e) {
-    // ignore fingerprint errors
+    // ignore fingerprint errors 
   }
 
   try {
