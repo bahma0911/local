@@ -573,7 +573,9 @@ const AdminDashboard = () => {
 
   // ===================== Other Helpers =====================
   const handleLogout = () => {
-    if (window.confirm("Logout?")) logout();
+    if (window.confirm("Logout?")) {
+      logout().catch(err => console.error('Logout error', err));
+    }
   };
 
     // image handling removed

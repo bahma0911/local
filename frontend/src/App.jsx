@@ -61,7 +61,10 @@ const AppContent = () => {
 
   const handleLogout = () => {
     if (window.confirm("Are you sure you want to logout?")) {
-      logout();
+      // catch any promise rejection to avoid uncaught errors in console
+      logout().catch(err => {
+        console.error('Logout failed', err);
+      });
     }
   };
 

@@ -113,6 +113,16 @@ async function main() {
     process.exit(1);
   }
 
+  console.log('STEP 7: Logging out');
+  try {
+    const lo = await axios.post(`${BASE}/api/logout`, {}, { timeout: 10000 });
+    console.log('LOGOUT =>', lo.status, lo.data);
+  } catch (err) {
+    const status = err.response ? err.response.status : 'NO_RESPONSE';
+    console.error('LOGOUT ERROR =>', status, err.response ? err.response.data : err.message);
+    process.exit(1);
+  }
+
   console.log('Auth flow completed successfully');
   process.exit(0);
 }

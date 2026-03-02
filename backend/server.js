@@ -374,6 +374,9 @@ const getAuthCookieOptions = () => ({
   secure: app.get('env') === 'production' || (process.env.DEV_SAMESITE_SECURE === '1'),
   sameSite: determineSameSite(),
   maxAge: AUTH_COOKIE_MAX_AGE,
+  // Chrome plans to reject third-party cookies without the partitioned attribute
+  // when the cookie is treated as foreign. Setting this ensures future compliance.
+  partitioned: true,
 });
 
 // JWT helpers: sign and verify tokens stored in httpOnly cookie

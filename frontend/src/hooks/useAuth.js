@@ -16,11 +16,13 @@ export const useAuth = () => {
       try {
         const data = await apiFetch(`${API_BASE}/api/me`);
 
-        if (!mounted) return;
-
-        dispatch({ type: 'SET_USER', payload: data.user });
+        if (mounted) {
+          dispatch({ type: 'SET_USER', payload: data.user });
+        }
       } catch {
-        dispatch({ type: 'SET_USER', payload: null });
+        if (mounted) {
+          dispatch({ type: 'SET_USER', payload: null });
+        }
       } finally {
         if (mounted) setLoading(false);
       }
@@ -85,10 +87,17 @@ export const useAuth = () => {
     try {
       await apiFetch(`${API_BASE}/api/logout`, { method: 'POST' });
     } catch {
-      // ignore
+      // ignore network/logout errors
     }
 
-    dispatch({ type: 'SET_USER', payload: null });
+    // guard against missing dispatch (shouldn't happen, but protects against uncaught errors)
+    try {
+      if (typeof dispatch === 'function') {
+        dispatch({ type: 'SET_USER', payload: null });
+      }
+    } catch (e) {
+      console.warn('logout dispatch error', e);
+    }
   }, [dispatch]);
 
   const register = useCallback(async (payload) => {
