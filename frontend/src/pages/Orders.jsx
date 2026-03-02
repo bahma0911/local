@@ -12,6 +12,15 @@ import ReviewsList from '../components/ReviewsList';
 
 const Orders = () => { 
   const { addToCart } = useCart();
+  // helper to convert camelCase/underscore keys into human labels
+  const startCase = (s) => {
+    if (!s) return '';
+    return String(s)
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/[_\-]/g, ' ')
+      .replace(/\b\w/g, c => c.toUpperCase())
+      .trim();
+  };
   const [orders, setOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [reviewsByProduct, setReviewsByProduct] = useState({});
@@ -282,11 +291,32 @@ const Orders = () => {
           <div className="order-details-section">
             <h3>Customer Information</h3>
             <div className="customer-info">
-              <p><strong>Name:</strong> {selectedOrder.customer?.fullName || selectedOrder.customer?.name || selectedOrder.customer?.username || selectedOrder.createdBy || 'Unknown'}</p>
-              <p><strong>Email:</strong> {getDisplayEmail(selectedOrder) || '—'}</p>
-              <p><strong>Phone:</strong> {getDisplayPhone(selectedOrder) || '—'}</p>
-              <p><strong>Address:</strong> {getDisplayAddress(selectedOrder) || '—'}</p>
-              <p><strong>City:</strong> {getDisplayCity(selectedOrder) || '—'}</p>
+              {(() => {
+                const cust = getCustomerObject(selectedOrder);
+                // always show the primary name/email/phone/address/city fields first
+                const orderedKeys = ['fullName','name','username','email','phone','address','city','location'];
+                const shown = new Set();
+                const elems = [];
+                orderedKeys.forEach(key => {
+                  if (cust[key] && !shown.has(key)) {
+                    elems.push(
+                      <p key={key}><strong>{startCase(key)}:</strong> {String(cust[key])}</p>
+                    );
+                    shown.add(key);
+                  }
+                });
+                // then show any other properties present on cust
+                Object.keys(cust).forEach(key => {
+                  if (shown.has(key)) return;
+                  elems.push(
+                    <p key={key}><strong>{startCase(key)}:</strong> {String(cust[key])}</p>
+                  );
+                });
+                if (elems.length === 0) {
+                  elems.push(<p key="none">No customer information available.</p>);
+                }
+                return elems;
+              })()}
             </div>
           </div>
 
