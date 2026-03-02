@@ -319,6 +319,7 @@ const Checkout = () => {
           total: shopItems.reduce((s, it) => s + (it.price * it.quantity), 0),
           paymentMethod: 'cash_on_delivery',
           customer: {
+            username: user?.username || '',
             fullName: customerInfo.fullName || '',
             email: customerInfo.email || '',
             phone: customerInfo.phone || '',

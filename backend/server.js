@@ -2019,6 +2019,7 @@ app.post('/api/orders', ordersLimiter, validate(schemas.orderCreate), async (req
   // merge client-supplied customer info with whatever we know about the authenticated user
   const rawCustomer = (payload.customer && typeof payload.customer === 'object') ? payload.customer : {};
   const customerPayload = {
+    username: rawCustomer.username || authUser?.username || '',
     fullName: rawCustomer.fullName || authUser?.fullName || authUser?.username || '',
     email: rawCustomer.email || authUser?.email || '',
     phone: rawCustomer.phone || authUser?.phone || '',
@@ -2327,7 +2328,13 @@ app.get('/api/orders/my', requireAuth, async (req, res) => {
     if (!user || !user.username) return res.status(401).json({ message: 'Not authenticated' });
     // If Mongo connected, query orders by customer.username
     if (mongoose.connection && mongoose.connection.readyState === 1) {
-      const orders = await OrderModel.find({ 'customer.username': user.username }).lean().exec();
+      // query either customer.username or createdBy for backwards compatibility
+      const orders = await OrderModel.find({
+        $or: [
+          { 'customer.username': user.username },
+          { createdBy: user.username }
+        ]
+      }).lean().exec();
       return res.json(orders || []);
     }
     // fallback to JSON file
