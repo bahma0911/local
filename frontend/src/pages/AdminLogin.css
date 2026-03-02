@@ -140,6 +140,10 @@
 .info-message {
   color: #111827; /* dark/black for readability */
 }
+/* ensure any child paragraphs also inherit or override other rules */
+.info-message p {
+  color: #111827 !important;
+}
 
 .form-input:disabled {
   background-color: #e9ecef;
