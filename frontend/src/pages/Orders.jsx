@@ -47,6 +47,7 @@ const Orders = () => {
       }
       try {
         let data = await apiFetch(`${API_BASE}/api/orders/my`);
+        console.debug('fetchMyOrders returned', data);
         // Remove cancelled orders older than 7 days
         const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
         data = (data || []).filter(o => {
@@ -65,6 +66,11 @@ const Orders = () => {
         setOrders(sorted);
       } catch (err) {
         console.error('Failed to fetch orders', err);
+        // display a user message if authentication failed
+        if (err && err.status === 401) {
+          // user might have been logged out
+          alert('You are not logged in; please sign in to view your orders.');
+        }
       }
     };
     fetchMyOrders();
