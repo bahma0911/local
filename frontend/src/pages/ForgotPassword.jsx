@@ -117,7 +117,7 @@ const ForgotPassword = () => {
         )}
 
         {step === 'sent' && (
-          <div style={{ textAlign: 'center' }} className="info-message">
+          <div style={{ textAlign: 'center' }} className="forgot-info-message">
             <p>If an account exists for <strong>{email}</strong>, you will receive an email with a reset link.</p>
             <p>Check your inbox and follow the instructions.</p>
           </div>

@@ -138,11 +138,15 @@
 
 /* general informational text in login/reset forms */
 .info-message {
-  color: #111827; /* dark/black for readability */
+  color: #dfe1e4; /* dark/black for readability */
 }
 /* ensure any child paragraphs also inherit or override other rules */
 .info-message p {
-  color: #111827 !important;
+  color: #ededed;
+}
+
+.forgot-info-message {
+  color:#111827;
 }
 
 .form-input:disabled {
