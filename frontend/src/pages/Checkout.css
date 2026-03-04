@@ -262,6 +262,29 @@
   margin-top: 20px;
 }
 
+/* light theme fix: sidebar remains dark while theme text becomes dark too,
+   causing low contrast. force order summary labels to stay light on the
+   dark background when using the light theme. */
+[data-theme="light"] .order-summary-sidebar .shop-name,
+[data-theme="light"] .order-summary-sidebar .shop-item,
+[data-theme="light"] .order-summary-sidebar .shop-delivery,
+[data-theme="light"] .order-summary-sidebar .order-totals .total-row,
+[data-theme="light"] .order-summary-inline .shop-name,
+[data-theme="light"] .order-summary-inline .shop-item,
+[data-theme="light"] .order-summary-inline .shop-delivery,
+[data-theme="light"] .order-summary-inline .order-totals .total-row {
+  /* bright white text for labels and values */
+  color: #fff;
+}
+
+[data-theme="light"] .order-summary-sidebar .shop-item,
+[data-theme="light"] .order-summary-sidebar .shop-delivery,
+[data-theme="light"] .order-summary-inline .shop-item,
+[data-theme="light"] .order-summary-inline .shop-delivery {
+  /* items and delivery rows slightly muted but still light */
+  color: #ddd;
+}
+
 .total-row {
   display: flex;
   justify-content: space-between;
