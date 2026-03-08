@@ -171,3 +171,8 @@
     margin-left: 6px;
   }
 }
+
+/* Light theme overrides */
+[data-theme="light"] .logoText {
+  color: #ffffff;
+}
