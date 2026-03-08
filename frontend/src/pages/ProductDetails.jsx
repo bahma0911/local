@@ -88,7 +88,7 @@ const ProductDetails = () => {
     <div className="product-details" style={{ padding: 16 }}>
       <div className="pd-container">
         <div className="pd-gallery">
-          <div className="pd-main">
+          <div className={`pd-main ${imageLoaded ? 'loaded' : ''}`}>
             <img 
               src={mainSrc} 
               alt={product.name} 
