@@ -1,6 +1,6 @@
 .product-list-section {
   margin-top: 30px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--border-color);
   padding-top: 24px;
 }
 
@@ -30,10 +30,10 @@
 .product-list-empty {
   text-align: center;
   padding: 40px 20px;
-  color: var(--hx-text-muted);
-  background: rgba(12, 19, 34, 0.8);
+  color: var(--text-muted);
+  background: var(--card-bg);
   border-radius: var(--hx-radius);
-  border: 1px dashed rgba(255, 255, 255, 0.2);
+  border: 1px dashed var(--border-color);
   width: 100%;
 }
 
