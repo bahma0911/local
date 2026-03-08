@@ -383,7 +383,7 @@
 
 /* Light theme specific styling for advanced filters */
 [data-theme="light"] .advanced-filters-toggle {
-  background: #ffffff;
+  background: #5f71a3;
   border: 1px solid #e2e8f0;
   color: #374151;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
