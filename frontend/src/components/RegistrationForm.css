@@ -1,37 +1,33 @@
-/* src/components/RegistrationForm.css - Updated for theme consistency */
+/* src/components/RegistrationForm.css - NEW FILE */
 .registration-container {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-secondary);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding: 20px;
 }
 
 .registration-card {
-  background: var(--card-bg);
+  background: white;
   padding: 2rem;
-  border-radius: var(--hx-radius);
-  box-shadow: var(--hx-shadow-card);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
   width: 100%;
   max-width: 500px;
-  border: 1px solid var(--border-color);
 }
 
 .registration-title {
   text-align: center;
-  color: var(--text-primary);
+  color: #333;
   margin-bottom: 0.5rem;
   font-size: 1.8rem;
-  font-family: var(--hx-font-heading);
-  font-weight: 600;
 }
 
 .registration-subtitle {
   text-align: center;
-  color: var(--text-secondary);
+  color: #666;
   margin-bottom: 2rem;
-  font-size: 0.95rem;
 }
 
 .registration-form {
@@ -54,29 +50,24 @@
 .form-label {
   margin-bottom: 0.5rem;
   font-weight: 600;
-  color: var(--text-primary);
-  font-size: 14px;
+  color: #333;
 }
 
 .form-input {
   padding: 0.75rem;
-  border: 1px solid var(--border-color);
-  border-radius: var(--hx-radius-sm);
+  border: 2px solid #e1e5e9;
+  border-radius: 6px;
   font-size: 1rem;
-  transition: all 0.2s ease;
-  background-color: var(--input-bg);
-  color: var(--text-primary);
-  font-family: var(--hx-font-body);
+  transition: border-color 0.3s ease;
 }
 
 .form-input:focus {
   outline: none;
-  border-color: var(--hx-primary);
-  box-shadow: 0 0 0 3px rgba(255, 107, 44, 0.1);
+  border-color: #667eea;
 }
 
 .form-input.error {
-  border-color: var(--hx-danger);
+  border-color: #e74c3c;
 }
 
 .form-textarea {
@@ -86,34 +77,26 @@
 }
 
 .error-text {
-  color: var(--hx-danger);
+  color: #e74c3c;
   font-size: 0.875rem;
   margin-top: 0.25rem;
 }
 
 .register-btn {
-  background: var(--button-bg);
-  color: var(--button-text);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
   border: none;
   padding: 1rem;
-  border-radius: var(--hx-radius-sm);
+  border-radius: 6px;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: transform 0.2s ease;
   margin-top: 1rem;
-  font-family: var(--hx-font-body);
 }
 
 .register-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: var(--hx-shadow-md);
-}
-
-.register-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
 }
 
 .register-btn:disabled {
