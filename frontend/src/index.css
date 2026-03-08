@@ -337,6 +337,21 @@ button:hover,
   box-shadow: var(--shadow-md);
 }
 
+/* global override for header icon buttons – lock them in place */
+/* must be after the general rule above so it wins */
+.navbar .iconButton,
+/* disable movement on nav-button used in desktop header by default */
+.nav-button {
+  transform: none !important;
+  z-index: 200; /* boost further to outrank pseudo-element */
+}
+
+/* allow a slight lift on hover now that header has extra padding */
+.navbar .iconButton:hover,
+.nav-button:hover {
+  transform: translateY(-2px) !important;
+}
+
 .btn:disabled,
 button:disabled {
   opacity: 0.6;

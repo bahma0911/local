@@ -38,32 +38,26 @@ const Login = () => {
             <input className="form-input" placeholder="you@example.com" value={username} onChange={e => setUsername(e.target.value)} required />
           </div>
 
-          <div className="form-group" style={{ position: 'relative' }}>
+          <div className="form-group password-group">
             <label className="form-label">Password</label>
-            <input
-              className="form-input"
-              type={showPassword ? 'text' : 'password'}
-              placeholder="••••••••"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(p => !p)}
-              style={{
-                position: 'absolute',
-                right: '12px',
-                top: '35px',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: '0.9rem',
-                color: '#4f46e5'
-              }}
-            >
-              {showPassword ? 'Hide' : 'Show'}
-            </button>
+            <div className="password-input-container">
+              <input
+                className="form-input"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="••••••••"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(p => !p)}
+                className="password-toggle-btn"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? 'Hide' : 'Show'}
+              </button>
+            </div>
           </div>
 
           {error && <div className="error-message">{error}</div>}

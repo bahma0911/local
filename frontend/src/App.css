@@ -85,6 +85,9 @@
   backdrop-filter: blur(10px);
   box-shadow: var(--shadow-md);
   overflow-x: hidden; /* prevent header overflow from causing page horizontal scroll */
+  overflow-y: visible; /* allow nav items to extend outside without clipping */
+  padding-top: 0.75rem; /* extra space above nav buttons */
+  padding-bottom: 0.75rem; /* keep balanced vertical spacing */
 }
 
 .app-header::after {
@@ -93,6 +96,7 @@
   inset: 0;
   background: linear-gradient(120deg, rgba(255, 107, 44, 0.12), transparent);
   pointer-events: none;
+  z-index: 1; /* keep behind nav buttons */
 }
 
 .app-header-content {
@@ -164,6 +168,7 @@
   font-size: 0.95rem;
   letter-spacing: 0.02em;
   text-transform: uppercase;
+  z-index: 100; /* sit above header pseudo */
 }
 
 .nav-button.active {

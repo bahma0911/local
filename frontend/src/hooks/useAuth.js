@@ -78,8 +78,26 @@ export const useAuth = () => {
       }
 
       return { ok: true, user: data.user };
-    } catch {
-      return { ok: false, message: 'Network error' };
+    } catch (err) {
+      // Provide specific error messages based on response
+      let message = 'Login failed';
+      
+      if (err.status === 401) {
+        message = 'Invalid username or password';
+      } else if (err.status === 400) {
+        message = err.response?.message || 'Invalid login credentials';
+      } else if (err.status === 429) {
+        message = 'Too many login attempts. Please try again later.';
+      } else if (err.status >= 500) {
+        message = 'Server error. Please try again later.';
+      } else if (err.status >= 400) {
+        message = err.response?.message || 'Login failed';
+      } else {
+        // Network or other errors
+        message = 'Network error. Please check your connection and try again.';
+      }
+      
+      return { ok: false, message };
     }
   }, [dispatch, state]);
 

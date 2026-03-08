@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { API_BASE } from '../utils/api';
+import './AdminLogin.css';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -104,58 +105,64 @@ const Register = () => {
   };
 
   return (
-    <div style={{ padding: '2rem' }}>
-      <h2>Create an account</h2>
-      <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '0.5rem', maxWidth: 360 }}>
-        <label>Username<input name="username" value={form.username} onChange={handleChange} required /></label>
-        <label>Email<input name="email" type="email" value={form.email} onChange={handleChange} required /></label>
-        <label style={{ position: 'relative', display: 'block' }}>
-          Password
-          <input
-            name="password"
-            type={showPassword ? 'text' : 'password'}
-            value={form.password}
-            onChange={handleChange}
-            required
-            minLength={6}
-            style={{ paddingRight: '4rem' }}
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword(p => !p)}
-            style={{
-              position: 'absolute',
-              right: '8px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              fontSize: '0.9rem',
-              color: '#4f46e5'
-            }}
-          >
-            {showPassword ? 'Hide' : 'Show'}
-          </button>
-        </label>
-        {error && <div style={{ color: 'red' }}>{error}</div>}
-        <div>
-          <button type="submit" disabled={loading}>{loading ? 'Creating...' : 'Create account'}</button>
-          <button type="button" onClick={() => navigate('/login')} style={{ marginLeft: 8 }}>Back to login</button>
-        </div>
-      </form>
-      {awaitingVerification && (
-        <div style={{ marginTop: 12 }}>
-          <div>Verification email sent to <strong>{form.email}</strong>.</div>
-          <button
-            onClick={handleResend}
-            disabled={cooldown > 0}
-            style={{ marginTop: 8 }}
-          >
-            {cooldown > 0 ? `Resend available in ${Math.floor(cooldown/60)}:${String(cooldown%60).padStart(2,'0')}` : 'Resend verification email'}
-          </button>
-        </div>
-      )}
+    <div className="admin-login-page">
+      <div className="admin-login-container" style={{ padding: '2rem' }}>
+        <h2 style={{ textAlign: 'center', marginBottom: '1rem', color: 'var(--text-primary)', fontSize: '1.8rem', fontFamily: 'var(--hx-font-heading)' }}>Create an account</h2>
+        <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '1rem', maxWidth: 'none' }}>
+          <div className="form-group">
+            <label className="form-label">Username</label>
+            <input className="form-input" name="username" value={form.username} onChange={handleChange} required />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Email</label>
+            <input className="form-input" name="email" type="email" value={form.email} onChange={handleChange} required />
+          </div>
+          <div className="form-group password-group">
+            <label className="form-label">Password</label>
+            <div className="password-input-container">
+              <input
+                className="form-input"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                value={form.password}
+                onChange={handleChange}
+                required
+                minLength={6}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(p => !p)}
+                className="password-toggle-btn"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? 'Hide' : 'Show'}
+              </button>
+            </div>
+          </div>
+          {error && <div className="error-message">{error}</div>}
+          <div style={{ display: 'flex', gap: 8, marginTop: '1rem' }}>
+            <button type="submit" className="login-btn" disabled={loading} style={{ flex: 1 }}>
+              {loading ? 'Creating...' : 'Create account'}
+            </button>
+            <button type="button" className="secondary-btn" onClick={() => navigate('/login')} style={{ flex: 1 }}>
+              Back to login
+            </button>
+          </div>
+        </form>
+        {awaitingVerification && (
+          <div style={{ marginTop: 12, padding: '12px', background: 'var(--overlay-1)', borderRadius: 'var(--hx-radius-sm)', border: '1px solid var(--border-color)' }}>
+            <div style={{ color: 'var(--text-primary)' }}>Verification email sent to <strong>{form.email}</strong>.</div>
+            <button
+              onClick={handleResend}
+              disabled={cooldown > 0}
+              className="secondary-btn"
+              style={{ marginTop: 8, width: '100%' }}
+            >
+              {cooldown > 0 ? `Resend available in ${Math.floor(cooldown/60)}:${String(cooldown%60).padStart(2,'0')}` : 'Resend verification email'}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

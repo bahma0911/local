@@ -58,10 +58,40 @@
 
 .form-input:focus {
   outline: none;
-  border-color: #4caf50;
-  background-color: white;
-  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+  border-color: var(--hx-primary);
+  background-color: var(--input-bg);
+  box-shadow: 0 0 0 3px rgba(255, 107, 44, 0.1);
 }
+
+.password-group {
+  position: relative;
+}
+
+.password-input-container {
+  position: relative;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 12px;
+  top: 0;
+  bottom: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #4f46e5; /* match forgot-password link color */
+  padding: 0 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease;
+  white-space: nowrap;
+  min-width: 40px;
+  line-height: 1;
+}
+
+
 
 .error-message {
   color: #d63031;
