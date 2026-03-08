@@ -137,11 +137,6 @@
 
   .cart-item-quantity { color: #fff;}
 
-  /* Force navbar logo text to be white in light theme - highest priority */
-  [data-theme="light"] .navbar .logo .logoText {
-    color: white !important;
-  }
-
 
   --hx-text: #222d43;
   --hx-text-muted: #a8b3cf;
@@ -633,10 +628,4 @@ label,
     width: 100%;
     justify-content: center;
   }
-}
-
-/* CRITICAL: Force navbar logo to be white in light theme - loaded last for highest priority */
-[data-theme="light"] nav .logo span:last-child,
-[data-theme="light"] .navbar .logo span:last-child {
-  color: white !important;
 }

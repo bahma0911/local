@@ -88,15 +88,7 @@
   gap: 0.5rem;
 }
 .logoIcon { font-size: 1.25em; line-height: 1; }
-.logoText { 
-  display: inline-block; 
-  /* Color handled by global CSS for theme consistency */
-}
-
-/* Dark theme: use appropriate text color for logo */
-[data-theme="dark"] .navbar .logo .logoText {
-  color: var(--text-primary) !important;
-}
+.logoText { display: inline-block; }
 
 .menu {
   display: flex;
