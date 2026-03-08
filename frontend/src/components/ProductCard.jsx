@@ -15,6 +15,10 @@ const ProductCard = ({ product, onAddToCart, shopId, limitSingle = false }) => {
   const rating = getProductRating(product.id);
   const inWishlist = user ? isInWishlist(product.id, user.username) : false;
 
+  // Image loading state
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
+
   // local trigger to force re-render when a review for this product is created elsewhere
   const [version, setVersion] = useState(0);
   useEffect(() => {
@@ -92,11 +96,16 @@ const ProductCard = ({ product, onAddToCart, shopId, limitSingle = false }) => {
       }}
     >
       <div className="product-image-container">
+        {!imageLoaded && !imageError && <div className="product-image-skeleton"></div>}
         <img 
           src={product.image || (product.images && product.images[0])} 
           alt={product.name}
-          className="product-image"
-          onError={(e) => { e.target.src = "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=300&fit=crop"; }}
+          className={`product-image ${imageLoaded ? 'loaded' : ''}`}
+          onLoad={() => setImageLoaded(true)}
+          onError={(e) => { 
+            setImageError(true);
+            e.target.src = "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=300&fit=crop"; 
+          }}
           onClick={(e) => { e.stopPropagation(); const pid = String(product.id || product._id || ''); const shopPart = product.shopId || shopId || ''; const navId = pid.includes('-') ? pid : (shopPart ? `${shopPart}-${pid}` : pid); navigate(`/product/${navId}`); }}
         />
         {!available && (
