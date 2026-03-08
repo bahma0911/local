@@ -42,8 +42,8 @@
 }
 
 .category-button.active {
-  background: linear-gradient(120deg, var(--hx-primary), var(--hx-secondary));
+  background: var(--button-bg);
   border: none;
-  color: #050816;
-  box-shadow: 0 10px 30px rgba(255, 107, 44, 0.25);
+  color: var(--button-text);
+  box-shadow: var(--shadow-md);
 }

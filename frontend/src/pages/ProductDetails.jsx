@@ -12,6 +12,7 @@ const ProductDetails = () => {
   const [reviews, setReviews] = useState([]);
   const [reviewsMeta, setReviewsMeta] = useState({ average: 0, count: 0 });
   const [mainIndex, setMainIndex] = useState(0);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const { addToCart } = useCart();
 
   useEffect(() => {
@@ -20,6 +21,7 @@ const ProductDetails = () => {
         const data = await apiFetch(`/api/products/${id}`);
         setProduct(data);
         setMainIndex(0);
+        setImageLoaded(false); // Reset loading state for new product
       } catch (e) {
         console.error(e);
         alert('Product not found');
@@ -87,12 +89,21 @@ const ProductDetails = () => {
       <div className="pd-container">
         <div className="pd-gallery">
           <div className="pd-main">
-            <img src={mainSrc} alt={product.name} onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=600&fit=crop'; }} />
+            <img 
+              src={mainSrc} 
+              alt={product.name} 
+              className={imageLoaded ? 'loaded' : ''} 
+              onLoad={() => setImageLoaded(true)}
+              onError={(e) => { 
+                e.target.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=600&fit=crop'; 
+                setImageLoaded(true); // Still mark as loaded even on error
+              }} 
+            />
           </div>
           {images && images.length > 1 && (
             <div className="pd-thumbs">
               {images.map((src, i) => (
-                <img key={i} src={src} alt={`${product.name}-${i}`} onClick={() => setMainIndex(i)} className={i === mainIndex ? 'active' : ''} onError={(e) => { e.target.style.display = 'none'; }} />
+                <img key={i} src={src} alt={`${product.name}-${i}`} onClick={() => { setMainIndex(i); setImageLoaded(false); }} className={i === mainIndex ? 'active' : ''} onError={(e) => { e.target.style.display = 'none'; }} />
               ))}
             </div>
           )}
