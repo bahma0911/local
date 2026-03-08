@@ -146,7 +146,7 @@ const ForgotPassword = () => {
                   border: 'none',
                   cursor: 'pointer',
                   fontSize: '0.9rem',
-                  color: '#4f46e5'
+                  color: '#ffffff'
                 }}
               >
                 {showPassword ? 'Hide' : 'Show'}

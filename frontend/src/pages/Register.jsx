@@ -107,8 +107,8 @@ const Register = () => {
   return (
     <div className="admin-login-page">
       <div className="admin-login-container" style={{ padding: '2rem' }}>
-        <h2 style={{ textAlign: 'center', marginBottom: '1rem', color: 'var(--text-primary)', fontSize: '1.8rem', fontFamily: 'var(--hx-font-heading)' }}>Create an account</h2>
-        <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '1rem', maxWidth: 'none' }}>
+        <h2 className="register-title">Create an account</h2>
+        <form onSubmit={handleSubmit} className="register-form">
           <div className="form-group">
             <label className="form-label">Username</label>
             <input className="form-input" name="username" value={form.username} onChange={handleChange} required />
@@ -140,7 +140,7 @@ const Register = () => {
             </div>
           </div>
           {error && <div className="error-message">{error}</div>}
-          <div style={{ display: 'flex', gap: 8, marginTop: '1rem' }}>
+          <div className="register-actions">
             <button type="submit" className="login-btn" disabled={loading} style={{ flex: 1 }}>
               {loading ? 'Creating...' : 'Create account'}
             </button>
@@ -150,13 +150,12 @@ const Register = () => {
           </div>
         </form>
         {awaitingVerification && (
-          <div style={{ marginTop: 12, padding: '12px', background: 'var(--overlay-1)', borderRadius: 'var(--hx-radius-sm)', border: '1px solid var(--border-color)' }}>
-            <div style={{ color: 'var(--text-primary)' }}>Verification email sent to <strong>{form.email}</strong>.</div>
+          <div className="verification-message">
+            <div className="verification-text">Verification email sent to <strong>{form.email}</strong>.</div>
             <button
               onClick={handleResend}
               disabled={cooldown > 0}
-              className="secondary-btn"
-              style={{ marginTop: 8, width: '100%' }}
+              className="secondary-btn resend-btn"
             >
               {cooldown > 0 ? `Resend available in ${Math.floor(cooldown/60)}:${String(cooldown%60).padStart(2,'0')}` : 'Resend verification email'}
             </button>
