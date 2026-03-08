@@ -168,32 +168,34 @@
 
 .demo-credentials { display: none; }
 .login-btn:disabled {
-  background-color: #6c757d;
+  background-color: var(--text-muted);
   cursor: not-allowed;
   transform: none;
 }
 
 .login-btn:disabled:hover {
-  background-color: #6c757d;
+  background-color: var(--text-muted);
   transform: none;
   box-shadow: none;
 }
 
 /* general informational text in login/reset forms */
 .info-message {
-  color: #dfe1e4; /* dark/black for readability */
+  color: var(--text-secondary);
+  font-family: var(--hx-font-body);
 }
 /* ensure any child paragraphs also inherit or override other rules */
 .info-message p {
-  color: #ededed;
+  color: var(--text-secondary);
 }
 
 .forgot-info-message {
-  color:#111827;
+  color: var(--text-primary);
+  font-family: var(--hx-font-body);
 }
 
 .form-input:disabled {
-  background-color: #e9ecef;
+  background-color: var(--input-disabled-bg);
   cursor: not-allowed;
 }
 
