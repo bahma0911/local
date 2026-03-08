@@ -96,7 +96,7 @@
   .owner-tabs {
     margin-left: 0;
     padding-left: 6px;
-    overflow-x: auto;
+    overflow-x: visible;
     -webkit-overflow-scrolling: touch;
   }
   .owner-tabs button {

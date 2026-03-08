@@ -18,7 +18,7 @@
   }
 }
     flex-wrap: nowrap;
-    overflow-x: auto;
+    overflow-x: visible;
     -webkit-overflow-scrolling: touch;
   }
   .nav-button {
@@ -42,7 +42,7 @@
     min-width: 0;
     gap: 0.25rem;
     flex-wrap: nowrap;
-    overflow-x: auto;
+    overflow-x: visible;
     -webkit-overflow-scrolling: touch;
     background: none !important;
     box-shadow: none !important;
@@ -148,7 +148,7 @@
   flex-wrap: wrap;
   gap: 0.65rem;
   justify-content: flex-end;
-  overflow-x: auto; /* allow horizontal scrolling inside the header only */
+  overflow-x: visible; /* allow horizontal scrolling inside the header only */
   -webkit-overflow-scrolling: touch;
 }
 
@@ -262,7 +262,7 @@
     flex-direction: row;
     flex-wrap: nowrap;
     gap: 0.45rem;
-    overflow-x: auto;
+    overflow-x: visible;
     -webkit-overflow-scrolling: touch;
     justify-content: flex-end;
   }
