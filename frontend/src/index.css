@@ -137,6 +137,11 @@
 
   .cart-item-quantity { color: #fff;}
 
+  /* Force navbar logo text to be white in light theme */
+  .navbar .logo .logoText {
+    color: white !important;
+  }
+
 
   --hx-text: #222d43;
   --hx-text-muted: #a8b3cf;
