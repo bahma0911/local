@@ -20,6 +20,7 @@ const ShopList = ({ compact = false }) => {
   const [showAllShops, setShowAllShops] = useState(false);
   const [visibleCount, setVisibleCount] = useState(3);
   const [expandedShops, setExpandedShops] = useState([]); // shop ids that are expanded in the list
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   useEffect(() => {
     if (!compact) return;
@@ -144,87 +145,100 @@ const ShopList = ({ compact = false }) => {
     <div className="shop-list-container">
       <h1 className="shop-list-title">Shops</h1>
 
-      {/* Search Bar */}
+      {/* Unified Search Bar with Advanced Filters Toggle */}
       <div className="search-section">
-        <input
-          type="text"
-          placeholder="🔍 Search products or shops..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="search-input"
-        />
-      </div>
-
-      {/* Price Filter - editable numeric inputs for precise control */}
-      <div className="price-filter">
-        <h3 className="price-filter-title">Price Range</h3>
-        <div className="price-range-container price-inputs">
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            Min:
-            <input
-              type="number"
-              min="0"
-              value={priceRange[0]}
-              onChange={(e) => {
-                const val = e.target.value === '' ? 0 : Number(e.target.value);
-                setPriceRange([isNaN(val) ? 0 : val, priceRange[1]]);
-              }}
-              className="price-number-input"
-              aria-label="Minimum price"
-            />
-            ETB
-          </label>
-
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            Max:
-            <input
-              type="number"
-              min="0"
-              value={priceRange[1] ?? ''}
-              onChange={(e) => {
-                // empty input means unlimited
-                if (e.target.value === '') {
-                  setPriceRange([priceRange[0], null]);
-                  return;
-                }
-                const val = Number(e.target.value);
-                setPriceRange([priceRange[0], isNaN(val) ? priceRange[0] : val]);
-              }}
-              className="price-number-input"
-              aria-label="Maximum price"
-              placeholder="Unlimited"
-            />
-            ETB
-          </label>
-
-          {/* slider removed to avoid native controls in some browsers (Firefox) */}
-
+        <div className="search-bar-container">
+          <input
+            type="text"
+            placeholder="🔍 Search products or shops..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="search-input"
+          />
           <button
-            className="clear-filters-btn"
-            onClick={() => setPriceRange([0, null])}
-            style={{ marginLeft: '0.6rem' }}
+            className="advanced-filters-toggle"
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            aria-expanded={showAdvancedFilters}
           >
-            Reset
+            ⚙️ Advanced
+            <span className={`toggle-icon ${showAdvancedFilters ? 'expanded' : ''}`}>▼</span>
           </button>
         </div>
-      </div>
 
-      {/* Category Filter (compact/home only) */}
-      {compact && (
-        <CategoryFilter
-          categories={categories}
-          selectedCategory={selectedCategory}
-          onSelect={(cat) => {
-            setSelectedCategory(cat);
-            setSearchTerm("");
-            if (selectedShop && selectedShop.id) {
-              const shopFull = shops.find(s => s.id === selectedShop.id) || selectedShop;
-              const matchingProducts = (shopFull.products || []).filter(p => cat === 'All' ? true : ((p.category || '') === cat));
-              setSelectedShop(cat === 'All' ? shopFull : { ...shopFull, products: matchingProducts });
-            }
-          }}
-        />
-      )}
+        {/* Collapsible Advanced Filters */}
+        {showAdvancedFilters && (
+          <div className="advanced-filters">
+            {/* Price Filter - editable numeric inputs for precise control */}
+            <div className="price-filter">
+              <h3 className="price-filter-title">Price Range</h3>
+              <div className="price-range-container price-inputs">
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  Min:
+                  <input
+                    type="number"
+                    min="0"
+                    value={priceRange[0]}
+                    onChange={(e) => {
+                      const val = e.target.value === '' ? 0 : Number(e.target.value);
+                      setPriceRange([isNaN(val) ? 0 : val, priceRange[1]]);
+                    }}
+                    className="price-number-input"
+                    aria-label="Minimum price"
+                  />
+                  ETB
+                </label>
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  Max:
+                  <input
+                    type="number"
+                    min="0"
+                    value={priceRange[1] ?? ''}
+                    onChange={(e) => {
+                      // empty input means unlimited
+                      if (e.target.value === '') {
+                        setPriceRange([priceRange[0], null]);
+                        return;
+                      }
+                      const val = Number(e.target.value);
+                      setPriceRange([priceRange[0], isNaN(val) ? priceRange[0] : val]);
+                    }}
+                    className="price-number-input"
+                    aria-label="Maximum price"
+                    placeholder="Unlimited"
+                  />
+                  ETB
+                </label>
+
+                <button
+                  className="clear-filters-btn"
+                  onClick={() => setPriceRange([0, null])}
+                  style={{ marginLeft: '0.6rem' }}
+                >
+                  Reset
+                </button>
+              </div>
+            </div>
+
+            {/* Category Filter (compact/home only) */}
+            {compact && (
+              <CategoryFilter
+                categories={categories}
+                selectedCategory={selectedCategory}
+                onSelect={(cat) => {
+                  setSelectedCategory(cat);
+                  setSearchTerm("");
+                  if (selectedShop && selectedShop.id) {
+                    const shopFull = shops.find(s => s.id === selectedShop.id) || selectedShop;
+                    const matchingProducts = (shopFull.products || []).filter(p => cat === 'All' ? true : ((p.category || '') === cat));
+                    setSelectedShop(cat === 'All' ? shopFull : { ...shopFull, products: matchingProducts });
+                  }
+                }}
+              />
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Search Results OR Normal Shop List */}
       {searchTerm || (priceRange[1] !== null && priceRange[1] < 1000000000) || (selectedCategory !== 'All') ? (

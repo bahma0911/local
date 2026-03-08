@@ -1,17 +1,16 @@
 .category-filter {
-  margin-bottom: 25px;
-  padding: 20px;
-  background: rgba(12, 19, 34, 0.9);
+  margin-bottom: 0;
+  padding: 16px;
+  background: var(--overlay-1);
   border-radius: var(--hx-radius);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: var(--hx-shadow-soft);
+  border: 1px solid var(--border-color);
 }
 
 .category-filter-title {
   margin: 0 0 15px 0;
   font-size: 15px;
   font-weight: 600;
-  color: var(--hx-text-muted);
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -24,10 +23,10 @@
 
 .category-button {
   padding: 9px 18px;
-  border-radius: var(--hx-radius-pill);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: transparent;
-  color: var(--hx-text-muted);
+  border-radius: var(--hx-radius);
+  border: 1px solid var(--border-color);
+  background: var(--card-bg);
+  color: var(--text-secondary);
   cursor: pointer;
   font-size: 13px;
   font-weight: 600;
@@ -38,12 +37,13 @@
 
 .category-button:hover {
   transform: translateY(-2px);
-  border-color: rgba(255, 255, 255, 0.3);
+  border-color: var(--border-light);
+  background: var(--overlay-2);
 }
 
 .category-button.active {
-  background: linear-gradient(120deg, var(--hx-primary), var(--hx-secondary));
+  background: var(--gradient-primary);
   border: none;
-  color: #050816;
-  box-shadow: 0 10px 30px rgba(255, 107, 44, 0.25);
+  color: var(--text-on-primary);
+  box-shadow: var(--shadow-sm);
 }
