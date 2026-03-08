@@ -36,8 +36,16 @@
   --bg-secondary: rgba(6,8,18,0.95);
   --text-primary: var(--hx-text);
   --text-secondary: var(--hx-text-muted);
+  --text-muted: #94a3b8;
   --card-bg: var(--hx-card);
+  --input-bg: rgba(255,255,255,0.05);
   --border-color: rgba(255,255,255,0.08);
+  --primary-color: var(--hx-primary);
+  --error-color: #ef4444;
+  --error-bg: rgba(239,68,68,0.1);
+  --gradient-primary: linear-gradient(120deg, var(--hx-primary), var(--hx-secondary));
+  --text-on-primary: #0b0f1d;
+  --input-disabled-bg: rgba(255,255,255,0.03);
   --button-bg: linear-gradient(120deg, var(--hx-primary), var(--hx-secondary));
   --button-text: #0b0f1d;
   --overlay-1: rgba(255,255,255,0.04);
@@ -144,7 +152,7 @@
   --text-muted: #64748b;
 
   /* 🧊 SURFACES (subtle cool contrast) */
-  --card-bg: #283449;
+  --card-bg: #ffffff;
   --input-bg: #ffffff;
   --navbar-bg: linear-gradient(
       120deg,
@@ -176,9 +184,13 @@
   --button-text: #292a40;
   --button-hover: #e85b20;
 
-  /* 🌫 OVERLAYS */
-  --overlay-1: rgba(15,23,42,0.03);
-  --overlay-2: rgba(15,23,42,0.05);
+  /* Additional theme variables for forms */
+  --primary-color: #ff6b2c;
+  --error-color: #dc2626;
+  --error-bg: #fef2f2;
+  --gradient-primary: linear-gradient(120deg, #ff6b2c, #ff8c42);
+  --text-on-primary: #292a40;
+  --input-disabled-bg: #f8f9fa;
 }
 
 
