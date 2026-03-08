@@ -1,24 +1,24 @@
 
 .product-card {
-  border: 1px solid var(--border-color);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--hx-radius);
   padding: 18px;
   width: 100%;
-  background: var(--card-bg);
+  background: rgba(12, 19, 34, 0.92);
   transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
   position: relative;
   box-shadow: var(--hx-shadow-soft);
 }
 
 .product-card:hover {
-  box-shadow: var(--hx-shadow-card);
+  box-shadow: 0 20px 50px rgba(8, 12, 30, 0.65);
   transform: translateY(-4px);
-  border-color: var(--border-strong);
+  border-color: rgba(255, 255, 255, 0.14);
 }
 
 .product-card.in-stock {
   background: linear-gradient(175deg, rgba(16, 24, 44, 0.95), rgba(11, 17, 32, 0.88));
-  border-color: var(--border-light);
+  border-color: rgba(255, 255, 255, 0.06);
 }
 
 .product-card.out-of-stock {
@@ -33,7 +33,7 @@
   left: 50%;
   transform: translate(-50%, -50%);
   background: rgba(248, 113, 113, 0.9);
-  color: var(--button-text);
+  color: #050816;
   padding: 6px 12px;
   border-radius: var(--hx-radius-pill);
   font-size: 11px;
@@ -71,15 +71,15 @@
 .product-action-btn {
   flex: 1;
   padding: 10px 14px;
-  border: 1px solid var(--border-color);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--hx-radius-pill);
   cursor: pointer;
   font-size: 13px;
   letter-spacing: 0.04em;
   font-weight: 600;
   transition: transform 0.2s ease, background 0.2s ease;
-  background: var(--overlay-1);
-  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--hx-text);
 }
 
 .product-action-btn:disabled {
@@ -91,7 +91,7 @@
 .product-action-btn.pickup {
   background: rgba(34, 211, 238, 0.18);
   border-color: rgba(34, 211, 238, 0.4);
-  color: var(--hx-accent);
+  color: #22d3ee;
 }
 
 .product-action-btn.pickup:hover:not(:disabled) {
@@ -165,7 +165,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: var(--overlay-dark);
+  background-color: rgba(0, 0, 0, 0.7);
   color: white;
   display: flex;
   align-items: center;
@@ -177,17 +177,13 @@
 .product-card.out-of-stock .product-image {
   filter: grayscale(50%);
 }
-
-.product-card.out-of-stock .product-image {
-  filter: grayscale(50%);
-}
 /* src/components/ProductCard.css - Updated */
 .wishlist-btn {
   position: absolute;
   top: 10px;
   right: 10px;
-  background: var(--navbar-bg);
-  border: 1px solid var(--border-color);
+  background: rgba(5, 8, 22, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 50%;
   width: 40px;
   height: 40px;
@@ -196,15 +192,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: var(--shadow-md);
-  transition: all 0.2s ease;
-  color: var(--text-primary);
-}
-
-.wishlist-btn:hover {
-  background: var(--card-bg);
-  border-color: var(--border-strong);
-  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+  color: var(--hx-text);
 }
 
 .wishlist-btn.in-wishlist {

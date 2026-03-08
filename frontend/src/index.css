@@ -36,23 +36,12 @@
   --bg-secondary: rgba(6,8,18,0.95);
   --text-primary: var(--hx-text);
   --text-secondary: var(--hx-text-muted);
-  --text-muted: var(--hx-text-muted);
   --card-bg: var(--hx-card);
-  --input-bg: var(--hx-card);
   --border-color: rgba(255,255,255,0.08);
-  --border-light: rgba(255,255,255,0.06);
-  --border-strong: var(--hx-border-strong);
   --button-bg: linear-gradient(120deg, var(--hx-primary), var(--hx-secondary));
   --button-text: #0b0f1d;
-  --button-hover: linear-gradient(120deg, var(--hx-primary-hover), var(--hx-secondary));
   --overlay-1: rgba(255,255,255,0.04);
   --overlay-2: rgba(255,255,255,0.08);
-  --overlay-dark: rgba(0,0,0,0.7);
-  --focus-ring: rgba(255, 107, 44, 0.1);
-  --error-bg: rgba(248, 113, 113, 0.1);
-  --shadow-sm: 0 1px 4px rgba(15,23,42,0.04);
-  --shadow-md: 0 6px 18px rgba(15,23,42,0.08);
-  --shadow-lg: 0 10px 30px rgba(15,23,42,0.12);
 }
 
 /* Light theme overrides */
