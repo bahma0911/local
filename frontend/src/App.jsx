@@ -115,12 +115,12 @@ const AppContent = () => {
       <div className="app-header">
         <div className="app-header-content">
           <h1 
-            className="app-logo" 
-            onClick={handleLogoClick}
-            style={{ cursor: 'pointer' }}
-          >
-            🛍️ Negadras Market
-          </h1>
+  className="app-logo" 
+  onClick={handleLogoClick}
+  style={{ cursor: 'pointer', color: "#fff" }}
+>
+  🛍️ Negadras Market
+</h1>
           
           <div className="app-nav-buttons">
             {/* Cart Button */}
