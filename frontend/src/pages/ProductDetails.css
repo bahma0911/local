@@ -10,7 +10,6 @@
 .pd-thumbs img{width:64px;height:64px;object-fit:cover;border-radius:6px;cursor:pointer;opacity:0.85;transition:opacity 0.2s ease}
 .pd-thumbs img.active{outline:2px solid var(--hx-primary);opacity:1}
 .pd-info{flex:1 1 320px;min-width:280px}
-@media(max-width:768px){.pd-container{flex-direction:column;gap:12px}.pd-gallery{order:0;max-width:none}.pd-info{order:1}.pd-main{height:240px}}
 
 .pd-reviews{margin-top:24px;display:flex;flex-direction:column;gap:12px}
 .pd-reviews h3{margin:0 0 8px 0;color:var(--text-primary)}
