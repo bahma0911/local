@@ -26,6 +26,7 @@ import OrderModel from './models/Order.js';
 import CartModel from './models/Cart.js';
 import NotificationModel from './models/Notification.js';
 import ProductModel from './models/Product.js';
+import { applyCommission } from './utils/pricing.js';
 import mongoose from 'mongoose';
 
 dotenv.config();
@@ -1997,21 +1998,21 @@ app.post('/api/orders', ordersLimiter, validate(schemas.orderCreate), async (req
   if (!authUser) return res.status(401).json({ message: 'Authentication required' });
   // require verified email
   if (typeof authUser.emailVerified !== 'undefined' && !authUser.emailVerified) return res.status(403).json({ message: 'Please verify your email before placing orders' });
-  const { shopId, items: rawItems, total, paymentMethod } = payload;
+  const { shopId, items: rawItems, total, paymentMethod, deliveryMethod } = payload;
   // authUser already resolved above (used to decide captcha requirement)
   // Development debug logging to help diagnose order creation issues
   if (process.env.NODE_ENV !== 'production') {
     try {
-      console.log('POST /api/orders - requestId=', req.id, 'user=', authUser ? { username: authUser.username, role: authUser.role } : null, 'shopId=', shopId, 'itemsCount=', Array.isArray(rawItems) ? rawItems.length : 0, 'total=', total);
+      console.log('POST /api/orders - requestId=', req.id, 'user=', authUser ? { username: authUser.username, role: authUser.role } : null, 'shopId=', shopId, 'itemsCount=', Array.isArray(rawItems) ? rawItems.length : 0, 'total=', total, 'deliveryMethod=', deliveryMethod);
     } catch (e) { /* ignore logging errors */ }
   }
-  const items = (Array.isArray(rawItems) ? rawItems : []).map(i => ({
+  const baseItems = (Array.isArray(rawItems) ? rawItems : []).map(i => ({
     productId: i.productId ?? i.id ?? i.product ?? null,
     name: i.name ?? i.title ?? '',
     qty: Number(i.quantity ?? i.qty ?? 1),
     price: Number(i.price ?? i.unitPrice ?? 0)
   }));
-  if (!shopId || !Array.isArray(items) || items.length === 0 || typeof total === 'undefined') {
+  if (!shopId || !Array.isArray(baseItems) || baseItems.length === 0 || typeof total === 'undefined') {
     return res.status(400).json({ message: 'Missing required order fields: shopId, items, total' });
   }
 
@@ -2027,12 +2028,30 @@ app.post('/api/orders', ordersLimiter, validate(schemas.orderCreate), async (req
     city: rawCustomer.city || ''
   };
   const createdBy = authUser && authUser.username ? authUser.username : (customerPayload.username || null);
+
+  // calculate commission-adjusted prices and rebuild items list
+  const { applyCommission } = await import('./utils/pricing.js');
+  let computedTotal = 0;
+  const items = baseItems.map(it => {
+    const { basePrice, commission, finalPrice } = applyCommission(it.price);
+    const finalQuantity = Number(it.qty || it.quantity || 1);
+    computedTotal += finalPrice * finalQuantity;
+    return {
+      ...it,
+      basePrice,
+      commission,
+      finalPrice,
+      price: finalPrice // override price field to charged amount
+    };
+  });
+
   // customer's username/email is used for indexing but we keep full payload structure
   const orderBase = {
     id: orderId,
     shopId: Number(shopId),
     items,
-    total,
+    total: computedTotal,
+    deliveryMethod: deliveryMethod === 'pickup' ? 'pickup' : 'delivery',
     paymentMethod: paymentMethod || 'cash_on_delivery',
     status: 'pending',
     createdAt: new Date().toISOString(),

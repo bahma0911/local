@@ -341,11 +341,13 @@ const Checkout = () => {
       for (const [shopId, shopData] of Object.entries(buildItemsByShop())) {
         const shopItems = shopData.items || [];
         // ensure we always send all five keys (use empty string instead of undefined)
+        const opt = (deliveryOptions && deliveryOptions[shopId]) || 'Pickup';
         const payload = {
           shopId: Number(shopId),
           items: shopItems.map(i => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity })),
           total: shopItems.reduce((s, it) => s + (it.price * it.quantity), 0),
           paymentMethod: 'cash_on_delivery',
+          deliveryMethod: opt === 'Delivery' ? 'delivery' : 'pickup',
           customer: {
             username: user?.username || '',
             fullName: customerInfo.fullName || '',

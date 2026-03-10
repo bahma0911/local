@@ -28,6 +28,7 @@ export const schemas = {
     }).refine(obj => (obj.productId !== undefined || obj.id !== undefined) && (obj.quantity !== undefined || obj.qty !== undefined), { message: 'Each item must include id/productId and quantity/qty' })),
     total: z.number(),
     paymentMethod: z.string().optional(),
+    deliveryMethod: z.enum(['pickup','delivery']).optional()
   }),
   shopCreate: z.object({
     name: z.string().min(1),

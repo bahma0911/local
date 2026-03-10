@@ -5,7 +5,11 @@ const OrderItemSchema = new mongoose.Schema({
   productId: { type: mongoose.Schema.Types.Mixed },
   name: { type: String },
   qty: { type: Number, default: 1 },
-  price: { type: Number, default: 0 }
+  price: { type: Number, default: 0 },
+  // commission-related breakdown – base price submitted by shop owner, calculated commission, and final price charged to customer
+  basePrice: { type: Number, default: 0 },
+  commission: { type: Number, default: 0 },
+  finalPrice: { type: Number, default: 0 }
 }, { _id: false });
 
 const StatusHistorySchema = new mongoose.Schema({
@@ -20,6 +24,7 @@ const OrderSchema = new mongoose.Schema({
   customerId: { type: String, required: true, index: true },
   items: { type: [OrderItemSchema], default: [] },
   total: { type: Number, default: 0 },
+  deliveryMethod: { type: String, enum: ['pickup', 'delivery'], default: 'delivery' },
   paymentStatus: { type: String, enum: ['pending', 'paid'], default: 'pending' },
   paymentMethod: { type: String, default: 'cash_on_delivery' },
   status: { type: String, enum: ['pending', 'confirmed', 'picked_up', 'delivered', 'cancelled'], default: 'pending' },
