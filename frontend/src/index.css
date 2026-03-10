@@ -38,6 +38,7 @@
   --text-secondary: var(--hx-text-muted);
   --text-muted: #94a3b8;
   --card-bg: var(--hx-card);
+  --auth-bg: var(--card-bg); /* background used specifically for auth boxes */
   --input-bg: rgba(255,255,255,0.05);
   --border-color: rgba(255,255,255,0.08);
   --primary-color: var(--hx-primary);
@@ -152,7 +153,8 @@
   --text-muted: #64748b;
 
   /* 🧊 SURFACES (subtle cool contrast) */
-  --card-bg: #173049;
+  --card-bg: #fafbfc; /* light surface for cards */
+  --auth-bg: #ffffff; /* auth boxes slightly brighter */
   --input-bg: #ffffff;
   --navbar-bg: linear-gradient(
       120deg,

@@ -15,7 +15,7 @@
   margin: 0 auto;
   border-radius: var(--hx-radius);
   box-shadow: var(--hx-shadow-card);
-  background: var(--card-bg);
+  background: var(--auth-bg);
   border: 1px solid var(--border-color);
 }
 
