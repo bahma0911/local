@@ -26,7 +26,7 @@ import OrderModel from './models/Order.js';
 import CartModel from './models/Cart.js';
 import NotificationModel from './models/Notification.js';
 import ProductModel from './models/Product.js';
-import { applyCommission } from './utils/pricing.js';
+// import { applyCommission } from './utils/pricing.js';
 import mongoose from 'mongoose';
 
 dotenv.config();
@@ -2030,18 +2030,20 @@ app.post('/api/orders', ordersLimiter, validate(schemas.orderCreate), async (req
   const createdBy = authUser && authUser.username ? authUser.username : (customerPayload.username || null);
 
   // calculate commission-adjusted prices and rebuild items list
-  const { applyCommission } = await import('./utils/pricing.js');
+  // const { applyCommission } = await import('./utils/pricing.js');
   let computedTotal = 0;
   const items = baseItems.map(it => {
-    const { basePrice, commission, finalPrice } = applyCommission(it.price);
+    // const { basePrice, commission, finalPrice } = applyCommission(it.price);
     const finalQuantity = Number(it.qty || it.quantity || 1);
-    computedTotal += finalPrice * finalQuantity;
+    // computedTotal += finalPrice * finalQuantity;
+    computedTotal += it.price * finalQuantity;
     return {
       ...it,
-      basePrice,
-      commission,
-      finalPrice,
-      price: finalPrice // override price field to charged amount
+      // basePrice,
+      // commission,
+      // finalPrice,
+      // price: finalPrice // override price field to charged amount
+      price: it.price
     };
   });
 

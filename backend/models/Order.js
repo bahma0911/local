@@ -5,11 +5,11 @@ const OrderItemSchema = new mongoose.Schema({
   productId: { type: mongoose.Schema.Types.Mixed },
   name: { type: String },
   qty: { type: Number, default: 1 },
-  price: { type: Number, default: 0 },
-  // commission-related breakdown – base price submitted by shop owner, calculated commission, and final price charged to customer
-  basePrice: { type: Number, default: 0 },
-  commission: { type: Number, default: 0 },
-  finalPrice: { type: Number, default: 0 }
+  price: { type: Number, default: 0 }
+  // commission-related breakdown removed for now
+  // basePrice: { type: Number, default: 0 },
+  // commission: { type: Number, default: 0 },
+  // finalPrice: { type: Number, default: 0 }
 }, { _id: false });
 
 const StatusHistorySchema = new mongoose.Schema({
