@@ -16,6 +16,7 @@ export function applyCommission(basePrice) {
   const raw = priceNum + commission;
   // round up to nearest 5
   const finalPrice = Math.ceil(raw / 5) * 5;
+  console.log(`applyCommission: base=${priceNum}, rate=${COMMISSION_RATE}, commission=${commission}, raw=${raw}, final=${finalPrice}`);
   return { basePrice: priceNum, commission, finalPrice };
 }
 
