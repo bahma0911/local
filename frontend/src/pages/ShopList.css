@@ -100,10 +100,9 @@
 .price-filter {
   margin-bottom: 20px;
   padding: 16px;
-  background: rgba(30, 41, 59, 0.6);
+  background: var(--overlay-1);
   border-radius: var(--hx-radius);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(6px);
+  border: 1px solid var(--border-color);
 }
 
 .price-filter:last-child {
@@ -380,87 +379,3 @@
 .rpc-btn { flex:1; padding:6px 8px; border-radius:6px; border:none; cursor:pointer; font-size:0.85rem; }
 .rpc-btn.pickup { background:#f1f5f9; }
 .rpc-btn.delivery { background:linear-gradient(90deg,#667eea,#764ba2); color:#fff; }
-
-/* Light theme specific styling for advanced filters */
-[data-theme="light"] .advanced-filters-toggle {
-  background: #5f71a3;
-  border: 1px solid #e2e8f0;
-  color: #374151;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-[data-theme="light"] .advanced-filters-toggle:hover {
-  background: #f8fafc;
-  border-color: #cbd5e1;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-}
-
-[data-theme="light"] .advanced-filters {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06);
-}
-
-[data-theme="light"] .price-filter {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-}
-
-[data-theme="light"] .category-filter {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-}
-
-[data-theme="light"] .category-button {
-  background: #ffffff;
-  border: 1px solid #d1d5db;
-  color: #6b7280;
-}
-
-[data-theme="light"] .category-button:hover {
-  background: #f9fafb;
-  border-color: #9ca3af;
-  color: #374151;
-}
-
-[data-theme="light"] .category-button.active {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-  color: #ffffff;
-  border: none;
-  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
-}
-
-/* Dark theme specific styling for advanced filters - more prominent glass effect */
-.advanced-filters-toggle {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 12px 16px;
-  background: rgba(15, 23, 42, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: var(--hx-radius);
-  color: var(--text-primary);
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  white-space: nowrap;
-  backdrop-filter: blur(8px);
-}
-
-.advanced-filters-toggle:hover {
-  background: rgba(30, 41, 59, 0.9);
-  border-color: rgba(255, 255, 255, 0.2);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-.advanced-filters {
-  margin-top: 16px;
-  padding: 20px;
-  background: rgba(15, 23, 42, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: var(--hx-radius);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-  animation: slideDown 0.3s ease-out;
-  backdrop-filter: blur(12px);
-}

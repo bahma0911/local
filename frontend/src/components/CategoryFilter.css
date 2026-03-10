@@ -1,10 +1,9 @@
 .category-filter {
   margin-bottom: 0;
   padding: 16px;
-  background: rgba(30, 41, 59, 0.6);
+  background: var(--overlay-1);
   border-radius: var(--hx-radius);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(6px);
+  border: 1px solid var(--border-color);
 }
 
 .category-filter-title {
@@ -47,29 +46,4 @@
   border: none;
   color: var(--text-on-primary);
   box-shadow: var(--shadow-sm);
-}
-
-/* Light theme specific styling for category filter */
-[data-theme="light"] .category-filter {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-}
-
-[data-theme="light"] .category-button {
-  background: #ffffff;
-  border: 1px solid #d1d5db;
-  color: #6b7280;
-}
-
-[data-theme="light"] .category-button:hover {
-  background: #f9fafb;
-  border-color: #9ca3af;
-  color: #374151;
-}
-
-[data-theme="light"] .category-button.active {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-  color: #ffffff;
-  border: none;
-  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
 }
