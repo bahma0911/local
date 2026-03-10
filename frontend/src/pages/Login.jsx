@@ -66,6 +66,9 @@ const Login = () => {
             <button type="submit" className="login-btn" disabled={loading}>{loading ? 'Signing in...' : 'Sign in'}</button>
             <button type="button" className="secondary-btn" onClick={() => navigate('/register')}>Create account</button>
           </div>
+          <div style={{ marginTop: '0.75rem', textAlign: 'center', fontSize: '0.9rem', color: '#666' }}>
+            Interested in becoming a shop owner? Contact us for registration.
+          </div>
           <div style={{ marginTop: '0.75rem', textAlign: 'right' }}>
             <button className="forgot-link" type="button" onClick={() => navigate('/forgot-password')}>Forgot password?</button>
           </div>

@@ -123,59 +123,16 @@ const AppContent = () => {
 </h1>
           
           <div className="app-nav-buttons">
-            {/* Cart Button */}
-            <button
-              onClick={() => navigateTo('/cart')}
-              className="nav-button"
-              style={{ position: 'relative' }}
-            >
-              <span className="btn-icon">🛒</span>
-              <span className="btn-text">Cart</span>
-              <CartBadge />
-            </button>
-
-            {/* Wishlist Button */}
-            <button
-              onClick={() => navigateTo('/wishlist')}
-              className="nav-button nav-button-wishlist"
-            >
-              <span className="btn-icon">❤️</span>
-              <span className="btn-text">Wishlist</span>
-            </button>
-
-            {/* Orders Button */}
-            <button
-              onClick={() => navigateTo('/orders')}
-              className="nav-button"
-            >
-              <span className="btn-icon">📦</span>
-              <span className="btn-text">Orders</span>
-            </button>
-
-            {/* Track Button */}
-            <button
-              onClick={() => navigateTo('/tracking')}
-              className="nav-button nav-button-track"
-            >
-              <span className="btn-icon">🚚</span>
-              <span className="btn-text">Track</span>
-            </button>
-
-
-            {/* Admin link: visible to admin users and shop owners (shop owners use same dashboard for 'My Shop') */}
-            {(isAdmin || isShopOwner) && (
-              <button
-                onClick={() => navigateTo('/admin/dashboard')}
-                className="nav-button"
-              >
-                <span className="btn-icon">🏬</span>
-                <span className="btn-text">Admin</span>
-              </button>
-            )}
-
-            {/* Auth buttons: show Login when anonymous, or username + Logout when authenticated */}
-            {user ? (
+            {/* Different navigation for shop owners */}
+            {isShopOwner ? (
               <>
+                <button
+                  onClick={() => navigateTo('/admin/dashboard')}
+                  className="nav-button"
+                >
+                  <span className="btn-icon">🏬</span>
+                  <span className="btn-text">My Shop</span>
+                </button>
                 <button
                   onClick={() => navigateTo('/profile')}
                   className="nav-button"
@@ -185,13 +142,77 @@ const AppContent = () => {
                 </button>
               </>
             ) : (
-              <button
-                onClick={() => navigate('/login')}
-                className="nav-button nav-button-login"
-              >
-                <span className="btn-icon">🔒</span>
-                <span className="btn-text">Login</span>
-              </button>
+              <>
+                {/* Cart Button */}
+                <button
+                  onClick={() => navigateTo('/cart')}
+                  className="nav-button"
+                  style={{ position: 'relative' }}
+                >
+                  <span className="btn-icon">🛒</span>
+                  <span className="btn-text">Cart</span>
+                  <CartBadge />
+                </button>
+
+                {/* Wishlist Button */}
+                <button
+                  onClick={() => navigateTo('/wishlist')}
+                  className="nav-button nav-button-wishlist"
+                >
+                  <span className="btn-icon">❤️</span>
+                  <span className="btn-text">Wishlist</span>
+                </button>
+
+                {/* Orders Button */}
+                <button
+                  onClick={() => navigateTo('/orders')}
+                  className="nav-button"
+                >
+                  <span className="btn-icon">📦</span>
+                  <span className="btn-text">Orders</span>
+                </button>
+
+                {/* Track Button */}
+                <button
+                  onClick={() => navigateTo('/tracking')}
+                  className="nav-button nav-button-track"
+                >
+                  <span className="btn-icon">🚚</span>
+                  <span className="btn-text">Track</span>
+                </button>
+
+                {/* Admin link: visible to admin users */}
+                {isAdmin && (
+                  <button
+                    onClick={() => navigateTo('/admin/dashboard')}
+                    className="nav-button"
+                  >
+                    <span className="btn-icon">🏬</span>
+                    <span className="btn-text">Admin</span>
+                  </button>
+                )}
+
+                {/* Auth buttons: show Login when anonymous, or username + Logout when authenticated */}
+                {user ? (
+                  <>
+                    <button
+                      onClick={() => navigateTo('/profile')}
+                      className="nav-button"
+                    >
+                      <span className="btn-icon">👤</span>
+                      <span className="btn-text">{user.username || user.email || 'Profile'}</span>
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => navigate('/login')}
+                    className="nav-button nav-button-login"
+                  >
+                    <span className="btn-icon">🔒</span>
+                    <span className="btn-text">Login</span>
+                  </button>
+                )}
+              </>
             )}
           </div>
         </div>
