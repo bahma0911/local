@@ -153,7 +153,7 @@
   --text-muted: #64748b;
 
   /* 🧊 SURFACES (subtle cool contrast) */
-  --card-bg: #fafbfc; /* light surface for cards */
+  --card-bg: #294968; /* light surface for cards */
   --auth-bg: #ffffff; /* auth boxes slightly brighter */
   --input-bg: #ffffff;
   --navbar-bg: linear-gradient(
@@ -598,7 +598,7 @@ label,
 
 @media (max-width: 768px) {
   body {
-    line-height: 1.6;
+    line-height: 0.6;
   }
 
   .section {
