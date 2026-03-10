@@ -598,7 +598,7 @@ label,
 
 @media (max-width: 768px) {
   body {
-    line-height: 0.6;
+    line-height: 1.6;
   }
 
   .section {
