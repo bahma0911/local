@@ -190,6 +190,20 @@
   background-color: #fff3f3;
 }
 
+/* shop order cards in shop-owner dashboard */
+.shop-order-card {
+  background: #fff;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  transition: box-shadow 0.2s ease;
+}
+.shop-order-card:hover {
+  box-shadow: 0 6px 14px rgba(0,0,0,0.15);
+}
+
 .product-item:hover {
   background-color: #f0f0f0;
   border-color: #ddd;

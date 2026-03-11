@@ -671,7 +671,7 @@ const AdminDashboard = () => {
         <h1 className="admin-title">{isAdmin ? "Admin Dashboard" : "My Shop Dashboard"}</h1>
         <div>
           {isAdmin && <button onClick={fetchShops}>Refresh Shops</button>}
-          {isShopOwner && currentShop && <button className="refresh-orders-btn" onClick={() => fetchShopOrders(currentShop.id)}>Refresh Orders</button>}
+          {isShopOwner && currentShop && <button className="refresh-orders-btn" onClick={() => window.location.reload()}>Refresh Orders</button>}
           <button className="admin-logout-btn" onClick={handleLogout}>Logout</button>
         </div>
       </div>
@@ -755,7 +755,7 @@ const AdminDashboard = () => {
                     const items = getOrderItems(o).map((it, i) => normalizeItem(it, i));
                     const itemsTotal = items.reduce((s, it) => s + (it.price * it.quantity), 0);
                     return (
-                      <li key={ordId} style={{ padding: '8px 0', borderBottom: '1px dashed rgba(255,255,255,0.04)' }}>
+                      <li key={ordId} className="shop-order-card">
                         <div><strong>Order:</strong> {ordId}</div>
                         <div><strong>Buyer:</strong> {getBuyerName(o)}</div>
                         <div><strong>Status:</strong> {o.status || 'new'}</div>
