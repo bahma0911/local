@@ -3,6 +3,7 @@
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   max-width: 1200px;
   margin: 0 auto;
+  overflow-x: hidden; /* prevent whole page shifting on narrow viewports */
 }
 
 .admin-header {
@@ -92,15 +93,24 @@
   margin-left: -12px;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
+  /* remove negative offset on narrower viewports so cards don't shift left */
   .owner-tabs {
     margin-left: 0;
     padding-left: 6px;
-    overflow-x: visible;
+    overflow-x: auto;            /* allow scrolling only for the tab row */
+    white-space: nowrap;         /* keep buttons in one line */
     -webkit-overflow-scrolling: touch;
   }
   .owner-tabs button {
     flex: 0 0 auto;
+  }
+}
+
+@media (max-width: 600px) {
+  .owner-tabs button {
+    /* extra small: buttons take full width for tappability */
+    flex: 1 0 auto;
   }
 }
 
@@ -190,8 +200,19 @@
   background-color: #fff3f3;
 }
 
+/* shop-orders container - keep full width on small screens */
+.shop-orders {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 /* shop order cards in shop-owner dashboard */
 .shop-order-card {
+  width: 100%;
+  max-width: 100%;
   background: #fff;
   border: 2px solid #e0e0e0;
   border-radius: 10px;
@@ -202,6 +223,12 @@
 }
 .shop-order-card:hover {
   box-shadow: 0 6px 14px rgba(0,0,0,0.15);
+}
+
+/* ensure order cards never exceed their container on small screens */
+.shop-order-card {
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 /* theme-specific card backgrounds/text for shop orders */
