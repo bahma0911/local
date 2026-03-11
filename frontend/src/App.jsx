@@ -21,6 +21,7 @@ import Register from "./pages/Register";
 import VerifyEmail from "./pages/VerifyEmail";
 import ForgotPassword from "./pages/ForgotPassword";
 import { useAuth } from "./hooks/useAuth";
+import { useOrders } from "./hooks/useOrders";
 import "./App.css";
 
 const RouteTester = () => {
@@ -36,6 +37,7 @@ const RouteTester = () => {
 
 const AppContent = () => {
   const { isAdmin, isShopOwner, user, logout } = useAuth();
+  const { pendingCount } = useOrders();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -129,9 +131,15 @@ const AppContent = () => {
                 <button
                   onClick={() => navigateTo('/admin/dashboard')}
                   className="nav-button"
+                  style={{ position: 'relative' }}
                 >
                   <span className="btn-icon">🏬</span>
                   <span className="btn-text">My Shop</span>
+                  {pendingCount > 0 && (
+                    <span className="cart-badge" style={{ background: '#dc3545', color: 'white' }}>
+                      {pendingCount}
+                    </span>
+                  )}
                 </button>
                 <button
                   onClick={() => navigateTo('/profile')}

@@ -82,6 +82,34 @@ const AdminOrders = () => {
     }
   };
 
+  const downloadReport = async (format) => {
+    try {
+      const response = await fetch(`${API_BASE}/api/admin/orders/export?format=${format}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to download report');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `all-orders.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to download report', err);
+      alert('Failed to download report');
+    }
+  };
+
   if (!isAdmin) {
     return (
       <div style={{ padding: '2rem' }}>
@@ -110,6 +138,11 @@ const AdminOrders = () => {
         <label>From: <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} /></label>
         <label>To: <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} /></label>
         <button onClick={() => { setPage(1); fetchOrders(); }}>Filter</button>
+      </div>
+
+      <div className="order-actions">
+        <button className="download-btn" onClick={() => downloadReport('csv')}>Download CSV</button>
+        <button className="download-btn" onClick={() => downloadReport('json')}>Download JSON</button>
       </div>
 
       {loading ? (

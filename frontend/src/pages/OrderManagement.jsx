@@ -67,6 +67,34 @@ const OrderManagement = () => {
     })();
   };
 
+  const downloadReport = async (format) => {
+    try {
+      const response = await fetch(`${API_BASE}/api/shops/${assignedShop}/orders/export?format=${format}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to download report');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `shop-${assignedShop}-orders.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to download report', err);
+      alert('Failed to download report');
+    }
+  };
+
   const getStatusBadge = (order) => {
     const deliveryStatus = trackingOrders?.[order.id]?.status;
     const status = deliveryStatus || order.status;
@@ -125,6 +153,10 @@ const OrderManagement = () => {
     <div className="order-management">
       <div className="order-header">
         <h1>Order Management</h1>
+        <div className="order-actions">
+          <button onClick={() => downloadReport('csv')} className="btn-download">Download CSV</button>
+          <button onClick={() => downloadReport('json')} className="btn-download">Download JSON</button>
+        </div>
         <div className="order-filters">
           <button 
             className={filter === 'all' ? 'active' : ''}
@@ -175,6 +207,9 @@ const OrderManagement = () => {
                   <p className="customer-info">
                     {order.customer.fullName} • {order.customer.phone}
                   </p>
+                  <div className="delivery-method-badge">
+                    Request: {getFulfillmentMethod(order) === 'pickup' ? 'Pickup' : 'Delivery'}
+                  </div>
                 </div>
                 <div className="order-status">
                   {getStatusBadge(order)}

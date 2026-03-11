@@ -7,3 +7,26 @@
 .ao-pagination { margin-top:1rem; display:flex; gap:1rem; align-items:center; }
 .ao-loading, .ao-error { padding:1rem; }
 .ao-summary { margin-bottom:0.5rem; }
+
+.order-actions {
+  margin-bottom: 1rem;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.download-btn {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+}
+
+.download-btn:hover {
+  background-color: #218838;
+}
+
+

@@ -67,5 +67,40 @@ async function sendPasswordResetEmail(toEmail, token) {
   }
 }
 
+async function sendOrderNotificationEmail(toEmail, orderDetails) {
+  if (!resend) {
+    const err = new Error('RESEND_API_KEY not configured');
+    err.code = 'NO_RESEND_KEY';
+    throw err;
+  }
+
+  const { orderId, customerName, total, items } = orderDetails;
+  const itemsList = items.map(item => `${item.name} × ${item.quantity} - ${item.price * item.quantity} ETB`).join('<br>');
+  
+  const html = `
+    <p>Hello,</p>
+    <p>You have received a new order!</p>
+    <p><strong>Order ID:</strong> ${orderId}</p>
+    <p><strong>Customer:</strong> ${customerName}</p>
+    <p><strong>Items:</strong><br>${itemsList}</p>
+    <p><strong>Total:</strong> ${total} ETB</p>
+    <p>Please log in to your dashboard to manage this order.</p>
+  `;
+
+  try {
+    const resp = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: toEmail,
+      subject: 'New Order Received - Negadras Market',
+      html
+    });
+    return { ok: true, id: resp.id, resp };
+  } catch (e) {
+    const out = new Error('Failed to send order notification email');
+    out.cause = e;
+    throw out;
+  }
+}
+
 export default sendVerificationEmail;
-export { sendVerificationEmail, sendPasswordResetEmail };
+export { sendVerificationEmail, sendPasswordResetEmail, sendOrderNotificationEmail };

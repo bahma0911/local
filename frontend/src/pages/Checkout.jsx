@@ -31,6 +31,8 @@ const Checkout = () => {
     city: user?.city || '',
   });
 
+  const [deliveryMethod, setDeliveryMethod] = useState('pickup');
+
   // persist the form so reloads (e.g. after adjustments) don't wipe it
   useEffect(() => {
     try {
@@ -105,7 +107,15 @@ const Checkout = () => {
   const validateCustomerInfo = () => {
     // simple trim-check to ensure user didn't submit only whitespace
     const f = (s) => typeof s === 'string' && s.trim() !== '';
-    if (!f(customerInfo.fullName) || !f(customerInfo.email) || !f(customerInfo.phone) || !f(customerInfo.address) || !f(customerInfo.city)) {
+    const requiredFields = ['fullName', 'email', 'phone'];
+    
+    if (deliveryMethod === 'delivery') {
+      requiredFields.push('address', 'city');
+    }
+    
+    const missingFields = requiredFields.filter(field => !f(customerInfo[field]));
+    
+    if (missingFields.length > 0) {
       alert('Please fill in all required fields');
       return false;
     }
@@ -347,7 +357,7 @@ const Checkout = () => {
           items: shopItems.map(i => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity })),
           total: shopItems.reduce((s, it) => s + (it.price * it.quantity), 0),
           paymentMethod: 'cash_on_delivery',
-          deliveryMethod: opt === 'Delivery' ? 'delivery' : 'pickup',
+          deliveryMethod: deliveryMethod,
           customer: {
             username: user?.username || '',
             fullName: customerInfo.fullName || '',
@@ -655,6 +665,32 @@ const Checkout = () => {
           <h1 className="checkout-title">Checkout</h1>
           <form onSubmit={handleSubmitOrder}>
             <div className="form-section">
+              <h3 className="form-section-title">Delivery Method</h3>
+              <div className="delivery-method-selector">
+                <label className="delivery-option">
+                  <input
+                    type="radio"
+                    name="deliveryMethod"
+                    value="pickup"
+                    checked={deliveryMethod === 'pickup'}
+                    onChange={(e) => setDeliveryMethod(e.target.value)}
+                  />
+                  <span>Pickup at Shop</span>
+                </label>
+                <label className="delivery-option">
+                  <input
+                    type="radio"
+                    name="deliveryMethod"
+                    value="delivery"
+                    checked={deliveryMethod === 'delivery'}
+                    onChange={(e) => setDeliveryMethod(e.target.value)}
+                  />
+                  <span>Home Delivery</span>
+                </label>
+              </div>
+            </div>
+
+            <div className="form-section">
               <h3 className="form-section-title">Customer Information</h3>
               
               <div className="form-grid">
@@ -696,26 +732,28 @@ const Checkout = () => {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Delivery Address *</label>
+                  <label className="form-label">Delivery Address {deliveryMethod === 'delivery' ? '*' : ''}</label>
                   <textarea
                     name="address"
                     value={customerInfo.address}
                     onChange={handleInputChange}
-                    required
+                    required={deliveryMethod === 'delivery'}
                     rows="3"
                     className="form-input form-textarea"
+                    disabled={deliveryMethod === 'pickup'}
                   />
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">City *</label>
+                  <label className="form-label">City {deliveryMethod === 'delivery' ? '*' : ''}</label>
                   <input
                     type="text"
                     name="city"
                     value={customerInfo.city}
                     onChange={handleInputChange}
-                    required
+                    required={deliveryMethod === 'delivery'}
                     className="form-input"
+                    disabled={deliveryMethod === 'pickup'}
                   />
                 </div>
               </div>

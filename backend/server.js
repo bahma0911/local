@@ -1990,6 +1990,126 @@ app.get('/api/shops/:id/orders', requireAuth, async (req, res) => {
   }
 });
 
+// Helper function to convert orders to CSV
+const ordersToCSV = (orders) => {
+  if (!orders || !orders.length) return 'No orders found\n';
+  
+  const headers = [
+    'Order ID',
+    'Shop ID', 
+    'Status',
+    'Total (ETB)',
+    'Customer Name',
+    'Customer Email',
+    'Customer Phone',
+    'Items Count',
+    'Items Details',
+    'Created At'
+  ];
+  
+  const rows = orders.map(order => {
+    const items = order.items || [];
+    const itemsDetails = items.map(item => `${item.name} × ${item.quantity} (${item.price} ETB each)`).join('; ');
+    return [
+      order.id || order._id || '',
+      order.shopId || '',
+      order.status || '',
+      order.total || 0,
+      (order.customer && order.customer.fullName) || (order.customer && order.customer.username) || '',
+      (order.customer && order.customer.email) || '',
+      (order.customer && order.customer.phone) || '',
+      items.length,
+      itemsDetails,
+      order.createdAt || ''
+    ];
+  });
+  
+  const csvContent = [headers, ...rows]
+    .map(row => row.map(field => `"${String(field || '').replace(/"/g, '""')}"`).join(','))
+    .join('\n');
+    
+  return csvContent;
+};
+
+// GET /api/shops/:id/orders/export - export shop orders as CSV or JSON
+app.get('/api/shops/:id/orders/export', requireAuth, async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const format = req.query.format || 'csv';
+  
+  try {
+    // Verify requester is shop owner for this shop or admin
+    const shop = readShops().find(s => s.id === id);
+    let shopDoc = shop || null;
+    if (!shopDoc && mongoose.connection && mongoose.connection.readyState === 1) {
+      shopDoc = await ShopModel.findOne({ legacyId: id }).lean().exec();
+    }
+    if (!shopDoc) return res.status(404).json({ message: 'Shop not found' });
+
+    const requester = req.user;
+    const isAdminUser = requester && requester.role === 'admin';
+    const isShopOwnerUser = requester && requester.role === 'shop_owner' && (Number(requester.shopId) === Number(id) || (shopDoc.owner && shopDoc.owner.username === requester.username));
+    if (!isAdminUser && !isShopOwnerUser) return res.status(403).json({ message: 'Forbidden' });
+
+    // Get orders from Mongo if available, otherwise legacy JSON
+    let orders = [];
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      orders = await OrderModel.find({ shopId: id }).lean().exec();
+    } else {
+      orders = (shopDoc.orders || []).map(o => ({ ...o })) || [];
+    }
+
+    if (format === 'json') {
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename="shop-${id}-orders.json"`);
+      return res.json(orders);
+    } else {
+      // CSV format
+      const csv = ordersToCSV(orders);
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="shop-${id}-orders.csv"`);
+      return res.send(csv);
+    }
+  } catch (err) {
+    console.error('GET /api/shops/:id/orders/export error', err && err.message ? err.message : err);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// GET /api/admin/orders/export - export all orders as CSV or JSON (admin only)
+app.get('/api/admin/orders/export', requireAuth, async (req, res) => {
+  const format = req.query.format || 'csv';
+  
+  try {
+    // Verify requester is admin
+    const requester = req.user;
+    if (!requester || requester.role !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+
+    // Get all orders from Mongo if available
+    let orders = [];
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      orders = await OrderModel.find({}).lean().exec();
+    } else {
+      // Fallback to legacy orders.json
+      orders = readOrders();
+    }
+
+    if (format === 'json') {
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename="all-orders.json"`);
+      return res.json(orders);
+    } else {
+      // CSV format
+      const csv = ordersToCSV(orders);
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="all-orders.csv"`);
+      return res.send(csv);
+    }
+  } catch (err) {
+    console.error('GET /api/admin/orders/export error', err && err.message ? err.message : err);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // POST /api/orders - create an order as an authenticated customer
 app.post('/api/orders', ordersLimiter, validate(schemas.orderCreate), async (req, res) => {
   const payload = req.body || {};

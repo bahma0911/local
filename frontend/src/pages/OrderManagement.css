@@ -12,6 +12,26 @@
   margin-bottom: 30px;
 }
 
+.order-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-download {
+  padding: 10px 20px;
+  border: 1px solid #28a745;
+  background: #28a745;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.btn-download:hover {
+  background: #218838;
+  border-color: #218838;
+}
+
 .order-filters {
   display: flex;
   gap: 10px;
@@ -29,6 +49,17 @@
   background: #007bff;
   color: white;
   border-color: #007bff;
+}
+
+.delivery-method-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  background-color: #e9ecef;
+  color: #495057;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  margin-top: 8px;
 }
 
 .orders-list {

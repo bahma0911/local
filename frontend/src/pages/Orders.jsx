@@ -299,8 +299,13 @@ const Orders = () => {
             <div className="customer-info">
               {(() => {
                 const cust = getCustomerObject(selectedOrder);
-                // always show the primary name/email/phone/address/city fields first
-                const orderedKeys = ['fullName','name','username','email','phone','address','city','location'];
+                const deliveryMethod = selectedOrder.deliveryMethod || selectedOrder.fulfillmentMethod || 'delivery';
+                // always show the primary name/email/phone fields
+                const baseKeys = ['fullName','name','username','email','phone'];
+                // add address/city only for delivery orders
+                const orderedKeys = deliveryMethod === 'delivery' 
+                  ? [...baseKeys, 'address','city','location']
+                  : baseKeys;
                 const shown = new Set();
                 const elems = [];
                 orderedKeys.forEach(key => {

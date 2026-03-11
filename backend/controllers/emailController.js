@@ -1,4 +1,4 @@
-import { sendVerificationEmail as sendVerification } from '../services/email.service.js';
+import { sendVerificationEmail as sendVerification, sendOrderNotificationEmail } from '../services/email.service.js';
 
 export const sendVerificationEmail = async (userOrEmail, token) => {
   const to = (userOrEmail && userOrEmail.email) ? userOrEmail.email : String(userOrEmail);
@@ -7,10 +7,16 @@ export const sendVerificationEmail = async (userOrEmail, token) => {
 
 export const sendOrderEmails = async (order, shopOwnerEmail, shopOwnerName) => {
   try {
-    // For now reuse the resend-based service to notify owners/customers with a simple message.
-    // Consider adding a generic `sendEmail` helper in services/email.service.js for richer emails.
-    const ownerMsg = `New order ${order.id} received`;
-    await sendVerification(shopOwnerEmail, ownerMsg);
+    // Send notification email to shop owner
+    const orderDetails = {
+      orderId: order.id,
+      customerName: order.customer?.fullName || order.customer?.username || 'Customer',
+      total: order.total,
+      items: order.items || []
+    };
+    await sendOrderNotificationEmail(shopOwnerEmail, orderDetails);
+    
+    // Send confirmation to customer
     const customerEmail = order.customer && (order.customer.email || order.customer.emailAddress || order.customer.username) || null;
     if (customerEmail) await sendVerification(customerEmail, `Order ${order.id} confirmation`);
     return true;
