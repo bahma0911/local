@@ -204,6 +204,25 @@
   box-shadow: 0 6px 14px rgba(0,0,0,0.15);
 }
 
+/* theme-specific card backgrounds/text for shop orders */
+[data-theme="light"] .shop-order-card {
+  background: #ffffff;
+  border-color: #cccccc;
+  color: #333333;
+}
+[data-theme="light"] .shop-order-card * {
+  color: inherit;
+}
+
+[data-theme="dark"] .shop-order-card {
+  background: #1e1e2f;
+  border-color: #444466;
+  color: #e0e0e0;
+}
+[data-theme="dark"] .shop-order-card * {
+  color: inherit;
+}
+
 .product-item:hover {
   background-color: #f0f0f0;
   border-color: #ddd;
