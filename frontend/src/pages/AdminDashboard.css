@@ -216,7 +216,7 @@
   background: #fff;
   border: 2px solid #e0e0e0;
   border-radius: 10px;
-  padding: 16px 20px;
+  padding: 16px 20px 16px 40px; /* extra left padding to shift contents right */
   margin-bottom: 16px;
   box-shadow: 0 4px 10px rgba(0,0,0,0.1);
   transition: box-shadow 0.2s ease;
@@ -229,6 +229,13 @@
 .shop-order-card {
   max-width: 100%;
   box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  /* increase left padding a bit on narrower screens */
+  .shop-order-card {
+    padding-left: 48px;
+  }
 }
 
 /* theme-specific card backgrounds/text for shop orders */
