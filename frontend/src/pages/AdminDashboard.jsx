@@ -771,7 +771,7 @@ const AdminDashboard = () => {
                                 </li>
                               ))}
                             </ul>
-                            <div style={{ fontSize: 13, color: '#eee' }}><strong>Items Total:</strong> {itemsTotal} ETB</div>
+                            <div style={{ fontSize: 13, color: '#aaa' }}><strong>Items Total:</strong> {itemsTotal} ETB</div>
                           </div>
                         )}
 
@@ -806,7 +806,7 @@ const AdminDashboard = () => {
                                   <button onClick={() => updateOrderStatus(((currentShop && currentShop.id) || assignedShop), ordId, 'cancelled')}>Cancel</button>
                                 )}
                                 {(o.status === 'cancelled') && (
-                                  <button onClick={() => deleteOrderAPI(((currentShop && currentShop.id) || assignedShop), ordId)} style={{ background: '#a33', color: '#fff' }}>Delete</button>
+                                  <button onClick={() => deleteOrderAPI(((currentShop && currentShop.id) || assignedShop), ordId)} style={{ background: '#a33', color: 'rgba(170, 51, 51, 0.76)' }}>Delete</button>
                                 )}
                               </>
                             );
