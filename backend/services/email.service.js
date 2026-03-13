@@ -91,7 +91,7 @@ async function sendOrderNotificationEmail(toEmail, orderDetails) {
     const resp = await resend.emails.send({
       from: FROM_EMAIL,
       to: toEmail,
-      subject: 'New Order Received - Negadras Market',
+      subject: 'New Order Received - ሰኞ ገበያ',
       html
     });
     return { ok: true, id: resp.id, resp };

@@ -121,7 +121,7 @@ const AppContent = () => {
   onClick={handleLogoClick}
   style={{ cursor: 'pointer', color: "#fff" }}
 >
-  🛍️ Negadras Market
+  🛍️ ሰኞ ገበያ
 </h1>
           
           <div className="app-nav-buttons">

@@ -664,31 +664,7 @@ const Checkout = () => {
         <div className="customer-form">
           <h1 className="checkout-title">Checkout</h1>
           <form onSubmit={handleSubmitOrder}>
-            <div className="form-section">
-              <h3 className="form-section-title">Delivery Method</h3>
-              <div className="delivery-method-selector">
-                <label className="delivery-option">
-                  <input
-                    type="radio"
-                    name="deliveryMethod"
-                    value="pickup"
-                    checked={deliveryMethod === 'pickup'}
-                    onChange={(e) => setDeliveryMethod(e.target.value)}
-                  />
-                  <span>Pickup at Shop</span>
-                </label>
-                <label className="delivery-option">
-                  <input
-                    type="radio"
-                    name="deliveryMethod"
-                    value="delivery"
-                    checked={deliveryMethod === 'delivery'}
-                    onChange={(e) => setDeliveryMethod(e.target.value)}
-                  />
-                  <span>Home Delivery</span>
-                </label>
-              </div>
-            </div>
+            {/* Delivery method selection removed; now determined by cart deliveryOptions */}
 
             <div className="form-section">
               <h3 className="form-section-title">Customer Information</h3>
