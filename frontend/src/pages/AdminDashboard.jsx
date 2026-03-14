@@ -775,7 +775,7 @@ const AdminDashboard = () => {
                           </div>
                         )}
 
-                        <div style={{ marginTop: 6, display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <div style={{ marginTop: 6, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                           {(() => {
                             const st = (o.status || 'new');
                             const isInitial = (st === 'new' || st === 'pending');

@@ -220,6 +220,9 @@
   margin-bottom: 16px;
   box-shadow: 0 4px 10px rgba(0,0,0,0.1);
   transition: box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
 }
 .shop-order-card:hover {
   box-shadow: 0 6px 14px rgba(0,0,0,0.15);
@@ -232,9 +235,16 @@
 }
 
 @media (max-width: 768px) {
-  /* increase left padding a bit on narrower screens */
+  /* reduce left padding on smaller screens and adjust content */
   .shop-order-card {
-    padding-left: 48px;
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+  /* make buttons responsive on small screens */
+  .shop-order-card button {
+    min-width: 0;
+    flex: 1 1 auto;
+    font-size: 14px;
   }
 }
 
