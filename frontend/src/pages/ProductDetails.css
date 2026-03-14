@@ -11,6 +11,10 @@
 .pd-thumbs img.active{outline:2px solid var(--hx-primary);opacity:1}
 .pd-info{flex:1 1 320px;min-width:280px}
 
+.pd-cart-message{background:var(--card-bg);border:1px solid var(--border-color);padding:12px;border-radius:8px;box-shadow:var(--shadow-sm);color:var(--text-primary)}
+.pd-cart-message strong{color:var(--hx-primary)}
+.pd-cart-message a{color:var(--hx-primary);text-decoration:underline}
+
 .pd-reviews{margin-top:24px;display:flex;flex-direction:column;gap:12px}
 .pd-reviews h3{margin:0 0 8px 0;color:var(--text-primary)}
 .pd-review-item{background:var(--card-bg);border:1px solid var(--border-color);padding:12px;border-radius:8px;box-shadow:var(--shadow-sm)}

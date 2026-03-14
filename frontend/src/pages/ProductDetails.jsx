@@ -133,8 +133,8 @@ const ProductDetails = () => {
 
           <div style={{ marginTop: 16, display: 'flex', gap: 8 }}>
             {productInCart ? (
-              <div style={{ padding: '10px 16px', backgroundColor: '#e0f7fa', border: '1px solid #00bcd4', borderRadius: 4 }}>
-                <strong>Already in Cart!</strong> Go to <a href="/cart" style={{ color: '#00796b' }}>cart</a> to adjust quantity.
+              <div className="pd-cart-message">
+                <strong>Already in Cart!</strong> Go to <a href="/cart">cart</a> to adjust quantity.
               </div>
             ) : (
               <>
