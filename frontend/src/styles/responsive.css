@@ -35,7 +35,7 @@
 
   /* Order items and admin tables -> stacked cards */
   .shop-orders ul, .orders-container .orders-list, table { width: 100%; }
-  .shop-orders li, .orders-container li, table tr { display: block; border-bottom: 1px solid rgba(0,0,0,0.06); padding: 10px 0; }
+  .shop-orders li, .orders-container li, table tr { display: block; border-bottom: 1px solid rgba(0,0,0,0.06); padding: 10px; }
   table thead { display: none; }
   table tbody tr td { display: flex; justify-content: space-between; padding: 6px 0; }
 
