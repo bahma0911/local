@@ -128,8 +128,14 @@ const ShopList = ({ compact = false }) => {
   const randomProducts = React.useMemo(() => {
     const pool = shops.flatMap(shop => (shop.products || []).map(p => ({ ...p, shopName: shop.name, shopId: shop.id })));
     if (!pool || pool.length === 0) return [];
+    // Filter for in-stock products
+    const inStockPool = pool.filter(p => {
+      const available = typeof p.inStock !== 'undefined' ? p.inStock : ((typeof p.stock !== 'undefined') ? p.stock > 0 : true);
+      return available;
+    });
+    if (inStockPool.length === 0) return [];
     // simple shuffle and take first 6
-    const shuffled = pool.slice().sort(() => Math.random() - 0.5);
+    const shuffled = inStockPool.slice().sort(() => Math.random() - 0.5);
     return shuffled.slice(0, 6);
   }, [shops]);
 

@@ -13,7 +13,7 @@ const ProductDetails = () => {
   const [reviewsMeta, setReviewsMeta] = useState({ average: 0, count: 0 });
   const [mainIndex, setMainIndex] = useState(0);
   const [imageLoaded, setImageLoaded] = useState(false);
-  const { addToCart } = useCart();
+  const { addToCart, cartItems } = useCart();
 
   useEffect(() => {
     const load = async () => {
@@ -75,6 +75,9 @@ const ProductDetails = () => {
     ? product.price.amount
     : (typeof product.price === 'number' ? product.price : 0);
 
+  // Check if product is already in cart
+  const productInCart = cartItems.some(item => String(item.id) === String(product.id || product._id));
+
   const renderStars = (count) => {
     const stars = [];
     for (let i = 1; i <= 5; i++) {
@@ -129,8 +132,16 @@ const ProductDetails = () => {
           </div>
 
           <div style={{ marginTop: 16, display: 'flex', gap: 8 }}>
-            <button disabled={!available} onClick={() => addToCart(product, 'Pickup', product.shopId || product.shopLegacyId || null)} style={{ padding: '10px 16px' }}>Add to Cart</button>
-            <button disabled={!available} onClick={() => addToCart(product, 'Delivery', product.shopId || product.shopLegacyId || null)} style={{ padding: '10px 16px' }}>Buy with Delivery</button>
+            {productInCart ? (
+              <div style={{ padding: '10px 16px', backgroundColor: '#e0f7fa', border: '1px solid #00bcd4', borderRadius: 4 }}>
+                <strong>Already in Cart!</strong> Go to <a href="/cart" style={{ color: '#00796b' }}>cart</a> to adjust quantity.
+              </div>
+            ) : (
+              <>
+                <button disabled={!available} onClick={() => addToCart(product, 'Pickup', product.shopId || product.shopLegacyId || null)} style={{ padding: '10px 16px' }}>Add to Cart</button>
+                <button disabled={!available} onClick={() => addToCart(product, 'Delivery', product.shopId || product.shopLegacyId || null)} style={{ padding: '10px 16px' }}>Buy with Delivery</button>
+              </>
+            )}
           </div>
           
           <div style={{ marginTop: 24 }} className="pd-reviews">
