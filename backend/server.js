@@ -1490,8 +1490,30 @@ app.post('/api/admin/invite-shop', requireAuth, validate(schemas.shopInvite), as
       return res.status(400).json({ message: 'Email is required' });
     }
 
+    const normalizedEmail = String(email).trim().toLowerCase();
+
+    // Prevent inviting an email that already belongs to a shop owner
+    try {
+      // Check JSON-backed shops
+      const currentShops = readShops();
+      const existingShop = (currentShops || []).find(s => s.owner && String(s.owner.username).toLowerCase() === normalizedEmail);
+      if (existingShop) {
+        return res.status(400).json({ message: 'A shop owner account already exists for this email' });
+      }
+
+      // Check Mongo-backed shops if available
+      if (mongoose.connection && mongoose.connection.readyState === 1) {
+        const mongoShop = await ShopModel.findOne({ 'owner.username': normalizedEmail }).lean().exec();
+        if (mongoShop) {
+          return res.status(400).json({ message: 'A shop owner account already exists for this email' });
+        }
+      }
+    } catch (e) {
+      console.warn('invite-shop: error checking existing shop owners', e && e.message ? e.message : e);
+    }
+
     // Check if invitation already exists and is not used
-    const existingInvitation = await ShopInvitationModel.findOne({ email: email.trim(), used: false });
+    const existingInvitation = await ShopInvitationModel.findOne({ email: normalizedEmail, used: false });
     if (existingInvitation && existingInvitation.expiresAt > new Date()) {
       return res.status(400).json({ message: 'An active invitation already exists for this email' });
     }
@@ -1502,7 +1524,7 @@ app.post('/api/admin/invite-shop', requireAuth, validate(schemas.shopInvite), as
 
     // Save invitation
     await ShopInvitationModel.findOneAndUpdate(
-      { email: email.trim() },
+      { email: normalizedEmail },
       { token, expiresAt, used: false },
       { upsert: true, new: true }
     );
@@ -1561,10 +1583,24 @@ app.post('/api/shop/register', validate(schemas.shopRegister), async (req, res) 
       return res.status(400).json({ message: 'Invitation token has expired' });
     }
 
-    // Check if shop with this email already exists
-    const existingShop = await ShopModel.findOne({ 'owner.username': invitation.email });
-    if (existingShop) {
-      return res.status(400).json({ message: 'A shop account already exists for this email' });
+    const normalizedEmail = String(invitation.email || '').trim().toLowerCase();
+
+    // Check if shop with this email already exists in JSON or Mongo
+    try {
+      const currentShops = readShops();
+      const existingShop = (currentShops || []).find(s => s.owner && String(s.owner.username).toLowerCase() === normalizedEmail);
+      if (existingShop) {
+        return res.status(400).json({ message: 'A shop account already exists for this email' });
+      }
+
+      if (mongoose.connection && mongoose.connection.readyState === 1) {
+        const mongoShop = await ShopModel.findOne({ 'owner.username': normalizedEmail }).lean().exec();
+        if (mongoShop) {
+          return res.status(400).json({ message: 'A shop account already exists for this email' });
+        }
+      }
+    } catch (e) {
+      console.warn('shop/register: error checking existing shops', e && e.message ? e.message : e);
     }
 
     // Hash password
@@ -1580,7 +1616,7 @@ app.post('/api/shop/register', validate(schemas.shopRegister), async (req, res) 
       phone: phone || '',
       deliveryFee: 50, // default
       owner: {
-        username: invitation.email,
+        username: normalizedEmail,
         password: hashedPassword
       }
     };
@@ -1608,6 +1644,35 @@ app.post('/api/shop/register', validate(schemas.shopRegister), async (req, res) 
     shops.push(newShop);
     if (!writeShops(shops)) {
       return res.status(500).json({ message: 'Failed to persist shop' });
+    }
+
+    // Create or update a Mongo user record for shop owner (if Mongo connected)
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      try {
+        const UserModel = (await import('./models/User.js')).default;
+        // If a user already exists with this email but is a customer, block to avoid role confusion
+        const existing = await UserModel.findOne({ email: normalizedEmail }).exec();
+        if (existing && existing.role && existing.role !== 'shop_owner') {
+          return res.status(400).json({ message: 'An account with this email already exists as a customer' });
+        }
+
+        // Upsert the shop owner user
+        await UserModel.findOneAndUpdate(
+          { email: normalizedEmail },
+          {
+            username: normalizedEmail,
+            email: normalizedEmail,
+            role: 'shop_owner',
+            password: hashedPassword,
+            name: ownerName,
+            phone: phone || '',
+            address
+          },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        ).exec();
+      } catch (e) {
+        console.warn('shop/register: failed to create/update shop owner user', e && e.message ? e.message : e);
+      }
     }
 
     // Mark invitation as used
