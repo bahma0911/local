@@ -1621,7 +1621,67 @@ app.get('/api/shop/verify-invitation', async (req, res) => {
   }
 });
 
-// POST /api/shop/register - complete shop registration
+// Temporary debug endpoint for shop owner login issues
+app.get('/api/debug/shop-owner/:email', async (req, res) => {
+  try {
+    const email = String(req.params.email || '').trim().toLowerCase();
+    if (!email) return res.status(400).json({ message: 'Email required' });
+
+    const result = { email, found: false, sources: {} };
+
+    // Check JSON shops
+    const shops = readShops();
+    const jsonShop = shops.find(s => String(s.owner?.username || '').trim().toLowerCase() === email);
+    if (jsonShop) {
+      result.sources.json = {
+        id: jsonShop.id,
+        name: jsonShop.name,
+        owner: { username: jsonShop.owner?.username, hasPassword: !!jsonShop.owner?.password }
+      };
+      result.found = true;
+    }
+
+    // Check Mongo Shop
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      try {
+        const mongoShop = await ShopModel.findOne({ 'owner.username': email }).lean().exec();
+        if (mongoShop) {
+          result.sources.mongoShop = {
+            legacyId: mongoShop.legacyId,
+            name: mongoShop.name,
+            owner: { username: mongoShop.owner?.username, hasPassword: !!mongoShop.owner?.password }
+          };
+          result.found = true;
+        }
+      } catch (e) {
+        result.sources.mongoShopError = e.message;
+      }
+
+      // Check Mongo User
+      try {
+        const UserModel = (await import('./models/User.js')).default;
+        const mongoUser = await UserModel.findOne({ email, role: 'shop_owner' }).lean().exec();
+        if (mongoUser) {
+          result.sources.mongoUser = {
+            username: mongoUser.username,
+            email: mongoUser.email,
+            role: mongoUser.role,
+            hasPassword: !!mongoUser.password,
+            name: mongoUser.name
+          };
+          result.found = true;
+        }
+      } catch (e) {
+        result.sources.mongoUserError = e.message;
+      }
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('Debug shop owner error:', error);
+    res.status(500).json({ message: 'Debug error' });
+  }
+});
 app.post('/api/shop/register', validate(schemas.shopRegister), async (req, res) => {
   try {
     const { token, ownerName, shopName, phone, address, password } = req.body;
