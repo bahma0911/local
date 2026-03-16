@@ -472,30 +472,43 @@ app.post('/api/login', loginRegisterLimiter, validate(schemas.authLogin), async 
   const { username, password } = req.body || {};
   if (!username || !password) return res.status(400).json({ message: 'username and password required' });
 
+  const normalizedUsername = String(username).trim().toLowerCase();
+
   // 1) Admin via env
-  if (process.env.ADMIN_USER && process.env.ADMIN_PASS && username === process.env.ADMIN_USER) {
-    const match = username === process.env.ADMIN_USER && password === process.env.ADMIN_PASS;
+  if (process.env.ADMIN_USER && process.env.ADMIN_PASS && normalizedUsername === String(process.env.ADMIN_USER).trim().toLowerCase()) {
+    const match = normalizedUsername === String(process.env.ADMIN_USER).trim().toLowerCase() && password === process.env.ADMIN_PASS;
     if (match) {
-      const token = signToken({ username, role: 'admin' });
+      const token = signToken({ username: normalizedUsername, role: 'admin' });
       setAuthCookie(res, token);
-      info('Login success', { requestId: req.id, username, role: 'admin' });
-      return res.json({ user: { username, role: 'admin' } });
+      info('Login success', { requestId: req.id, username: normalizedUsername, role: 'admin' });
+      return res.json({ user: { username: normalizedUsername, role: 'admin' } });
     }
-    warn('Login failed: admin credential mismatch', { requestId: req.id, username });
+    warn('Login failed: admin credential mismatch', { requestId: req.id, username: normalizedUsername });
   }
 
-  // 2) Shop owners (match against shops data)
+  // 2) Shop owners (match against shops data or Mongo)
+  let shop = null;
   const shops = readShops();
-  const shop = shops.find(s => s.owner?.username === username);
+  shop = shops.find(s => String(s.owner?.username || '').trim().toLowerCase() === normalizedUsername);
+
+  // If no shop in JSON, attempt Mongo lookup (for deployments where JSON is not persisted)
+  if (!shop && mongoose.connection && mongoose.connection.readyState === 1) {
+    try {
+      shop = await ShopModel.findOne({ 'owner.username': normalizedUsername }).lean().exec();
+    } catch (e) {
+      console.warn('Login: Mongo shop lookup failed', e && e.message ? e.message : e);
+    }
+  }
+
   if (shop && shop.owner && shop.owner.password) {
     const ok = await bcrypt.compare(String(password), String(shop.owner.password));
     if (ok) {
-      const token = signToken({ username, role: 'shop_owner', shopId: shop.id });
+      const token = signToken({ username: normalizedUsername, role: 'shop_owner', shopId: shop.id || shop.legacyId });
       setAuthCookie(res, token);
-      info('Login success', { requestId: req.id, username, role: 'shop_owner', shopId: shop.id });
-      return res.json({ user: { username, role: 'shop_owner', shopId: shop.id, shopName: shop.name } });
+      info('Login success', { requestId: req.id, username: normalizedUsername, role: 'shop_owner', shopId: shop.id || shop.legacyId });
+      return res.json({ user: { username: normalizedUsername, role: 'shop_owner', shopId: shop.id || shop.legacyId, shopName: shop.name } });
     }
-    warn('Login failed: shop owner credential mismatch', { requestId: req.id, username });
+    warn('Login failed: shop owner credential mismatch', { requestId: req.id, username: normalizedUsername });
   }
 
 
@@ -1588,7 +1601,7 @@ app.post('/api/shop/register', validate(schemas.shopRegister), async (req, res) 
     // Check if shop with this email already exists in JSON or Mongo
     try {
       const currentShops = readShops();
-      const existingShop = (currentShops || []).find(s => s.owner && String(s.owner.username).toLowerCase() === normalizedEmail);
+      const existingShop = (currentShops || []).find(s => String(s.owner?.username || '').trim().toLowerCase() === normalizedEmail);
       if (existingShop) {
         return res.status(400).json({ message: 'A shop account already exists for this email' });
       }
