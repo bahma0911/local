@@ -512,7 +512,47 @@ app.post('/api/login', loginRegisterLimiter, validate(schemas.authLogin), async 
   }
 
 
-  // 3) Customers (MongoDB)
+  // 3) Shop owner login via Mongo User collection (when shop record may not be in JSON)
+  try {
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      try {
+        const User = (await import('./models/User.js')).default;
+        const shopOwnerUser = await User.findOne({
+          $or: [
+            { username: normalizedUsername },
+            { email: normalizedUsername }
+          ],
+          role: 'shop_owner',
+          password: { $exists: true, $ne: null }
+        }).lean().exec();
+        if (shopOwnerUser) {
+          const ok = await bcrypt.compare(String(password), String(shopOwnerUser.password));
+          if (ok) {
+            // Attempt to resolve shopId for the owner
+            let shopId = null;
+            try {
+              const shopFromMongo = await ShopModel.findOne({ 'owner.username': normalizedUsername }).lean().exec();
+              if (shopFromMongo) shopId = shopFromMongo.legacyId || shopFromMongo.id;
+            } catch (e) {
+              // ignore
+            }
+
+            const token = signToken({ username: normalizedUsername, role: 'shop_owner', shopId });
+            setAuthCookie(res, token);
+            info('Login success', { requestId: req.id, username: normalizedUsername, role: 'shop_owner', shopId });
+            return res.json({ user: { username: normalizedUsername, role: 'shop_owner', shopId, shopName: shopFromMongo ? shopFromMongo.name : undefined } });
+          }
+          warn('Login failed: shop owner credential mismatch (mongo user)', { requestId: req.id, username: normalizedUsername });
+        }
+      } catch (e) {
+        console.warn('Mongo shop-owner login lookup failed', e && e.message ? e.message : e);
+      }
+    }
+  } catch (e) {
+    console.warn('Shop owner Mongo login error', e && e.message ? e.message : e);
+  }
+
+  // 4) Customers (MongoDB)
   try {
     let customer = null;
     // Attempt MongoDB login when available
