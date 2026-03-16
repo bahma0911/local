@@ -509,6 +509,8 @@ app.post('/api/login', loginRegisterLimiter, validate(schemas.authLogin), async 
       return res.json({ user: { username: normalizedUsername, role: 'shop_owner', shopId: shop.id || shop.legacyId, shopName: shop.name } });
     }
     warn('Login failed: shop owner credential mismatch', { requestId: req.id, username: normalizedUsername });
+  } else {
+    warn('Login failed: shop owner not found in shops', { requestId: req.id, username: normalizedUsername, jsonShopsCount: shops.length, mongoConnected: !!(mongoose.connection && mongoose.connection.readyState === 1) });
   }
 
 
