@@ -1608,7 +1608,20 @@ app.post('/api/shop/register', validate(schemas.shopRegister), async (req, res) 
 
     // Create shop
     const shops = readShops();
-    const maxId = shops.reduce((m, s) => Math.max(m, s.id || 0), 0);
+    let maxId = shops.reduce((m, s) => Math.max(m, s.id || 0), 0);
+
+    // Also check Mongo for max legacyId to avoid conflicts
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      try {
+        const maxMongo = await ShopModel.findOne().sort({ legacyId: -1 }).lean().exec();
+        if (maxMongo && maxMongo.legacyId) {
+          maxId = Math.max(maxId, maxMongo.legacyId);
+        }
+      } catch (e) {
+        console.warn('shop/register: error getting max legacyId from Mongo', e && e.message ? e.message : e);
+      }
+    }
+
     const newShop = {
       id: maxId + 1,
       name: shopName,
@@ -1636,7 +1649,7 @@ app.post('/api/shop/register', validate(schemas.shopRegister), async (req, res) 
         });
       } catch (err) {
         console.error('POST /api/shop/register - Mongo create error', err && err.message ? err.message : err);
-        return res.status(500).json({ message: 'Failed to create shop in database' });
+        // Don't fail the request if Mongo fails - continue with JSON fallback
       }
     }
 
