@@ -19,13 +19,14 @@ import connectMongo from './mongo.js';
 import User from './models/User.js';
 import * as authController from './controllers/authController.js';
 import * as emailController from './controllers/emailController.js';
-import { sendPasswordResetEmail } from './services/email.service.js';
+import { sendPasswordResetEmail, sendShopInvitationEmail } from './services/email.service.js';
 import requireVerifiedEmail from './middleware/requireVerifiedEmail.js';
 import ShopModel from './models/Shop.js';
 import OrderModel from './models/Order.js';
 import CartModel from './models/Cart.js';
 import NotificationModel from './models/Notification.js';
 import ProductModel from './models/Product.js';
+import ShopInvitationModel from './models/ShopInvitation.js';
 // import { applyCommission } from './utils/pricing.js';
 import mongoose from 'mongoose';
 
@@ -1472,6 +1473,160 @@ app.post('/api/db/cart/:username', async (req, res) => {
   } catch (e) {
     console.error('POST /api/db/cart error', e && e.message ? e.message : e);
     return res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Shop invitation routes
+// POST /api/admin/invite-shop - send invitation email to shop owner
+app.post('/api/admin/invite-shop', requireAuth, validate(schemas.shopInvite), async (req, res) => {
+  try {
+    const authUser = await getUserFromRequest(req);
+    if (!authUser || authUser.role !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+
+    const { email } = req.body || {};
+    if (!email || !email.trim()) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    // Check if invitation already exists and is not used
+    const existingInvitation = await ShopInvitationModel.findOne({ email: email.trim(), used: false });
+    if (existingInvitation && existingInvitation.expiresAt > new Date()) {
+      return res.status(400).json({ message: 'An active invitation already exists for this email' });
+    }
+
+    // Generate secure token
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+    // Save invitation
+    await ShopInvitationModel.findOneAndUpdate(
+      { email: email.trim() },
+      { token, expiresAt, used: false },
+      { upsert: true, new: true }
+    );
+
+    // Send invitation email
+    try {
+      await sendShopInvitationEmail(email.trim(), token);
+    } catch (emailError) {
+      console.error('Failed to send invitation email:', emailError);
+      return res.status(500).json({ message: 'Failed to send invitation email' });
+    }
+
+    res.json({ message: 'Invitation sent successfully' });
+  } catch (error) {
+    console.error('Invite shop error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// GET /api/shop/verify-invitation - verify invitation token
+app.get('/api/shop/verify-invitation', async (req, res) => {
+  try {
+    const { token } = req.query;
+    if (!token) {
+      return res.status(400).json({ message: 'Token is required' });
+    }
+
+    const invitation = await ShopInvitationModel.findOne({ token, used: false });
+    if (!invitation) {
+      return res.status(400).json({ message: 'Invalid or used invitation token' });
+    }
+
+    if (invitation.expiresAt < new Date()) {
+      return res.status(400).json({ message: 'Invitation token has expired' });
+    }
+
+    res.json({ valid: true, email: invitation.email });
+  } catch (error) {
+    console.error('Verify invitation error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// POST /api/shop/register - complete shop registration
+app.post('/api/shop/register', validate(schemas.shopRegister), async (req, res) => {
+  try {
+    const { token, ownerName, shopName, phone, address, password } = req.body;
+
+    // Verify token
+    const invitation = await ShopInvitationModel.findOne({ token, used: false });
+    if (!invitation) {
+      return res.status(400).json({ message: 'Invalid or used invitation token' });
+    }
+
+    if (invitation.expiresAt < new Date()) {
+      return res.status(400).json({ message: 'Invitation token has expired' });
+    }
+
+    // Check if shop with this email already exists
+    const existingShop = await ShopModel.findOne({ 'owner.username': invitation.email });
+    if (existingShop) {
+      return res.status(400).json({ message: 'A shop account already exists for this email' });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create shop
+    const shops = readShops();
+    const maxId = shops.reduce((m, s) => Math.max(m, s.id || 0), 0);
+    const newShop = {
+      id: maxId + 1,
+      name: shopName,
+      address,
+      phone: phone || '',
+      deliveryFee: 50, // default
+      owner: {
+        username: invitation.email,
+        password: hashedPassword
+      }
+    };
+
+    // Save to MongoDB if available
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      try {
+        await ShopModel.create({
+          legacyId: Number(newShop.id),
+          name: newShop.name,
+          address: newShop.address,
+          phone: newShop.phone || '',
+          deliveryFee: newShop.deliveryFee || '',
+          deliveryServices: [],
+          owner: newShop.owner,
+          products: []
+        });
+      } catch (err) {
+        console.error('POST /api/shop/register - Mongo create error', err && err.message ? err.message : err);
+        return res.status(500).json({ message: 'Failed to create shop in database' });
+      }
+    }
+
+    // Save to JSON file
+    shops.push(newShop);
+    if (!writeShops(shops)) {
+      return res.status(500).json({ message: 'Failed to persist shop' });
+    }
+
+    // Mark invitation as used
+    invitation.used = true;
+    await invitation.save();
+
+    res.status(201).json({
+      message: 'Shop registered successfully',
+      shop: {
+        id: newShop.id,
+        name: newShop.name,
+        ownerName,
+        phone: newShop.phone,
+        address: newShop.address
+      }
+    });
+  } catch (error) {
+    console.error('Shop register error:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 

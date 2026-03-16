@@ -20,6 +20,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Register from "./pages/Register";
 import VerifyEmail from "./pages/VerifyEmail";
 import ForgotPassword from "./pages/ForgotPassword";
+import ShopRegister from "./pages/ShopRegister";
 import { useAuth } from "./hooks/useAuth";
 import { useOrders } from "./hooks/useOrders";
 import "./App.css";
@@ -243,6 +244,7 @@ const AppContent = () => {
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/register" element={<Register />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
+            <Route path="/shop-register" element={<ShopRegister />} />
             <Route path="/customer-dashboard" element={<CustomerDashboard />} />
             
             {/* Admin Routes */}

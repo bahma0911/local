@@ -68,6 +68,15 @@ export const schemas = {
   }),
   shopOrderNotify: z.object({ orderId: z.union([z.string(), z.number()]), items: z.array(z.any()).optional(), total: z.number().optional(), customer: z.object({ username: z.string().optional(), email: z.string().optional() }).optional() }),
   orderStatusUpdate: z.object({ status: z.enum(['new', 'confirmed', 'delivered', 'picked_up', 'cancelled']) }),
+  shopInvite: z.object({ email: z.string().email() }),
+  shopRegister: z.object({
+    token: z.string().min(1),
+    ownerName: z.string().min(1),
+    shopName: z.string().min(1),
+    phone: z.string().optional(),
+    address: z.string().min(1),
+    password: z.string().min(6)
+  }),
 };
 
 export const validate = (schema) => (req, res, next) => {

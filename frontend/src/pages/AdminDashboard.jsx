@@ -13,12 +13,7 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState("shops"); // default to shops
   const [shopOrders, setShopOrders] = useState([]);
   const [newShop, setNewShop] = useState({
-    name: "",
-    deliveryFee: '',
-    address: '',
-    phone: '',
-    geo: null, // optional { lat, lng }
-    owner: { username: "", password: "" }
+    email: ""
   });
   const [editingShop, setEditingShop] = useState(null);
 
@@ -256,26 +251,24 @@ const AdminDashboard = () => {
     return () => window.removeEventListener('review:created', handler);
   }, [selectedShop, assignedShop, shops]);
 
-  const createNewShopAPI = async () => {
-    if (!newShop.name.trim() || !newShop.owner.username || !newShop.owner.password || !newShop.address || !String(newShop.address).trim()) {
-      alert("Please fill in required fields (Shop name, Owner username/password, and Shop address)");
+  const inviteShopAPI = async () => {
+    if (!newShop.email.trim()) {
+      alert("Please enter the shop owner's email");
       return;
     }
-    const payload = { ...newShop };
+    const payload = { email: newShop.email.trim() };
 
     try {
-      const data = await apiFetch(`${API_BASE}/api/shops`, {
+      await apiFetch(`${API_BASE}/api/admin/invite-shop`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) },
         body: JSON.stringify(payload)
       });
-      setShops(prev => [...prev, data]);
-      try { localStorage.setItem('updatedShops', JSON.stringify([...shops, data])); } catch {}
-      setNewShop({ name: "", deliveryFee: 50, address: '', phone: '', owner: { username: "", password: "" } });
-      alert("Shop created successfully!");
+      setNewShop({ email: "" });
+      alert("Invitation sent successfully!");
     } catch (err) {
       console.error(err);
-      alert("Error creating shop");
+      alert("Error sending invitation");
     }
   };
 
@@ -608,10 +601,7 @@ const AdminDashboard = () => {
   // ===================== Input Handlers =====================
   const handleNewShopInputChange = (e) => {
     const { name, value } = e.target;
-    if (name.startsWith("owner.")) {
-      const field = name.split(".")[1];
-      setNewShop(prev => ({ ...prev, owner: { ...prev.owner, [field]: value } }));
-    } else setNewShop(prev => ({ ...prev, [name]: value }));
+    setNewShop(prev => ({ ...prev, [name]: value }));
   };
 
   const handleEditShopInputChange = (e) => {
@@ -687,18 +677,11 @@ const AdminDashboard = () => {
       {/* SHOP MANAGEMENT */}
       {isAdmin && activeTab === "shops" && (
         <div className="shop-management">
-          {/* CREATE NEW SHOP */}
+          {/* INVITE SHOP OWNER */}
           <div className="create-shop-section">
-            <h3>Create New Shop</h3>
-            <input name="name" placeholder="Shop Name" value={newShop.name} onChange={handleNewShopInputChange} />
-            {/* Category removed from shop creation; categories are chosen per-product now */}
-            <input name="address" placeholder="Shop address" value={newShop.address} onChange={handleNewShopInputChange} />
-            <input type="number" name="deliveryFee" placeholder="Delivery fee" value={newShop.deliveryFee} onChange={handleNewShopInputChange} />
-            <input name="phone" placeholder="Shop phone number" value={newShop.phone} onChange={handleNewShopInputChange} />
-            <input name="owner.username" value={newShop.owner.username} onChange={handleNewShopInputChange} placeholder="Owner Username" />
-            <input type="password" name="owner.password" value={newShop.owner.password} onChange={handleNewShopInputChange} placeholder="Owner Password" />
-              <div style={{ fontSize: 12, color: '#666', marginTop: 6 }}>Please provide the shop's address/location — this is required.</div>
-            <button onClick={createNewShopAPI}>Create New Shop</button>
+            <h3>Invite Shop Owner</h3>
+            <input name="email" type="email" placeholder="Shop owner's email" value={newShop.email} onChange={handleNewShopInputChange} />
+            <button onClick={inviteShopAPI}>Send Invitation</button>
           </div>
 
           {/* EXISTING SHOPS */}

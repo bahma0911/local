@@ -102,5 +102,37 @@ async function sendOrderNotificationEmail(toEmail, orderDetails) {
   }
 }
 
+async function sendShopInvitationEmail(toEmail, token) {
+  if (!resend) {
+    const err = new Error('RESEND_API_KEY not configured');
+    err.code = 'NO_RESEND_KEY';
+    throw err;
+  }
+
+  const link = `${FRONTEND_URL}/shop-register?token=${encodeURIComponent(token)}`;
+  const html = `
+    <p>Hello,</p>
+    <p>You have been invited to create a shop account on Negadras.</p>
+    <p>Please click the link below to complete your shop registration:</p>
+    <p><a href="${link}">Register Your Shop</a></p>
+    <p>This invitation will expire in 24 hours.</p>
+    <p>If you did not expect this invitation, you can ignore this message.</p>
+  `;
+
+  try {
+    const resp = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: toEmail,
+      subject: 'Shop Registration Invitation - Negadras',
+      html
+    });
+    return { ok: true, id: resp.id, resp };
+  } catch (e) {
+    const out = new Error('Failed to send shop invitation email');
+    out.cause = e;
+    throw out;
+  }
+}
+
 export default sendVerificationEmail;
-export { sendVerificationEmail, sendPasswordResetEmail, sendOrderNotificationEmail };
+export { sendVerificationEmail, sendPasswordResetEmail, sendOrderNotificationEmail, sendShopInvitationEmail };
