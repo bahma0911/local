@@ -109,7 +109,8 @@ async function sendShopInvitationEmail(toEmail, token) {
     throw err;
   }
 
-  const link = `${FRONTEND_URL}/shop-register?token=${encodeURIComponent(token)}`;
+  // Uses hash router routing (currently the app uses HashRouter).
+  const link = `${FRONTEND_URL}/#/shop-register?token=${encodeURIComponent(token)}`;
   const html = `
     <p>Hello,</p>
     <p>You have been invited to create a shop account on Negadras.</p>
