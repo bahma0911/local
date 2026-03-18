@@ -16,6 +16,7 @@ const AdminDashboard = () => {
     email: ""
   });
   const [detailsShop, setDetailsShop] = useState(null);
+  const [detailsOwnerPhone, setDetailsOwnerPhone] = useState('');
 
   // Owner tab for shop-owner UI: 'orders' | 'products' | 'add'
   const [ownerTab, setOwnerTab] = useState('orders');
@@ -582,11 +583,27 @@ const AdminDashboard = () => {
 
 
 
-  const showDetails = (shop) => {
+  const showDetails = async (shop) => {
     setDetailsShop(shop);
+    setDetailsOwnerPhone('');
+
+    // Try to load owner phone from Mongo user record (for shops where the phone is stored in the user profile)
+    if (shop?.owner?.username) {
+      try {
+        const data = await apiFetch(`${API_BASE}/api/db/users/${encodeURIComponent(shop.owner.username)}`);
+        if (data && data.phone) {
+          setDetailsOwnerPhone(data.phone);
+        }
+      } catch (e) {
+        // ignore missing user or endpoint (dev-only route)
+      }
+    }
   };
 
-  const hideDetails = () => setDetailsShop(null);
+  const hideDetails = () => {
+    setDetailsShop(null);
+    setDetailsOwnerPhone('');
+  };
 
     // product controls removed
 
@@ -640,6 +657,7 @@ const AdminDashboard = () => {
                     <p><strong>Delivery Fee:</strong> {detailsShop.deliveryFee} ETB</p>
                     <p><strong>Owner Username:</strong> {detailsShop.owner.username}</p>
                     <p><strong>Owner Email:</strong> {detailsShop.owner.username}</p>
+                    {detailsOwnerPhone ? <p><strong>Owner Phone:</strong> {detailsOwnerPhone}</p> : null}
                     <button onClick={hideDetails}>Close</button>
                   </div>
                 ) : (

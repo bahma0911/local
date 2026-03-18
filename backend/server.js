@@ -1237,9 +1237,25 @@ app.get('/api/db/users', async (req, res) => {
     if (process.env.NODE_ENV === 'production') return res.status(404).json({ message: 'Not found' });
     if (!mongoose.connection || mongoose.connection.readyState !== 1) return res.status(503).json({ message: 'MongoDB not connected' });
     const docs = await User.find().limit(100).lean().exec();
-    return res.json({ count: docs.length, users: docs.map(d => ({ username: d.username, email: d.email, role: d.role, _id: d._id })) });
+    return res.json({ count: docs.length, users: docs.map(d => ({ username: d.username, email: d.email, role: d.role, phone: d.phone || '', name: d.name || '', _id: d._id })) });
   } catch (e) {
     console.error('GET /api/db/users error', e && e.message ? e.message : e);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Dev-only: get a single user by email (not in production)
+app.get('/api/db/users/:email', async (req, res) => {
+  try {
+    if (process.env.NODE_ENV === 'production') return res.status(404).json({ message: 'Not found' });
+    if (!mongoose.connection || mongoose.connection.readyState !== 1) return res.status(503).json({ message: 'MongoDB not connected' });
+    const email = String(req.params.email || '').trim().toLowerCase();
+    if (!email) return res.status(400).json({ message: 'Email required' });
+    const user = await User.findOne({ email }).lean().exec();
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    return res.json({ username: user.username, email: user.email, role: user.role, phone: user.phone || '', name: user.name || '' });
+  } catch (e) {
+    console.error('GET /api/db/users/:email error', e && e.message ? e.message : e);
     return res.status(500).json({ message: 'Server error' });
   }
 });
