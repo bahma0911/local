@@ -13,8 +13,7 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState("shops"); // default to shops
   const [shopOrders, setShopOrders] = useState([]);
   const [newShop, setNewShop] = useState({
-    email: "",
-    phone: ""
+    email: ""
   });
   const [detailsShop, setDetailsShop] = useState(null);
   const [detailsOwnerPhone, setDetailsOwnerPhone] = useState('');
@@ -258,11 +257,7 @@ const AdminDashboard = () => {
       alert("Please enter the shop owner's email");
       return;
     }
-    if (!newShop.phone.trim()) {
-      alert("Please enter the shop phone number");
-      return;
-    }
-    const payload = { email: newShop.email.trim(), phone: newShop.phone.trim() };
+    const payload = { email: newShop.email.trim() };
 
     try {
       await apiFetch(`${API_BASE}/api/admin/invite-shop`, {
@@ -270,7 +265,7 @@ const AdminDashboard = () => {
         headers: { "Content-Type": "application/json", ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) },
         body: JSON.stringify(payload)
       });
-      setNewShop({ email: "", phone: "" });
+      setNewShop({ email: "" });
       alert("Invitation sent successfully!");
     } catch (err) {
       console.error(err);
@@ -645,8 +640,7 @@ const AdminDashboard = () => {
           {/* INVITE SHOP OWNER */}
           <div className="create-shop-section">
             <h3>Invite Shop Owner</h3>
-            <input name="email" type="email" placeholder="Shop owner's email" value={newShop.email} onChange={handleNewShopInputChange} required />
-            <input name="phone" type="tel" placeholder="Shop phone number" value={newShop.phone} onChange={handleNewShopInputChange} required />
+            <input name="email" type="email" placeholder="Shop owner's email" value={newShop.email} onChange={handleNewShopInputChange} />
             <button onClick={inviteShopAPI}>Send Invitation</button>
           </div>
 

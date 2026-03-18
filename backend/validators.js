@@ -73,7 +73,7 @@ export const schemas = {
     token: z.string().min(1),
     ownerName: z.string().min(1),
     shopName: z.string().min(1),
-    phone: z.string().optional(),
+    phone: z.string().min(1),
     address: z.string().min(1),
     password: z.string().min(6)
   }),

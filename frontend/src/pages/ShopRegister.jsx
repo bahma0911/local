@@ -54,7 +54,7 @@ const ShopRegister = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.ownerName.trim() || !formData.shopName.trim() || !formData.address.trim() || !formData.password) {
+    if (!formData.ownerName.trim() || !formData.shopName.trim() || !formData.address.trim() || !formData.password || !formData.phone.trim()) {
       alert('Please fill in all required fields');
       return;
     }
@@ -114,12 +114,13 @@ const ShopRegister = () => {
           />
         </div>
         <div>
-          <label>Phone</label>
+          <label>Phone *</label>
           <input
             type="tel"
             name="phone"
             value={formData.phone}
             onChange={handleInputChange}
+            required
           />
         </div>
         <div>
