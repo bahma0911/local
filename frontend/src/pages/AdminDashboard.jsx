@@ -653,11 +653,13 @@ const AdminDashboard = () => {
                     <h4>Shop Details</h4>
                     <p><strong>Name:</strong> {detailsShop.name}</p>
                     <p><strong>Address:</strong> {detailsShop.address}</p>
-                    <p><strong>Phone:</strong> {detailsShop.phone}</p>
+                    <p><strong>Shop Phone:</strong> {detailsShop.phone || '—'}</p>
                     <p><strong>Delivery Fee:</strong> {detailsShop.deliveryFee} ETB</p>
                     <p><strong>Owner Username:</strong> {detailsShop.owner.username}</p>
                     <p><strong>Owner Email:</strong> {detailsShop.owner.username}</p>
-                    {detailsOwnerPhone ? <p><strong>Owner Phone:</strong> {detailsOwnerPhone}</p> : null}
+                    {detailsOwnerPhone ? (
+                      <p><strong>Owner Phone:</strong> {detailsOwnerPhone}</p>
+                    ) : null}
                     <button onClick={hideDetails}>Close</button>
                   </div>
                 ) : (
