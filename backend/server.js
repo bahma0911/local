@@ -491,7 +491,19 @@ app.post('/api/login', loginRegisterLimiter, validate(schemas.authLogin), async 
   const shops = readShops();
   shop = shops.find(s => String(s.owner?.username || '').trim().toLowerCase() === normalizedUsername);
 
-  // If no shop in JSON, attempt Mongo lookup (for deployments where JSON is not persisted)
+  // If we found a shop in JSON but it has no stored password, attempt to find it in Mongo (where it may have been persisted correctly)
+  if (shop && !(shop.owner && shop.owner.password) && mongoose.connection && mongoose.connection.readyState === 1) {
+    try {
+      const mongoShop = await ShopModel.findOne({ 'owner.username': normalizedUsername }).lean().exec();
+      if (mongoShop && mongoShop.owner && mongoShop.owner.password) {
+        shop = mongoShop;
+      }
+    } catch (e) {
+      console.warn('Login: Mongo shop lookup failed (fallback from JSON shop without password)', e && e.message ? e.message : e);
+    }
+  }
+
+  // If no shop found in JSON, try Mongo directly
   if (!shop && mongoose.connection && mongoose.connection.readyState === 1) {
     try {
       shop = await ShopModel.findOne({ 'owner.username': normalizedUsername }).lean().exec();
@@ -1137,12 +1149,41 @@ app.post('/api/db/shops', authenticate, validate(schemas.shopCreate), async (req
   try {
     if (!mongoose.connection || mongoose.connection.readyState !== 1) return res.status(503).json({ message: 'MongoDB not connected' });
     const payload = req.body;
-    console.log(`[PUT] /api/shops/${shopId}/products/${rawProductId} payload:`, JSON.stringify(payload));
-    if (payload.owner && payload.owner.password) payload.owner.password = await bcrypt.hash(String(payload.owner.password), 10);
+
+    // Ensure owner password is provided when an owner username is supplied so the owner can log in.
+    if (payload.owner && payload.owner.username) {
+      if (!payload.owner.password || String(payload.owner.password).trim().length < 6) {
+        return res.status(400).json({ message: 'Shop owner password is required and must be at least 6 characters' });
+      }
+      payload.owner.password = await bcrypt.hash(String(payload.owner.password), 10);
+    }
+
     // determine next legacyId
     const max = await ShopModel.findOne().sort({ legacyId: -1 }).lean().exec();
     const nextId = (max && max.legacyId) ? (max.legacyId + 1) : 1;
     const shop = await ShopModel.create({ ...payload, legacyId: nextId });
+
+    if (payload.owner && payload.owner.username && payload.owner.password) {
+      try {
+        const UserModel = (await import('./models/User.js')).default;
+        await UserModel.findOneAndUpdate(
+          { email: payload.owner.username },
+          {
+            username: payload.owner.username,
+            email: payload.owner.username,
+            role: 'shop_owner',
+            password: payload.owner.password,
+            name: '',
+            phone: payload.phone || '',
+            address: payload.address || ''
+          },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        ).exec();
+      } catch (userErr) {
+        console.warn('DB shop create: failed to create/update shop owner user', userErr && userErr.message ? userErr.message : userErr);
+      }
+    }
+
     return res.status(201).json({ ...shop.toObject(), id: shop.legacyId });
   } catch (e) {
     console.error('POST /api/db/shops error', e && e.message ? e.message : e);
@@ -1830,10 +1871,16 @@ app.post('/api/shops', authenticate, validate(schemas.shopCreate), async (req, r
   if (!payload || !payload.name || !payload.owner || !payload.owner.username) {
     return res.status(400).json({ message: 'Invalid shop payload' });
   }
-  // hash owner password before saving if provided
-  if (payload.owner && payload.owner.password) {
-    payload.owner.password = await bcrypt.hash(String(payload.owner.password), 10);
+
+  // Ensure a shop owner password is provided when creating a shop so the owner can log in.
+  // If you want to create a shop without an owner login, omit the `owner` field in the payload.
+  if (!payload.owner.password || String(payload.owner.password).trim().length < 6) {
+    return res.status(400).json({ message: 'Shop owner password is required and must be at least 6 characters' });
   }
+
+  // hash owner password before saving
+  payload.owner.password = await bcrypt.hash(String(payload.owner.password), 10);
+
   if (!payload.address || !String(payload.address).trim()) payload.address = 'Location not provided';
   const shops = readShops();
   const maxId = shops.reduce((m, s) => Math.max(m, s.id || 0), 0);
@@ -1852,6 +1899,29 @@ app.post('/api/shops', authenticate, validate(schemas.shopCreate), async (req, r
         owner: newShop.owner || {},
         products: newShop.products || []
       });
+
+      // Also ensure there is a corresponding Mongo user record for this shop owner so they can log in.
+      if (newShop.owner && newShop.owner.username && newShop.owner.password) {
+        try {
+          const UserModel = (await import('./models/User.js')).default;
+          await UserModel.findOneAndUpdate(
+            { email: newShop.owner.username },
+            {
+              username: newShop.owner.username,
+              email: newShop.owner.username,
+              role: 'shop_owner',
+              password: newShop.owner.password,
+              name: '',
+              phone: newShop.phone || '',
+              address: newShop.address || ''
+            },
+            { upsert: true, new: true, setDefaultsOnInsert: true }
+          ).exec();
+        } catch (e) {
+          console.warn('Shop create: failed to create/update shop owner user', e && e.message ? e.message : e);
+        }
+      }
+
       // keep JSON file in sync below
     } catch (err) {
       console.error('POST /api/shops - Mongo create error', err && err.message ? err.message : err);
@@ -1892,6 +1962,28 @@ app.put('/api/shops/:id', authenticate, validate(schemas.shopUpdate), async (req
         owner: updated.owner || {},
         products: updated.products || []
       }, { upsert: true, new: true }).exec();
+
+      // Keep the corresponding Mongo user record in sync when owner credentials are updated
+      if (updated.owner && updated.owner.username && updated.owner.password) {
+        try {
+          const UserModel = (await import('./models/User.js')).default;
+          await UserModel.findOneAndUpdate(
+            { email: updated.owner.username },
+            {
+              username: updated.owner.username,
+              email: updated.owner.username,
+              role: 'shop_owner',
+              password: updated.owner.password,
+              name: '',
+              phone: updated.phone || '',
+              address: updated.address || ''
+            },
+            { upsert: true, new: true, setDefaultsOnInsert: true }
+          ).exec();
+        } catch (e) {
+          console.warn('Shop update: failed to create/update shop owner user', e && e.message ? e.message : e);
+        }
+      }
     } catch (err) {
       console.error('PUT /api/shops/:id - Mongo update error', err && err.message ? err.message : err);
       return res.status(500).json({ message: 'Failed to persist shop to MongoDB' });
