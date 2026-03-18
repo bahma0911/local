@@ -16,7 +16,6 @@ const AdminDashboard = () => {
     email: ""
   });
   const [detailsShop, setDetailsShop] = useState(null);
-  const [detailsOwnerPhone, setDetailsOwnerPhone] = useState('');
 
   // Owner tab for shop-owner UI: 'orders' | 'products' | 'add'
   const [ownerTab, setOwnerTab] = useState('orders');
@@ -585,25 +584,29 @@ const AdminDashboard = () => {
 
   const showDetails = async (shop) => {
     setDetailsShop(shop);
-    setDetailsOwnerPhone('');
 
-    // Try to load owner phone from Mongo user record (for shops where the phone is stored in the user profile).
-    // This endpoint is dev-only and disabled in production, so only call it in dev mode.
-    if (import.meta.env.MODE === 'development' && shop?.owner?.username) {
+    // If the shop record doesn't already include owner contact details, try to fetch the
+    // owner profile via a protected admin endpoint (this is safe for admin users).
+    if (isAdmin && shop?.owner?.username) {
       try {
-        const data = await apiFetch(`${API_BASE}/api/db/users/${encodeURIComponent(shop.owner.username)}`);
-        if (data && data.phone) {
-          setDetailsOwnerPhone(data.phone);
+        const data = await apiFetch(`${API_BASE}/api/admin/users/${encodeURIComponent(shop.owner.username)}`);
+        if (data) {
+          setDetailsShop(prev => ({
+            ...prev,
+            owner: {
+              ...prev.owner,
+              ...data
+            }
+          }));
         }
       } catch (e) {
-        // ignore missing user or endpoint (dev-only route)
+        // ignore missing user or permission errors
       }
     }
   };
 
   const hideDetails = () => {
     setDetailsShop(null);
-    setDetailsOwnerPhone('');
   };
 
     // product controls removed
@@ -654,13 +657,16 @@ const AdminDashboard = () => {
                     <h4>Shop Details</h4>
                     <p><strong>Name:</strong> {detailsShop.name}</p>
                     <p><strong>Address:</strong> {detailsShop.address}</p>
-                    <p><strong>Shop Phone:</strong> {detailsShop.phone || detailsOwnerPhone || '—'}</p>
+                    <p><strong>Shop Phone:</strong> {detailsShop.phone || '—'}</p>
                     <p><strong>Delivery Fee:</strong> {detailsShop.deliveryFee} ETB</p>
-                    <p><strong>Owner Username:</strong> {detailsShop.owner.username}</p>
-                    <p><strong>Owner Email:</strong> {detailsShop.owner.username}</p>
-                    {detailsOwnerPhone && detailsOwnerPhone !== detailsShop.phone ? (
-                      <p><strong>Owner Phone:</strong> {detailsOwnerPhone}</p>
-                    ) : null}
+
+                    <h5>Owner Info</h5>
+                    <p><strong>Name:</strong> {detailsShop.owner?.name || '—'}</p>
+                    <p><strong>Username:</strong> {detailsShop.owner?.username || '—'}</p>
+                    <p><strong>Email:</strong> {detailsShop.owner?.email || detailsShop.owner?.username || '—'}</p>
+                    <p><strong>Phone:</strong> {detailsShop.owner?.phone || '—'}</p>
+                    {detailsShop.owner?.address ? <p><strong>Address:</strong> {detailsShop.owner.address}</p> : null}
+                    {detailsShop.owner?.city ? <p><strong>City:</strong> {detailsShop.owner.city}</p> : null}
                     <button onClick={hideDetails}>Close</button>
                   </div>
                 ) : (

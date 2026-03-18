@@ -1287,6 +1287,22 @@ app.get('/api/db/users/:email', async (req, res) => {
   }
 });
 
+// Admin-only: get user profile (shop owner, customer, etc.) by username
+app.get('/api/admin/users/:username', requireAuth, async (req, res) => {
+  try {
+    if (!req.user || req.user.role !== 'admin') return res.status(403).json({ message: 'Admin access required' });
+    if (!mongoose.connection || mongoose.connection.readyState !== 1) return res.status(503).json({ message: 'MongoDB not connected' });
+    const username = String(req.params.username || '').trim().toLowerCase();
+    if (!username) return res.status(400).json({ message: 'Username required' });
+    const user = await User.findOne({ username }).lean().exec();
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    return res.json({ username: user.username, email: user.email, role: user.role, name: user.name || '', phone: user.phone || '', address: user.address || '', city: user.city || '' });
+  } catch (e) {
+    console.error('GET /api/admin/users/:username error', e && e.message ? e.message : e);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Create product (shop owners only)
 app.post('/api/products', requireAuth, requireVerifiedEmail, requireShopOwner, validate(schemas.productCreate), async (req, res) => {
   try {
@@ -1856,7 +1872,11 @@ app.post('/api/shop/register', validate(schemas.shopRegister), async (req, res) 
       deliveryFee: 50, // default
       owner: {
         username: normalizedEmail,
-        password: hashedPassword
+        email: normalizedEmail,
+        password: hashedPassword,
+        name: ownerName || '',
+        phone: phone || '',
+        address: address || ''
       }
     };
 
@@ -1954,6 +1974,15 @@ app.post('/api/shops', authenticate, validate(schemas.shopCreate), async (req, r
   // hash owner password before saving
   payload.owner.password = await bcrypt.hash(String(payload.owner.password), 10);
 
+  // Ensure a consistent owner profile shape so we can show the same fields in the admin shop details page
+  payload.owner = {
+    ...payload.owner,
+    email: payload.owner.username,
+    name: payload.owner.name || '',
+    phone: payload.owner.phone || '',
+    address: payload.owner.address || ''
+  };
+
   if (!payload.address || !String(payload.address).trim()) payload.address = 'Location not provided';
   const shops = readShops();
   const maxId = shops.reduce((m, s) => Math.max(m, s.id || 0), 0);
@@ -2018,9 +2047,24 @@ app.put('/api/shops/:id', authenticate, validate(schemas.shopUpdate), async (req
 
   // don't allow changing id
   const updated = { ...shops[idx], ...payload, id };
+
+  // Normalize/merge owner profile fields so the admin view can show the same info as the user profile.
+  if (payload.owner) {
+    updated.owner = {
+      ...shops[idx].owner,
+      ...payload.owner,
+      email: payload.owner.email || payload.owner.username || shops[idx].owner?.email || shops[idx].owner?.username || '',
+      name: (payload.owner.name ?? shops[idx].owner?.name) || '',
+      phone: (payload.owner.phone ?? shops[idx].owner?.phone) || '',
+      address: (payload.owner.address ?? shops[idx].owner?.address) || ''
+    };
+  } else {
+    updated.owner = { ...shops[idx].owner };
+  }
+
   // if owner password provided, hash it
   if (payload.owner && payload.owner.password) {
-    updated.owner = { ...updated.owner, password: bcrypt.hashSync(String(payload.owner.password), 10) };
+    updated.owner.password = bcrypt.hashSync(String(payload.owner.password), 10);
   }
 
   // If Mongo is available, persist updates using legacyId
@@ -2044,12 +2088,12 @@ app.put('/api/shops/:id', authenticate, validate(schemas.shopUpdate), async (req
             { email: updated.owner.username },
             {
               username: updated.owner.username,
-              email: updated.owner.username,
+              email: updated.owner.email || updated.owner.username,
               role: 'shop_owner',
               password: updated.owner.password,
-              name: '',
-              phone: updated.phone || '',
-              address: updated.address || ''
+              name: updated.owner.name || '',
+              phone: updated.owner.phone || '',
+              address: updated.owner.address || updated.address || ''
             },
             { upsert: true, new: true, setDefaultsOnInsert: true }
           ).exec();

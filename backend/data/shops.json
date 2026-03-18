@@ -11,6 +11,10 @@
     ],
     "owner": {
       "username": "abebe",
+      "email": "abebe@example.com",
+      "name": "Abebe",
+      "phone": "0911000000",
+      "address": "Bole, Addis Ababa",
       "password": "$2b$10$/iBb35sBhF8/7GnIny26veIjdt9.tFByML8.VeALDsr./WBF5SEXy"
     },
     "products": [
@@ -97,6 +101,10 @@
     ],
     "owner": {
       "username": "selam",
+      "email": "selam@example.com",
+      "name": "Selam",
+      "phone": "0912000000",
+      "address": "Merkato, Addis Ababa",
       "password": "$2b$10$5eVwfm/qi9is.JQWXwzYreYhDNfLloOUk6fSX2bPh.uIZKHxl18vy"
     },
     "products": [
