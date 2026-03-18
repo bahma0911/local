@@ -486,7 +486,55 @@ app.post('/api/login', loginRegisterLimiter, validate(schemas.authLogin), async 
     warn('Login failed: admin credential mismatch', { requestId: req.id, username: normalizedUsername });
   }
 
-  // 2) Shop owners (match against shops data or Mongo)
+  // 2) Shop owner login via Mongo User collection (preferred source for credentials)
+  try {
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      try {
+        const User = (await import('./models/User.js')).default;
+        const shopOwnerUser = await User.findOne({
+          $or: [
+            { username: normalizedUsername },
+            { email: normalizedUsername }
+          ],
+          password: { $exists: true, $ne: null }
+        }).lean().exec();
+
+        if (shopOwnerUser) {
+          const ok = await bcrypt.compare(String(password), String(shopOwnerUser.password));
+          if (ok) {
+            // Determine if this user should be treated as a shop owner (exists a shop for them)
+            let shopId = null;
+            let shopName = undefined;
+            let isShopOwner = shopOwnerUser.role === 'shop_owner';
+
+            try {
+              const shopFromMongo = await ShopModel.findOne({ 'owner.username': normalizedUsername }).lean().exec();
+              if (shopFromMongo) {
+                isShopOwner = true;
+                shopId = shopFromMongo.legacyId || shopFromMongo.id;
+                shopName = shopFromMongo.name;
+              }
+            } catch (e) {
+              // ignore
+            }
+
+            const role = isShopOwner ? 'shop_owner' : shopOwnerUser.role || 'customer';
+            const token = signToken({ username: normalizedUsername, role, shopId });
+            setAuthCookie(res, token);
+            info('Login success', { requestId: req.id, username: normalizedUsername, role, shopId });
+            return res.json({ user: { username: normalizedUsername, role, shopId, shopName } });
+          }
+          warn('Login failed: credential mismatch (mongo user)', { requestId: req.id, username: normalizedUsername });
+        }
+      } catch (e) {
+        console.warn('Mongo shop-owner login lookup failed', e && e.message ? e.message : e);
+      }
+    }
+  } catch (e) {
+    console.warn('Shop owner Mongo login error', e && e.message ? e.message : e);
+  }
+
+  // 3) Shop owners (match against shops data or Mongo)
   let shop = null;
   const shops = readShops();
   shop = shops.find(s => String(s.owner?.username || '').trim().toLowerCase() === normalizedUsername);
@@ -523,47 +571,6 @@ app.post('/api/login', loginRegisterLimiter, validate(schemas.authLogin), async 
     warn('Login failed: shop owner credential mismatch', { requestId: req.id, username: normalizedUsername });
   } else {
     warn('Login failed: shop owner not found in shops', { requestId: req.id, username: normalizedUsername, jsonShopsCount: shops.length, mongoConnected: !!(mongoose.connection && mongoose.connection.readyState === 1) });
-  }
-
-
-  // 3) Shop owner login via Mongo User collection (when shop record may not be in JSON)
-  try {
-    if (mongoose.connection && mongoose.connection.readyState === 1) {
-      try {
-        const User = (await import('./models/User.js')).default;
-        const shopOwnerUser = await User.findOne({
-          $or: [
-            { username: normalizedUsername },
-            { email: normalizedUsername }
-          ],
-          role: 'shop_owner',
-          password: { $exists: true, $ne: null }
-        }).lean().exec();
-        if (shopOwnerUser) {
-          const ok = await bcrypt.compare(String(password), String(shopOwnerUser.password));
-          if (ok) {
-            // Attempt to resolve shopId for the owner
-            let shopId = null;
-            try {
-              const shopFromMongo = await ShopModel.findOne({ 'owner.username': normalizedUsername }).lean().exec();
-              if (shopFromMongo) shopId = shopFromMongo.legacyId || shopFromMongo.id;
-            } catch (e) {
-              // ignore
-            }
-
-            const token = signToken({ username: normalizedUsername, role: 'shop_owner', shopId });
-            setAuthCookie(res, token);
-            info('Login success', { requestId: req.id, username: normalizedUsername, role: 'shop_owner', shopId });
-            return res.json({ user: { username: normalizedUsername, role: 'shop_owner', shopId, shopName: shopFromMongo ? shopFromMongo.name : undefined } });
-          }
-          warn('Login failed: shop owner credential mismatch (mongo user)', { requestId: req.id, username: normalizedUsername });
-        }
-      } catch (e) {
-        console.warn('Mongo shop-owner login lookup failed', e && e.message ? e.message : e);
-      }
-    }
-  } catch (e) {
-    console.warn('Shop owner Mongo login error', e && e.message ? e.message : e);
   }
 
   // 4) Customers (MongoDB)
