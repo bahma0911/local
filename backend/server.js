@@ -433,12 +433,12 @@ const getUserFromRequest = async (req) => {
     if (!cookie) return null;
     const payload = verifyToken(cookie);
     if (!payload) return null;
-    // For customers, attempt to fetch fresh data from Mongo if available
-    if (payload.role === 'customer') {
+    // For customers and shop owners, attempt to fetch fresh data from Mongo if available
+    if (payload.role === 'customer' || payload.role === 'shop_owner') {
       try {
         const UserModel = (await import('./models/User.js')).default;
         const user = await UserModel.findOne({ username: payload.username }).lean().exec();
-        if (user) return { username: user.username, email: user.email, phone: user.phone, address: user.address, city: user.city, name: user.name, role: 'customer', emailVerified: !!user.emailVerified };
+        if (user) return { username: user.username, email: user.email, phone: user.phone, address: user.address, city: user.city, name: user.name, role: user.role || payload.role, emailVerified: !!user.emailVerified };
       } catch (e) {
         // ignore DB errors, fall back to token payload
       }
