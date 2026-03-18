@@ -31,7 +31,7 @@ const Login = () => {
   return (
     <div className="admin-login-page">
       <div className="admin-login-container" style={{ padding: '1.5rem' }}>
-        <h2 className="admin-login-title">Sign in to Negadras</h2>
+        <h2 className="admin-login-title">Sign in to ሰኞ ገበያ</h2>
         <form onSubmit={handleSubmit} className="admin-login-form">
           <div className="form-group">
             <label className="form-label">Username or Email</label>

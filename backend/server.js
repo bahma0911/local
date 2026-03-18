@@ -1017,7 +1017,7 @@ const scheduleOrderDeletion = (shopId, orderId, delayMs) => {
 
 // Health endpoint
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', service: 'Negadras backend (chapa disabled)' });
+  res.json({ status: 'ok', service: 'ሰኞ ገበያ backend (chapa disabled)' });
 });
 
 // Simple non-API health endpoint for uptime checks (some platforms expect '/health')

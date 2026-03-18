@@ -113,7 +113,7 @@ async function sendShopInvitationEmail(toEmail, token) {
   const link = `${FRONTEND_URL}/#/shop-register?token=${encodeURIComponent(token)}`;
   const html = `
     <p>Hello,</p>
-    <p>You have been invited to create a shop account on Negadras.</p>
+    <p>You have been invited to create a shop account on ሰኞ ገበያ.</p>
     <p>Please click the link below to complete your shop registration:</p>
     <p><a href="${link}">Register Your Shop</a></p>
     <p>This invitation will expire in 24 hours.</p>
@@ -124,7 +124,7 @@ async function sendShopInvitationEmail(toEmail, token) {
     const resp = await resend.emails.send({
       from: FROM_EMAIL,
       to: toEmail,
-      subject: 'Shop Registration Invitation - Negadras',
+      subject: 'Shop Registration Invitation - ሰኞ ገበያ',
       html
     });
     return { ok: true, id: resp.id, resp };

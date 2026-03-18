@@ -1,4 +1,4 @@
-# Copilot Instructions for Negadras-market
+# Copilot Instructions for ሰኞ ገበያ
 
 This file gives concise, repo-specific guidance to AI coding assistants to be immediately productive.
 
