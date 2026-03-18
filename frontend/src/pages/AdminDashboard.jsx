@@ -15,7 +15,7 @@ const AdminDashboard = () => {
   const [newShop, setNewShop] = useState({
     email: ""
   });
-  const [editingShop, setEditingShop] = useState(null);
+  const [detailsShop, setDetailsShop] = useState(null);
 
   // Owner tab for shop-owner UI: 'orders' | 'products' | 'add'
   const [ownerTab, setOwnerTab] = useState('orders');
@@ -272,47 +272,7 @@ const AdminDashboard = () => {
     }
   };
 
-  const updateShopAPI = async (shopId) => {
-    if (!editingShop.name.trim() || !editingShop.owner.username || !editingShop.address || !String(editingShop.address).trim()) {
-      alert("Please fill in Shop Name, Owner Username, and Shop Address");
-      return;
-    }
 
-    // Build payload and strip fields that would fail validation (e.g. empty password)
-    const payload = { ...editingShop };
-    if (payload.owner) {
-      // if password is empty or too short, remove it so backend validation (min 6) won't fail
-      if (!payload.owner.password || String(payload.owner.password).trim().length < 6) {
-        const { password, ...ownerNoPass } = payload.owner;
-        payload.owner = ownerNoPass;
-      }
-      // if owner object now has no keys, remove it entirely
-      if (Object.keys(payload.owner).length === 0) delete payload.owner;
-    }
-
-    try {
-      const data = await apiFetch(`${API_BASE}/api/shops/${shopId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) },
-        body: JSON.stringify(payload)
-      });
-      setShops(prev => prev.map(shop => shop.id === shopId ? data : shop));
-      try { localStorage.setItem('updatedShops', JSON.stringify(shops.map(shop => shop.id === shopId ? data : shop))); } catch {}
-      setEditingShop(null);
-      alert("Shop updated successfully!");
-    } catch (err) {
-      console.error('updateShopAPI error', err);
-      // surface validation details from backend when available
-      if (err && err.response && err.response.errors && Array.isArray(err.response.errors)) {
-        const msg = err.response.errors.map(e => `${e.path || 'field'}: ${e.message}`).join('\n');
-        alert(`Validation failed:\n${msg}`);
-      } else if (err && err.response && err.response.message) {
-        alert(`Error updating shop: ${err.response.message}`);
-      } else {
-        alert("Error updating shop");
-      }
-    }
-  };
 
   const deleteShopAPI = async (shopId) => {
     if (!window.confirm("Are you sure you want to delete this shop? This cannot be undone.")) return;
@@ -604,13 +564,7 @@ const AdminDashboard = () => {
     setNewShop(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleEditShopInputChange = (e) => {
-    const { name, value } = e.target;
-    if (name.startsWith("owner.")) {
-      const field = name.split(".")[1];
-      setEditingShop(prev => ({ ...prev, owner: { ...prev.owner, [field]: value } }));
-    } else setEditingShop(prev => ({ ...prev, [name]: value }));
-  };
+
 
   // Optional geolocation capture
   const captureGeoForNewShop = () => {
@@ -626,24 +580,13 @@ const AdminDashboard = () => {
     }, { timeout: 10000 });
   };
 
-  const captureGeoForEditShop = () => {
-    if (!navigator.geolocation) {
-      alert('Geolocation is not supported by your browser');
-      return;
-    }
-    navigator.geolocation.getCurrentPosition((pos) => {
-      setEditingShop(prev => ({ ...prev, geo: { lat: pos.coords.latitude, lng: pos.coords.longitude } }));
-    }, (err) => {
-      console.warn('Geo error', err);
-      alert('Unable to get your location. You can enter the address manually.');
-    }, { timeout: 10000 });
+
+
+  const showDetails = (shop) => {
+    setDetailsShop(shop);
   };
 
-  const startEditingShop = (shop) => {
-    setEditingShop({ ...shop, owner: { ...shop.owner, password: "" } });
-  };
-
-  const cancelEditingShop = () => setEditingShop(null);
+  const hideDetails = () => setDetailsShop(null);
 
     // product controls removed
 
@@ -688,21 +631,22 @@ const AdminDashboard = () => {
           <div className="shops-list">
             {shops.map(shop => (
               <div key={shop.id} className="shop-card">
-                {editingShop?.id === shop.id ? (
+                {detailsShop?.id === shop.id ? (
                   <div>
-                    <input name="name" value={editingShop.name} onChange={handleEditShopInputChange} />
-                    <input type="number" name="deliveryFee" placeholder="Delivery fee" value={editingShop.deliveryFee} onChange={handleEditShopInputChange} />
-                    <input name="phone" placeholder="Shop phone number" value={editingShop.phone || ''} onChange={handleEditShopInputChange} />
-                    <input name="owner.username" value={editingShop.owner.username} onChange={handleEditShopInputChange} />
-                    <input type="password" name="owner.password" value={editingShop.owner.password} onChange={handleEditShopInputChange} placeholder="New password" />
-                    <button onClick={() => updateShopAPI(shop.id)}>Save</button>
-                    <button onClick={cancelEditingShop}>Cancel</button>
+                    <h4>Shop Details</h4>
+                    <p><strong>Name:</strong> {detailsShop.name}</p>
+                    <p><strong>Address:</strong> {detailsShop.address}</p>
+                    <p><strong>Phone:</strong> {detailsShop.phone}</p>
+                    <p><strong>Delivery Fee:</strong> {detailsShop.deliveryFee} ETB</p>
+                    <p><strong>Owner Username:</strong> {detailsShop.owner.username}</p>
+                    <p><strong>Owner Email:</strong> {detailsShop.owner.username}</p>
+                    <button onClick={hideDetails}>Close</button>
                   </div>
                 ) : (
                   <div>
                     <p>{shop.name} | Delivery: {shop.deliveryFee} ETB</p>
                     <p>Owner: {shop.owner.username}</p>
-                    <button onClick={() => startEditingShop(shop)}>Edit</button>
+                    <button onClick={() => showDetails(shop)}>Details</button>
                     <button onClick={() => deleteShopAPI(shop.id)}>Delete</button>
                   </div>
                 )}

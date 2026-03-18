@@ -1862,7 +1862,10 @@ app.post('/api/shop/register', validate(schemas.shopRegister), async (req, res) 
             password: hashedPassword,
             name: ownerName,
             phone: phone || '',
-            address
+            address,
+            emailVerified: true,
+            verificationToken: null,
+            verificationExpires: null
           },
           { upsert: true, new: true, setDefaultsOnInsert: true }
         ).exec();
