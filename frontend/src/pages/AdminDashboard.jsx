@@ -587,8 +587,9 @@ const AdminDashboard = () => {
     setDetailsShop(shop);
     setDetailsOwnerPhone('');
 
-    // Try to load owner phone from Mongo user record (for shops where the phone is stored in the user profile)
-    if (shop?.owner?.username) {
+    // Try to load owner phone from Mongo user record (for shops where the phone is stored in the user profile).
+    // This endpoint is dev-only and disabled in production, so only call it in dev mode.
+    if (import.meta.env.MODE === 'development' && shop?.owner?.username) {
       try {
         const data = await apiFetch(`${API_BASE}/api/db/users/${encodeURIComponent(shop.owner.username)}`);
         if (data && data.phone) {
