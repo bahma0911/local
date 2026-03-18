@@ -853,9 +853,9 @@ app.post("/api/test-login", async (req, res) => {
       const authUser = await getUserFromRequest(req);
       if (!authUser) return res.status(401).json({ message: 'Not authenticated' });
 
-      // Only customers stored in Mongo can update their persisted profile here
-      if (authUser.role !== 'customer') {
-        return res.status(403).json({ message: 'Only customers can update profile' });
+      // Only customers and shop owners stored in Mongo can update their persisted profile here
+      if (authUser.role !== 'customer' && authUser.role !== 'shop_owner') {
+        return res.status(403).json({ message: 'Only customers and shop owners can update profile' });
       }
 
       const payload = req.body || {};
@@ -880,7 +880,7 @@ app.post("/api/test-login", async (req, res) => {
           if (!updated) return res.status(500).json({ message: 'Failed to update profile' });
 
           // Return sanitized user info
-          const safe = { username: updated.username, email: updated.email, phone: updated.phone, address: updated.address, city: updated.city, name: updated.name, role: 'customer' };
+          const safe = { username: updated.username, email: updated.email, phone: updated.phone, address: updated.address, city: updated.city, name: updated.name, role: updated.role || authUser.role };
           return res.json({ user: safe });
         } catch (err) {
           console.error('PUT /api/me - update error', err && err.message ? err.message : err);
@@ -902,8 +902,8 @@ app.post("/api/test-login", async (req, res) => {
       const authUser = await getUserFromRequest(req);
       if (!authUser) return res.status(401).json({ message: 'Not authenticated' });
 
-      if (authUser.role !== 'customer') {
-        return res.status(403).json({ message: 'Only customers can delete account' });
+      if (authUser.role !== 'customer' && authUser.role !== 'shop_owner') {
+        return res.status(403).json({ message: 'Only customers and shop owners can delete account' });
       }
 
       // Try deleting from MongoDB when available
