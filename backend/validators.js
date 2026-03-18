@@ -45,7 +45,7 @@ export const schemas = {
   // Profile update for customers (partial updates allowed)
   profileUpdate: z.object({
     name: z.string().optional(),
-    email: z.string().email().optional(),
+    email: z.string().optional(),
     phone: z.string().optional(),
     address: z.string().optional(),
     city: z.string().optional(),
