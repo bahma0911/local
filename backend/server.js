@@ -877,7 +877,34 @@ app.post("/api/test-login", async (req, res) => {
           }
 
           const updated = await UserModel.findOneAndUpdate({ username: authUser.username }, { $set: update }, { new: true }).lean().exec();
-          if (!updated) return res.status(500).json({ message: 'Failed to update profile' });
+          if (!updated) {
+            // For shop owners not in Mongo, create the user record
+            if (authUser.role === 'shop_owner') {
+              try {
+                const UserModel = (await import('./models/User.js')).default;
+                const newUserData = {
+                  username: authUser.username,
+                  email: authUser.email || authUser.username,
+                  role: 'shop_owner',
+                  name: update.name || '',
+                  phone: update.phone || '',
+                  address: update.address || '',
+                  city: update.city || '',
+                  emailVerified: true // assume verified for existing shop owners
+                };
+                if (update.password) {
+                  newUserData.password = update.password;
+                }
+                const created = await UserModel.create(newUserData);
+                const safe = { username: created.username, email: created.email, phone: created.phone, address: created.address, city: created.city, name: created.name, role: 'shop_owner' };
+                return res.json({ user: safe });
+              } catch (createErr) {
+                console.error('PUT /api/me - create shop owner failed', createErr && createErr.message ? createErr.message : createErr);
+                return res.status(500).json({ message: 'Failed to update profile' });
+              }
+            }
+            return res.status(500).json({ message: 'Failed to update profile' });
+          }
 
           // Return sanitized user info
           const safe = { username: updated.username, email: updated.email, phone: updated.phone, address: updated.address, city: updated.city, name: updated.name, role: updated.role || authUser.role };
