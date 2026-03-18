@@ -472,7 +472,28 @@ app.post('/api/login', loginRegisterLimiter, validate(schemas.authLogin), async 
   const { username, password } = req.body || {};
   if (!username || !password) return res.status(400).json({ message: 'username and password required' });
 
-  const normalizedUsername = String(username).trim().toLowerCase();
+  let normalizedUsername = String(username).trim().toLowerCase();
+
+  // Check if the input matches a shop name; if so, resolve to the owner's email
+  let resolvedEmail = normalizedUsername;
+  const shops = readShops();
+  const shopByName = shops.find(s => String(s.name || '').trim().toLowerCase() === normalizedUsername);
+  if (shopByName && shopByName.owner && shopByName.owner.username) {
+    resolvedEmail = String(shopByName.owner.username).trim().toLowerCase();
+  } else if (mongoose.connection && mongoose.connection.readyState === 1) {
+    try {
+      const mongoShop = await ShopModel.findOne({ name: { $regex: new RegExp('^' + normalizedUsername.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i') } }).lean().exec();
+      if (mongoShop && mongoShop.owner && mongoShop.owner.username) {
+        resolvedEmail = String(mongoShop.owner.username).trim().toLowerCase();
+      }
+    } catch (e) {
+      console.warn('Login: Mongo shop name lookup failed', e && e.message ? e.message : e);
+    }
+  }
+
+  // Use resolvedEmail for authentication
+  const authUsername = resolvedEmail;
+
 
   // 1) Admin via env
   if (process.env.ADMIN_USER && process.env.ADMIN_PASS && normalizedUsername === String(process.env.ADMIN_USER).trim().toLowerCase()) {
@@ -493,8 +514,8 @@ app.post('/api/login', loginRegisterLimiter, validate(schemas.authLogin), async 
         const User = (await import('./models/User.js')).default;
         const shopOwnerUser = await User.findOne({
           $or: [
-            { username: normalizedUsername },
-            { email: normalizedUsername }
+            { username: authUsername },
+            { email: authUsername }
           ],
           password: { $exists: true, $ne: null }
         }).lean().exec();
@@ -508,7 +529,7 @@ app.post('/api/login', loginRegisterLimiter, validate(schemas.authLogin), async 
             let isShopOwner = shopOwnerUser.role === 'shop_owner';
 
             try {
-              const shopFromMongo = await ShopModel.findOne({ 'owner.username': normalizedUsername }).lean().exec();
+              const shopFromMongo = await ShopModel.findOne({ 'owner.username': authUsername }).lean().exec();
               if (shopFromMongo) {
                 isShopOwner = true;
                 shopId = shopFromMongo.legacyId || shopFromMongo.id;
@@ -519,12 +540,12 @@ app.post('/api/login', loginRegisterLimiter, validate(schemas.authLogin), async 
             }
 
             const role = isShopOwner ? 'shop_owner' : shopOwnerUser.role || 'customer';
-            const token = signToken({ username: normalizedUsername, role, shopId });
+            const token = signToken({ username: authUsername, role, shopId });
             setAuthCookie(res, token);
-            info('Login success', { requestId: req.id, username: normalizedUsername, role, shopId });
-            return res.json({ user: { username: normalizedUsername, role, shopId, shopName } });
+            info('Login success', { requestId: req.id, username: authUsername, role, shopId });
+            return res.json({ user: { username: authUsername, role, shopId, shopName } });
           }
-          warn('Login failed: credential mismatch (mongo user)', { requestId: req.id, username: normalizedUsername });
+          warn('Login failed: credential mismatch (mongo user)', { requestId: req.id, username: authUsername });
         }
       } catch (e) {
         console.warn('Mongo shop-owner login lookup failed', e && e.message ? e.message : e);
@@ -536,13 +557,12 @@ app.post('/api/login', loginRegisterLimiter, validate(schemas.authLogin), async 
 
   // 3) Shop owners (match against shops data or Mongo)
   let shop = null;
-  const shops = readShops();
-  shop = shops.find(s => String(s.owner?.username || '').trim().toLowerCase() === normalizedUsername);
+  shop = shops.find(s => String(s.owner?.username || '').trim().toLowerCase() === authUsername);
 
   // If we found a shop in JSON but it has no stored password, attempt to find it in Mongo (where it may have been persisted correctly)
   if (shop && !(shop.owner && shop.owner.password) && mongoose.connection && mongoose.connection.readyState === 1) {
     try {
-      const mongoShop = await ShopModel.findOne({ 'owner.username': normalizedUsername }).lean().exec();
+      const mongoShop = await ShopModel.findOne({ 'owner.username': authUsername }).lean().exec();
       if (mongoShop && mongoShop.owner && mongoShop.owner.password) {
         shop = mongoShop;
       }
@@ -554,7 +574,7 @@ app.post('/api/login', loginRegisterLimiter, validate(schemas.authLogin), async 
   // If no shop found in JSON, try Mongo directly
   if (!shop && mongoose.connection && mongoose.connection.readyState === 1) {
     try {
-      shop = await ShopModel.findOne({ 'owner.username': normalizedUsername }).lean().exec();
+      shop = await ShopModel.findOne({ 'owner.username': authUsername }).lean().exec();
     } catch (e) {
       console.warn('Login: Mongo shop lookup failed', e && e.message ? e.message : e);
     }
@@ -563,14 +583,14 @@ app.post('/api/login', loginRegisterLimiter, validate(schemas.authLogin), async 
   if (shop && shop.owner && shop.owner.password) {
     const ok = await bcrypt.compare(String(password), String(shop.owner.password));
     if (ok) {
-      const token = signToken({ username: normalizedUsername, role: 'shop_owner', shopId: shop.id || shop.legacyId });
+      const token = signToken({ username: authUsername, role: 'shop_owner', shopId: shop.id || shop.legacyId });
       setAuthCookie(res, token);
-      info('Login success', { requestId: req.id, username: normalizedUsername, role: 'shop_owner', shopId: shop.id || shop.legacyId });
-      return res.json({ user: { username: normalizedUsername, role: 'shop_owner', shopId: shop.id || shop.legacyId, shopName: shop.name } });
+      info('Login success', { requestId: req.id, username: authUsername, role: 'shop_owner', shopId: shop.id || shop.legacyId });
+      return res.json({ user: { username: authUsername, role: 'shop_owner', shopId: shop.id || shop.legacyId, shopName: shop.name } });
     }
-    warn('Login failed: shop owner credential mismatch', { requestId: req.id, username: normalizedUsername });
+    warn('Login failed: shop owner credential mismatch', { requestId: req.id, username: authUsername });
   } else {
-    warn('Login failed: shop owner not found in shops', { requestId: req.id, username: normalizedUsername, jsonShopsCount: shops.length, mongoConnected: !!(mongoose.connection && mongoose.connection.readyState === 1) });
+    warn('Login failed: shop owner not found in shops', { requestId: req.id, username: authUsername, jsonShopsCount: shops.length, mongoConnected: !!(mongoose.connection && mongoose.connection.readyState === 1) });
   }
 
   // 4) Customers (MongoDB)
@@ -582,8 +602,8 @@ app.post('/api/login', loginRegisterLimiter, validate(schemas.authLogin), async 
         const User = (await import('./models/User.js')).default;
         customer = await User.findOne({
           $or: [
-            { username: username },
-            { email: username }
+            { username: authUsername },
+            { email: authUsername }
           ],
           role: 'customer',
           password: { $exists: true, $ne: null }
@@ -597,18 +617,18 @@ app.post('/api/login', loginRegisterLimiter, validate(schemas.authLogin), async 
     // Local customers.json fallback
     if (!customer) {
       const locals = readCustomers();
-      const lc = locals.find(c => (c.username === username) || (c.email === username));
+      const lc = locals.find(c => (c.username === authUsername) || (c.email === authUsername));
       if (lc) customer = lc; // note: schema slightly different but has password
     }
 
     if (!customer) {
-      warn('Login failed: customer not found', { requestId: req.id, username });
+      warn('Login failed: customer not found', { requestId: req.id, username: authUsername });
     }
 
     if (customer && customer.password) {
       // Require email verification for customers when the flag is present
       if (typeof customer.emailVerified !== 'undefined' && !customer.emailVerified) {
-        warn('Login blocked: email not verified', { requestId: req.id, username });
+        warn('Login blocked: email not verified', { requestId: req.id, username: authUsername });
         return res.status(403).json({ message: 'Please verify your email before logging in' });
       }
       const ok = await bcrypt.compare(String(password), String(customer.password));
@@ -619,7 +639,7 @@ app.post('/api/login', loginRegisterLimiter, validate(schemas.authLogin), async 
         info('Login success', { requestId: req.id, username: customer.username, role: 'customer' });
         return res.json({ user: userSafe });
       }
-      warn('Login failed: customer credential mismatch', { requestId: req.id, username });
+      warn('Login failed: customer credential mismatch', { requestId: req.id, username: authUsername });
     }
   } catch (err) {
     logError('Customer login error', err);
