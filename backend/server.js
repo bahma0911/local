@@ -1937,9 +1937,14 @@ app.post('/api/shop/register', validate(schemas.shopRegister), async (req, res) 
       }
     }
 
-    // Mark invitation as used
-    invitation.used = true;
-    await invitation.save();
+    // Mark invitation as used (best-effort). If this fails, we still consider the shop created
+    // because the critical part (shop and user creation) already succeeded.
+    try {
+      invitation.used = true;
+      await invitation.save();
+    } catch (err) {
+      console.warn('shop/register: failed to mark invitation used', err && err.message ? err.message : err);
+    }
 
     res.status(201).json({
       message: 'Shop registered successfully',
