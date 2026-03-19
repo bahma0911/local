@@ -426,6 +426,16 @@ const verifyToken = (token) => {
   }
 };
 
+const normalizeUsername = (value) => {
+  if (!value) return '';
+  return String(value).trim().toLowerCase()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .substring(0, 50);
+};
+
 // Helper to read authenticated user payload from cookie (returns payload or null)
 const getUserFromRequest = async (req) => {
   try {
@@ -437,7 +447,7 @@ const getUserFromRequest = async (req) => {
     if (payload.role === 'customer' || payload.role === 'shop_owner') {
       try {
         const UserModel = (await import('./models/User.js')).default;
-        const user = await UserModel.findOne({ username: payload.username }).lean().exec();
+        const user = await UserModel.findOne({ $or: [{ username: payload.username }, { email: payload.username }] }).lean().exec();
         if (user) return { username: user.username, email: user.email, phone: user.phone, address: user.address, city: user.city, name: user.name, role: user.role || payload.role, emailVerified: !!user.emailVerified };
       } catch (e) {
         // ignore DB errors, fall back to token payload
@@ -529,7 +539,14 @@ app.post('/api/login', loginRegisterLimiter, validate(schemas.authLogin), async 
             let isShopOwner = shopOwnerUser.role === 'shop_owner';
 
             try {
-              const shopFromMongo = await ShopModel.findOne({ 'owner.username': authUsername }).lean().exec();
+              const shopFromMongo = await ShopModel.findOne({
+                $or: [
+                  { 'owner.username': shopOwnerUser.username },
+                  { 'owner.email': shopOwnerUser.email },
+                  { 'owner.username': authUsername },
+                  { 'owner.email': authUsername }
+                ]
+              }).lean().exec();
               if (shopFromMongo) {
                 isShopOwner = true;
                 shopId = shopFromMongo.legacyId || shopFromMongo.id;
@@ -542,10 +559,11 @@ app.post('/api/login', loginRegisterLimiter, validate(schemas.authLogin), async 
             const role = isShopOwner ? 'shop_owner' : shopOwnerUser.role || 'customer';
             const emailVerified = !!shopOwnerUser.emailVerified;
             const email = shopOwnerUser.email || authUsername;
-            const token = signToken({ username: authUsername, role, shopId, email, emailVerified });
+            const authName = shopOwnerUser.username || authUsername;
+            const token = signToken({ username: authName, role, shopId, email, emailVerified });
             setAuthCookie(res, token);
-            info('Login success', { requestId: req.id, username: authUsername, role, shopId, emailVerified });
-            return res.json({ user: { username: authUsername, email, role, shopId, shopName, emailVerified } });
+            info('Login success', { requestId: req.id, username: authName, role, shopId, emailVerified });
+            return res.json({ user: { username: authName, email, role, shopId, shopName, emailVerified } });
           }
           warn('Login failed: credential mismatch (mongo user)', { requestId: req.id, username: authUsername });
         }
@@ -559,12 +577,20 @@ app.post('/api/login', loginRegisterLimiter, validate(schemas.authLogin), async 
 
   // 3) Shop owners (match against shops data or Mongo)
   let shop = null;
-  shop = shops.find(s => String(s.owner?.username || '').trim().toLowerCase() === authUsername);
+  shop = shops.find(s => {
+    const ownerId = String(s.owner?.username || s.owner?.email || '').trim().toLowerCase();
+    return ownerId === authUsername;
+  });
 
   // If we found a shop in JSON but it has no stored password, attempt to find it in Mongo (where it may have been persisted correctly)
   if (shop && !(shop.owner && shop.owner.password) && mongoose.connection && mongoose.connection.readyState === 1) {
     try {
-      const mongoShop = await ShopModel.findOne({ 'owner.username': authUsername }).lean().exec();
+      const mongoShop = await ShopModel.findOne({
+        $or: [
+          { 'owner.username': authUsername },
+          { 'owner.email': authUsername }
+        ]
+      }).lean().exec();
       if (mongoShop && mongoShop.owner && mongoShop.owner.password) {
         shop = mongoShop;
       }
@@ -591,7 +617,14 @@ app.post('/api/login', loginRegisterLimiter, validate(schemas.authLogin), async 
       try {
         if (mongoose.connection && mongoose.connection.readyState === 1) {
           const UserModel = (await import('./models/User.js')).default;
-          const userDoc = await UserModel.findOne({ $or: [{ username: authUsername }, { email: authUsername }] }).lean().exec();
+          const userDoc = await UserModel.findOne({
+            $or: [
+              { username: authUsername },
+              { email: authUsername },
+              { username: ownerUsername },
+              { email: ownerUsername }
+            ]
+          }).lean().exec();
           if (userDoc) {
             emailVerified = !!userDoc.emailVerified;
             email = userDoc.email || authUsername;
@@ -601,10 +634,12 @@ app.post('/api/login', loginRegisterLimiter, validate(schemas.authLogin), async 
         // ignore
       }
 
-      const token = signToken({ username: authUsername, role: 'shop_owner', shopId: shop.id || shop.legacyId, email, emailVerified });
+      const ownerUsername = (shop.owner && shop.owner.username) ? String(shop.owner.username).trim() : authUsername;
+      const loginUsername = ownerUsername || authUsername;
+      const token = signToken({ username: loginUsername, role: 'shop_owner', shopId: shop.id || shop.legacyId, email, emailVerified });
       setAuthCookie(res, token);
-      info('Login success', { requestId: req.id, username: authUsername, role: 'shop_owner', shopId: shop.id || shop.legacyId, emailVerified });
-      return res.json({ user: { username: authUsername, email, role: 'shop_owner', shopId: shop.id || shop.legacyId, shopName: shop.name, emailVerified } });
+      info('Login success', { requestId: req.id, username: loginUsername, role: 'shop_owner', shopId: shop.id || shop.legacyId, emailVerified });
+      return res.json({ user: { username: loginUsername, email, role: 'shop_owner', shopId: shop.id || shop.legacyId, shopName: shop.name, emailVerified } });
     }
     warn('Login failed: shop owner credential mismatch', { requestId: req.id, username: authUsername });
   } else {
@@ -1696,15 +1731,29 @@ app.post('/api/admin/invite-shop', requireAuth, validate(schemas.shopInvite), as
     try {
       // Check JSON-backed shops
       const currentShops = readShops();
-      const existingShop = (currentShops || []).find(s => s.owner && String(s.owner.username).toLowerCase() === normalizedEmail);
+      const existingShop = (currentShops || []).find(s => {
+        const ownerEmail = String(s.owner?.email || s.owner?.username || '').trim().toLowerCase();
+        return ownerEmail === normalizedEmail;
+      });
       if (existingShop) {
         return res.status(400).json({ message: 'A shop owner account already exists for this email' });
       }
 
-      // Check Mongo-backed shops if available
+      // Check Mongo-backed shops and users if available
       if (mongoose.connection && mongoose.connection.readyState === 1) {
-        const mongoShop = await ShopModel.findOne({ 'owner.username': normalizedEmail }).lean().exec();
+        const mongoShop = await ShopModel.findOne({
+          $or: [
+            { 'owner.username': normalizedEmail },
+            { 'owner.email': normalizedEmail }
+          ]
+        }).lean().exec();
         if (mongoShop) {
+          return res.status(400).json({ message: 'A shop owner account already exists for this email' });
+        }
+
+        const UserModel = (await import('./models/User.js')).default;
+        const existingShopOwner = await UserModel.findOne({ email: normalizedEmail, role: 'shop_owner' }).lean().exec();
+        if (existingShopOwner) {
           return res.status(400).json({ message: 'A shop owner account already exists for this email' });
         }
       }
@@ -1778,12 +1827,15 @@ app.get('/api/debug/shop-owner/:email', async (req, res) => {
 
     // Check JSON shops
     const shops = readShops();
-    const jsonShop = shops.find(s => String(s.owner?.username || '').trim().toLowerCase() === email);
+    const jsonShop = shops.find(s => {
+      const ownerEmail = String(s.owner?.email || s.owner?.username || '').trim().toLowerCase();
+      return ownerEmail === email;
+    });
     if (jsonShop) {
       result.sources.json = {
         id: jsonShop.id,
         name: jsonShop.name,
-        owner: { username: jsonShop.owner?.username, hasPassword: !!jsonShop.owner?.password }
+        owner: { username: jsonShop.owner?.username, email: jsonShop.owner?.email, hasPassword: !!jsonShop.owner?.password }
       };
       result.found = true;
     }
@@ -1791,7 +1843,12 @@ app.get('/api/debug/shop-owner/:email', async (req, res) => {
     // Check Mongo Shop
     if (mongoose.connection && mongoose.connection.readyState === 1) {
       try {
-        const mongoShop = await ShopModel.findOne({ 'owner.username': email }).lean().exec();
+        const mongoShop = await ShopModel.findOne({
+          $or: [
+            { 'owner.username': email },
+            { 'owner.email': email }
+          ]
+        }).lean().exec();
         if (mongoShop) {
           result.sources.mongoShop = {
             legacyId: mongoShop.legacyId,
@@ -1845,30 +1902,46 @@ app.post('/api/shop/register', validate(schemas.shopRegister), async (req, res) 
 
     const normalizedEmail = String(invitation.email || '').trim().toLowerCase();
 
-    // Check if shop with this email already exists in JSON or Mongo
-    try {
-      const currentShops = readShops();
-      const existingShop = (currentShops || []).find(s => String(s.owner?.username || '').trim().toLowerCase() === normalizedEmail);
-      if (existingShop) {
-        return res.status(400).json({ message: 'A shop account already exists for this email' });
-      }
+    // Check if shop with this email already exists in JSON (and reserve a username based on shop name)
+    const shops = readShops();
+    const existingShop = (shops || []).find(s => {
+      const ownerEmail = String(s.owner?.email || s.owner?.username || '').trim().toLowerCase();
+      return ownerEmail === normalizedEmail;
+    });
+    if (existingShop) {
+      return res.status(400).json({ message: 'A shop account already exists for this email' });
+    }
 
+    // Derive a username for the shop owner based on the shop name; fall back to the email local-part
+    const baseShopUsername = String(shopName || '').trim() || String(normalizedEmail.split('@')[0] || '').trim() || `shop${Date.now()}`;
+    let ownerUsername = baseShopUsername;
+    try {
       if (mongoose.connection && mongoose.connection.readyState === 1) {
-        const mongoShop = await ShopModel.findOne({ 'owner.username': normalizedEmail }).lean().exec();
-        if (mongoShop) {
-          return res.status(400).json({ message: 'A shop account already exists for this email' });
+        const UserModel = (await import('./models/User.js')).default;
+        let counter = 1;
+        while (
+          (await UserModel.findOne({ username: ownerUsername }).lean().exec()) ||
+          (shops || []).some(s => String(s.owner?.username || '').trim().toLowerCase() === ownerUsername.toLowerCase())
+        ) {
+          counter += 1;
+          ownerUsername = `${baseShopUsername}-${counter}`;
+        }
+      } else {
+        let counter = 1;
+        while ((shops || []).some(s => String(s.owner?.username || '').trim().toLowerCase() === ownerUsername.toLowerCase())) {
+          counter += 1;
+          ownerUsername = `${baseShopUsername}-${counter}`;
         }
       }
     } catch (e) {
-      console.warn('shop/register: error checking existing shops', e && e.message ? e.message : e);
+      // ignore
     }
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create shop
-    const shops = readShops();
-    let maxId = shops.reduce((m, s) => Math.max(m, s.id || 0), 0);
+    let maxId = (shops || []).reduce((m, s) => Math.max(m, s.id || 0), 0);
 
     // Also check Mongo for max legacyId to avoid conflicts
     if (mongoose.connection && mongoose.connection.readyState === 1) {
@@ -1889,7 +1962,7 @@ app.post('/api/shop/register', validate(schemas.shopRegister), async (req, res) 
       phone: phone || '',
       deliveryFee: 50, // default
       owner: {
-        username: normalizedEmail,
+        username: ownerUsername,
         email: normalizedEmail,
         password: hashedPassword,
         name: ownerName || '',
@@ -1937,7 +2010,7 @@ app.post('/api/shop/register', validate(schemas.shopRegister), async (req, res) 
         await UserModel.findOneAndUpdate(
           { email: normalizedEmail },
           {
-            username: normalizedEmail,
+            username: ownerUsername,
             email: normalizedEmail,
             role: 'shop_owner',
             password: hashedPassword,

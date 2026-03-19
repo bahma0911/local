@@ -71,7 +71,7 @@ const ShopRegister = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      alert('Shop registered successfully! You can now log in with your email and password.');
+      alert('Shop registered successfully! You can now log in with your shop name and password.');
       navigate('/login');
     } catch (error) {
       console.error('Registration failed:', error);
