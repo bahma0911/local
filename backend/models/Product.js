@@ -14,6 +14,8 @@ const ProductSchema = new mongoose.Schema({
   images: { type: [String], default: [] },
   // Product condition: 'new' or 'used' (default to 'new')
   condition: { type: String, enum: ['new', 'used'], default: 'new' },
+  // Unit of sale: 'piece' or 'kg' (default to 'piece')
+  unit: { type: String, enum: ['piece', 'kg'], default: 'piece' },
   // Contact info for the shop that created the product (optional)
   shopPhone: { type: String, default: '' },
   shopLocation: { type: String, default: '' },
