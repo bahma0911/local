@@ -540,10 +540,12 @@ app.post('/api/login', loginRegisterLimiter, validate(schemas.authLogin), async 
             }
 
             const role = isShopOwner ? 'shop_owner' : shopOwnerUser.role || 'customer';
-            const token = signToken({ username: authUsername, role, shopId });
+            const emailVerified = !!shopOwnerUser.emailVerified;
+            const email = shopOwnerUser.email || authUsername;
+            const token = signToken({ username: authUsername, role, shopId, email, emailVerified });
             setAuthCookie(res, token);
-            info('Login success', { requestId: req.id, username: authUsername, role, shopId });
-            return res.json({ user: { username: authUsername, role, shopId, shopName } });
+            info('Login success', { requestId: req.id, username: authUsername, role, shopId, emailVerified });
+            return res.json({ user: { username: authUsername, email, role, shopId, shopName, emailVerified } });
           }
           warn('Login failed: credential mismatch (mongo user)', { requestId: req.id, username: authUsername });
         }
@@ -583,10 +585,26 @@ app.post('/api/login', loginRegisterLimiter, validate(schemas.authLogin), async 
   if (shop && shop.owner && shop.owner.password) {
     const ok = await bcrypt.compare(String(password), String(shop.owner.password));
     if (ok) {
-      const token = signToken({ username: authUsername, role: 'shop_owner', shopId: shop.id || shop.legacyId });
+      // Determine emailVerified if we have a corresponding user record
+      let emailVerified = true;
+      let email = authUsername;
+      try {
+        if (mongoose.connection && mongoose.connection.readyState === 1) {
+          const UserModel = (await import('./models/User.js')).default;
+          const userDoc = await UserModel.findOne({ $or: [{ username: authUsername }, { email: authUsername }] }).lean().exec();
+          if (userDoc) {
+            emailVerified = !!userDoc.emailVerified;
+            email = userDoc.email || authUsername;
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+
+      const token = signToken({ username: authUsername, role: 'shop_owner', shopId: shop.id || shop.legacyId, email, emailVerified });
       setAuthCookie(res, token);
-      info('Login success', { requestId: req.id, username: authUsername, role: 'shop_owner', shopId: shop.id || shop.legacyId });
-      return res.json({ user: { username: authUsername, role: 'shop_owner', shopId: shop.id || shop.legacyId, shopName: shop.name } });
+      info('Login success', { requestId: req.id, username: authUsername, role: 'shop_owner', shopId: shop.id || shop.legacyId, emailVerified });
+      return res.json({ user: { username: authUsername, email, role: 'shop_owner', shopId: shop.id || shop.legacyId, shopName: shop.name, emailVerified } });
     }
     warn('Login failed: shop owner credential mismatch', { requestId: req.id, username: authUsername });
   } else {
@@ -633,8 +651,8 @@ app.post('/api/login', loginRegisterLimiter, validate(schemas.authLogin), async 
       }
       const ok = await bcrypt.compare(String(password), String(customer.password));
       if (ok) {
-        const token = signToken({ username: customer.username, role: 'customer' });
-        const userSafe = { username: customer.username, email: customer.email, role: 'customer' };
+        const token = signToken({ username: customer.username, role: 'customer', email: customer.email, emailVerified: !!customer.emailVerified });
+        const userSafe = { username: customer.username, email: customer.email, role: 'customer', emailVerified: !!customer.emailVerified };
         setAuthCookie(res, token);
         info('Login success', { requestId: req.id, username: customer.username, role: 'customer' });
         return res.json({ user: userSafe });

@@ -657,7 +657,6 @@ const AdminDashboard = () => {
                     <h4>Shop Details</h4>
                     <p><strong>Name:</strong> {detailsShop.name}</p>
                     <p><strong>Address:</strong> {detailsShop.address}</p>
-                    <p><strong>Shop Phone:</strong> {detailsShop.phone || '—'}</p>
                     <p><strong>Delivery Fee:</strong> {detailsShop.deliveryFee} ETB</p>
 
                     <h5>Owner Info</h5>
