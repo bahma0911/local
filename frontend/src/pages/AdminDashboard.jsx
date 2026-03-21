@@ -1,9 +1,3 @@
-  // Fetch categories when switching to the categories tab or on mount if already active
-  useEffect(() => {
-    if (isAdmin && activeTab === 'categories') {
-      fetchCategories();
-    }
-  }, [isAdmin, activeTab]);
 import React, { useState, useEffect } from "react";
 import { useNavigate } from 'react-router-dom';
 // product categories are computed dynamically from products (do not import shop-based categories)
@@ -35,11 +29,6 @@ const AdminDashboard = () => {
 
   const { logout, isAdmin, isShopOwner, assignedShop, user, csrfToken } = useAuth();
   const navigate = useNavigate();
-
-  // Fetch categories on mount
-  useEffect(() => {
-    fetchCategories();
-  }, []);
 
   // ===================== API Calls =====================
   const fetchShops = async () => {
@@ -603,74 +592,50 @@ const AdminDashboard = () => {
   };
 
   // ==================== Category Management ====================
-  // Fetch categories from localStorage only, with fallback to default
-  const fetchCategories = () => {
+  const fetchCategories = async () => {
     try {
-      const stored = localStorage.getItem('adminCategories');
-      if (stored && JSON.parse(stored).length > 0) {
-        setCategories(JSON.parse(stored));
-      } else {
-        // fallback to some default categories if none exist
-        const defaultCategories = ["Electronics", "Clothing", "Groceries", "Books", "Home", "Other"];
-        setCategories(defaultCategories);
-        localStorage.setItem('adminCategories', JSON.stringify(defaultCategories));
-      }
-    } catch {
-      setCategories(["Electronics", "Clothing", "Groceries", "Books", "Home", "Other"]);
+      const data = await apiFetch(`${API_BASE}/api/categories`);
+      setCategories(data || []);
+    } catch (err) {
+      console.error('Error fetching categories:', err);
+      setCategories([]);
     }
   };
 
-  // Add a new category (localStorage only, no backend)
   const addCategoryAPI = async () => {
     if (!newCategory.trim()) {
       alert('Please enter a category name');
       return;
     }
-    const name = newCategory.trim();
-    // Check for duplicates
-    if (categories.some(c => (typeof c === 'string' ? c : c.name).toLowerCase() === name.toLowerCase())) {
-      alert('Category already exists');
-      return;
+    try {
+      await apiFetch(`${API_BASE}/api/categories`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) },
+        body: JSON.stringify({ name: newCategory.trim() })
+      });
+      setNewCategory('');
+      fetchCategories(); // Refresh the list
+      alert('Category added successfully!');
+    } catch (err) {
+      console.error('Error adding category:', err);
+      alert('Failed to add category: ' + (err.message || err));
     }
-    const updated = [...categories, name];
-    localStorage.setItem('adminCategories', JSON.stringify(updated));
-    setNewCategory('');
-    alert('Category added successfully!');
-    fetchCategories();
   };
 
-  // Delete a category (localStorage only)
-  const deleteCategoryAPI = async (categoryName) => {
-    if (!window.confirm('Are you sure you want to delete this category?')) return;
-    const updated = categories.filter(c => (typeof c === 'string' ? c : c.name) !== categoryName);
-    localStorage.setItem('adminCategories', JSON.stringify(updated));
-    alert('Category deleted successfully!');
-    fetchCategories();
+  const deleteCategoryAPI = async (categoryId) => {
+    if (!confirm('Are you sure you want to delete this category?')) return;
+    try {
+      await apiFetch(`${API_BASE}/api/categories/${categoryId}`, {
+        method: 'DELETE',
+        headers: { ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) }
+      });
+      fetchCategories(); // Refresh the list
+      alert('Category deleted successfully!');
+    } catch (err) {
+      console.error('Error deleting category:', err);
+      alert('Failed to delete category: ' + (err.message || err));
+    }
   };
-      {/* CATEGORY MANAGEMENT TAB */}
-      {isAdmin && activeTab === 'categories' && (
-        <div className="category-management" style={{ marginTop: 24 }}>
-          <h3>Manage Categories</h3>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-            <input
-              type="text"
-              placeholder="New category name"
-              value={newCategory}
-              onChange={e => setNewCategory(e.target.value)}
-            />
-            <button onClick={addCategoryAPI}>Add Category</button>
-          </div>
-          <ul style={{ listStyle: 'none', padding: 0 }}>
-            {categories.length === 0 && <li style={{ color: '#888' }}>No categories yet.</li>}
-            {categories.map((c, i) => (
-              <li key={typeof c === 'string' ? c : c.name} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                <span>{typeof c === 'string' ? c : c.name}</span>
-                <button style={{ fontSize: 12, color: '#a33' }} onClick={() => deleteCategoryAPI(typeof c === 'string' ? c : c.name)}>Delete</button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
 
   const showDetails = async (shop) => {
     setDetailsShop(shop);
@@ -773,7 +738,34 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* SHOP OWNER: Product management for assigned shop */}
+      {/* CATEGORY MANAGEMENT (Admin only) */}
+      {isAdmin && activeTab === "categories" && (
+        <div className="category-management" style={{ marginTop: 24 }}>
+          <h3>Manage Categories</h3>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 16 }}>
+            <input
+              type="text"
+              placeholder="Add new category"
+              value={newCategory}
+              onChange={e => setNewCategory(e.target.value)}
+              style={{ minWidth: 200 }}
+            />
+            <button onClick={addCategoryAPI}>Add Category</button>
+          </div>
+          <div className="categories-list" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {categories.length === 0 ? (
+              <div style={{ color: '#999' }}>No categories found.</div>
+            ) : (
+              categories.map(cat => (
+                <div key={cat.id || cat._id || cat.name} style={{ display: 'flex', alignItems: 'center', gap: 12, border: '1px solid #eee', borderRadius: 6, padding: 8 }}>
+                  <span>{cat.name}</span>
+                  <button style={{ background: '#f55', color: '#fff', border: 'none', borderRadius: 4, padding: '2px 8px' }} onClick={() => deleteCategoryAPI(cat.id || cat._id)}>Delete</button>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
       {isShopOwner && currentShop && (
         <div className="product-management">
           <h3>Manage — {currentShop.name}</h3>
