@@ -1,3 +1,6 @@
+// ...existing code...
+const AdminDashboard = () => {
+  // ...existing code...
   // Fetch categories on mount
   useEffect(() => {
     fetchCategories();
