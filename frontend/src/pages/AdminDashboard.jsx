@@ -17,23 +17,15 @@ const AdminDashboard = () => {
   });
   const [detailsShop, setDetailsShop] = useState(null);
 
+  // Categories state
+  const [categories, setCategories] = useState([]);
+  const [newCategory, setNewCategory] = useState("");
+
   // Owner tab for shop-owner UI: 'orders' | 'products' | 'add'
   const [ownerTab, setOwnerTab] = useState('orders');
 
   // reviews state for shop-owner view
   const [shopReviewsByProduct, setShopReviewsByProduct] = useState({});
-
-  // Categories state
-  const [categories, setCategories] = useState([]);
-  const [newCategory, setNewCategory] = useState({
-    name: '',
-    description: '',
-    icon: '📦',
-    image: '',
-    isActive: true,
-    sortOrder: 0
-  });
-  const [editingCategory, setEditingCategory] = useState(null);
 
   const { logout, isAdmin, isShopOwner, assignedShop, user, csrfToken } = useAuth();
   const navigate = useNavigate();
@@ -243,6 +235,13 @@ const AdminDashboard = () => {
       if (shopToUse) fetchShopReviews(shopToUse);
     }
   }, [ownerTab, selectedShop, assignedShop, shops]);
+
+  // Fetch categories when categories tab is active
+  useEffect(() => {
+    if (activeTab === 'categories') {
+      fetchCategories();
+    }
+  }, [activeTab]);
 
   // Listen for new reviews so shop-owner view updates in near-real-time
   useEffect(() => {
@@ -592,7 +591,77 @@ const AdminDashboard = () => {
     }, { timeout: 10000 });
   };
 
+  // ==================== Category Management ====================
+  // Fetch categories from localStorage or API
+  const fetchCategories = async () => {
+    try {
+      const data = await apiFetch(`${API_BASE}/api/categories`);
+      setCategories(data || []);
+      localStorage.setItem('adminCategories', JSON.stringify(data || []));
+    } catch (err) {
+      // fallback to localStorage if API fails
+      console.error('Error fetching categories:', err);
+      try {
+        const stored = localStorage.getItem('adminCategories');
+        if (stored) setCategories(JSON.parse(stored));
+        else setCategories([]);
+      } catch {
+        setCategories([]);
+      }
+    }
+  };
 
+  // Add a new category (localStorage only, no backend)
+  const addCategoryAPI = async () => {
+    if (!newCategory.trim()) {
+      alert('Please enter a category name');
+      return;
+    }
+    const name = newCategory.trim();
+    // Check for duplicates
+    if (categories.some(c => (typeof c === 'string' ? c : c.name) === name)) {
+      alert('Category already exists');
+      return;
+    }
+    const updated = [...categories, name];
+    setCategories(updated);
+    localStorage.setItem('adminCategories', JSON.stringify(updated));
+    setNewCategory('');
+    alert('Category added successfully!');
+  };
+
+  // Delete a category (localStorage only)
+  const deleteCategoryAPI = async (categoryName) => {
+    if (!window.confirm('Are you sure you want to delete this category?')) return;
+    const updated = categories.filter(c => (typeof c === 'string' ? c : c.name) !== categoryName);
+    setCategories(updated);
+    localStorage.setItem('adminCategories', JSON.stringify(updated));
+    alert('Category deleted successfully!');
+  };
+      {/* CATEGORY MANAGEMENT TAB */}
+      {isAdmin && activeTab === 'categories' && (
+        <div className="category-management" style={{ marginTop: 24 }}>
+          <h3>Manage Categories</h3>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+            <input
+              type="text"
+              placeholder="New category name"
+              value={newCategory}
+              onChange={e => setNewCategory(e.target.value)}
+            />
+            <button onClick={addCategoryAPI}>Add Category</button>
+          </div>
+          <ul style={{ listStyle: 'none', padding: 0 }}>
+            {categories.length === 0 && <li style={{ color: '#888' }}>No categories yet.</li>}
+            {categories.map((c, i) => (
+              <li key={typeof c === 'string' ? c : c.name} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <span>{typeof c === 'string' ? c : c.name}</span>
+                <button style={{ fontSize: 12, color: '#a33' }} onClick={() => deleteCategoryAPI(typeof c === 'string' ? c : c.name)}>Delete</button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
   const showDetails = async (shop) => {
     setDetailsShop(shop);
@@ -621,103 +690,7 @@ const AdminDashboard = () => {
     setDetailsShop(null);
   };
 
-  // ==================== CATEGORY MANAGEMENT FUNCTIONS ====================
-
-  // Fetch all categories
-  const fetchCategories = async () => {
-    try {
-      const data = await apiFetch(`${API_BASE}/api/admin/categories`);
-      setCategories(data);
-    } catch (err) {
-      console.error('Error fetching categories:', err);
-      alert('Error loading categories');
-    }
-  };
-
-  // Create new category
-  const createCategory = async () => {
-    if (!newCategory.name.trim()) {
-      alert('Category name is required');
-      return;
-    }
-
-    try {
-      const data = await apiFetch(`${API_BASE}/api/admin/categories`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) },
-        body: JSON.stringify(newCategory)
-      });
-      setCategories(prev => [...prev, data]);
-      setNewCategory({ name: '', description: '', icon: '📦', image: '', isActive: true, sortOrder: 0 });
-      alert('Category created successfully!');
-    } catch (err) {
-      console.error('Error creating category:', err);
-      alert('Error creating category');
-    }
-  };
-
-  // Update category
-  const updateCategory = async () => {
-    if (!editingCategory.name.trim()) {
-      alert('Category name is required');
-      return;
-    }
-
-    try {
-      const data = await apiFetch(`${API_BASE}/api/admin/categories/${editingCategory._id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) },
-        body: JSON.stringify(editingCategory)
-      });
-      setCategories(prev => prev.map(cat => cat._id === editingCategory._id ? data : cat));
-      setEditingCategory(null);
-      alert('Category updated successfully!');
-    } catch (err) {
-      console.error('Error updating category:', err);
-      alert('Error updating category');
-    }
-  };
-
-  // Delete category
-  const deleteCategory = async (categoryId) => {
-    if (!window.confirm('Are you sure you want to delete this category? This action cannot be undone.')) {
-      return;
-    }
-
-    try {
-      await apiFetch(`${API_BASE}/api/admin/categories/${categoryId}`, {
-        method: 'DELETE',
-        headers: { ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) }
-      });
-      setCategories(prev => prev.filter(cat => cat._id !== categoryId));
-      alert('Category deleted successfully!');
-    } catch (err) {
-      console.error('Error deleting category:', err);
-      alert('Error deleting category');
-    }
-  };
-
-  // Start editing category
-  const startEditingCategory = (category) => {
-    setEditingCategory({ ...category });
-  };
-
-  // Cancel editing
-  const cancelEditingCategory = () => {
-    setEditingCategory(null);
-  };
-
-  // Handle new category input changes
-  const handleNewCategoryChange = (field, value) => {
-    setNewCategory(prev => ({ ...prev, [field]: value }));
-  };
-
-  // Handle editing category input changes
-  const handleEditingCategoryChange = (field, value) => {
-    setEditingCategory(prev => ({ ...prev, [field]: value }));
-  };
-
-  // product controls removed
+    // product controls removed
 
   // product form state for shop owners
   const [newProduct, setNewProduct] = useState({ name: '', price: '', image: '', images: [], imageFile: null, imageFiles: [], description: '', details: '', condition: 'new', shopPhone: '', shopLocation: '', inStock: true, stock: 1, category: '' });
@@ -742,7 +715,7 @@ const AdminDashboard = () => {
       {isAdmin && (
         <div className="admin-tabs">
           <button className={activeTab === "shops" ? "active" : ""} onClick={() => setActiveTab("shops")}>🏪 Manage Shops</button>
-          <button className={activeTab === "categories" ? "active" : ""} onClick={() => { setActiveTab("categories"); fetchCategories(); }}>📂 Manage Categories</button>
+          <button className={activeTab === "categories" ? "active" : ""} onClick={() => setActiveTab("categories")}>📂 Manage Categories</button>
           <button className="" onClick={() => navigate('/admin/orders')}>📋 Manage Orders</button>
         </div>
       )}
@@ -1019,156 +992,6 @@ const AdminDashboard = () => {
               </div>
             </div>
           )}
-        </div>
-      )}
-
-      {/* CATEGORY MANAGEMENT */}
-      {isAdmin && activeTab === "categories" && (
-        <div className="category-management">
-          <h3>Manage Categories</h3>
-
-          {/* Create New Category */}
-          <div className="create-category-section">
-            <h4>Create New Category</h4>
-            <div className="category-form">
-              <input
-                type="text"
-                placeholder="Category name"
-                value={newCategory.name}
-                onChange={(e) => handleNewCategoryChange('name', e.target.value)}
-              />
-              <input
-                type="text"
-                placeholder="Description (optional)"
-                value={newCategory.description}
-                onChange={(e) => handleNewCategoryChange('description', e.target.value)}
-              />
-              <input
-                type="text"
-                placeholder="Icon (emoji)"
-                value={newCategory.icon}
-                onChange={(e) => handleNewCategoryChange('icon', e.target.value)}
-                maxLength="2"
-              />
-              <input
-                type="text"
-                placeholder="Image URL (optional)"
-                value={newCategory.image}
-                onChange={(e) => handleNewCategoryChange('image', e.target.value)}
-              />
-              <div className="form-row">
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={newCategory.isActive}
-                    onChange={(e) => handleNewCategoryChange('isActive', e.target.checked)}
-                  />
-                  Active
-                </label>
-                <label>
-                  Sort Order:
-                  <input
-                    type="number"
-                    min="0"
-                    value={newCategory.sortOrder}
-                    onChange={(e) => handleNewCategoryChange('sortOrder', parseInt(e.target.value) || 0)}
-                    style={{ width: '80px', marginLeft: '8px' }}
-                  />
-                </label>
-              </div>
-              <button onClick={createCategory}>Create Category</button>
-            </div>
-          </div>
-
-          {/* Categories List */}
-          <div className="categories-list">
-            <h4>Existing Categories ({categories.length})</h4>
-            {categories.length === 0 ? (
-              <p>No categories found. Create your first category above.</p>
-            ) : (
-              <div className="categories-grid">
-                {categories.map((category) => (
-                  <div key={category._id} className="category-card">
-                    {editingCategory && editingCategory._id === category._id ? (
-                      // Edit Mode
-                      <div className="category-edit-form">
-                        <input
-                          type="text"
-                          value={editingCategory.name}
-                          onChange={(e) => handleEditingCategoryChange('name', e.target.value)}
-                        />
-                        <input
-                          type="text"
-                          placeholder="Description"
-                          value={editingCategory.description}
-                          onChange={(e) => handleEditingCategoryChange('description', e.target.value)}
-                        />
-                        <input
-                          type="text"
-                          placeholder="Icon"
-                          value={editingCategory.icon}
-                          onChange={(e) => handleEditingCategoryChange('icon', e.target.value)}
-                          maxLength="2"
-                        />
-                        <input
-                          type="text"
-                          placeholder="Image URL"
-                          value={editingCategory.image}
-                          onChange={(e) => handleEditingCategoryChange('image', e.target.value)}
-                        />
-                        <div className="form-row">
-                          <label>
-                            <input
-                              type="checkbox"
-                              checked={editingCategory.isActive}
-                              onChange={(e) => handleEditingCategoryChange('isActive', e.target.checked)}
-                            />
-                            Active
-                          </label>
-                          <label>
-                            Sort Order:
-                            <input
-                              type="number"
-                              min="0"
-                              value={editingCategory.sortOrder}
-                              onChange={(e) => handleEditingCategoryChange('sortOrder', parseInt(e.target.value) || 0)}
-                              style={{ width: '80px', marginLeft: '8px' }}
-                            />
-                          </label>
-                        </div>
-                        <div className="category-actions">
-                          <button onClick={updateCategory}>Save</button>
-                          <button onClick={cancelEditingCategory}>Cancel</button>
-                        </div>
-                      </div>
-                    ) : (
-                      // View Mode
-                      <div className="category-info">
-                        <div className="category-header">
-                          <span className="category-icon">{category.icon}</span>
-                          <h5 className="category-name">{category.name}</h5>
-                          <span className={`category-status ${category.isActive ? 'active' : 'inactive'}`}>
-                            {category.isActive ? 'Active' : 'Inactive'}
-                          </span>
-                        </div>
-                        {category.description && (
-                          <p className="category-description">{category.description}</p>
-                        )}
-                        <div className="category-meta">
-                          <span>Sort: {category.sortOrder}</span>
-                          <span>Created: {new Date(category.createdAt).toLocaleDateString()}</span>
-                        </div>
-                        <div className="category-actions">
-                          <button onClick={() => startEditingCategory(category)}>Edit</button>
-                          <button onClick={() => deleteCategory(category._id)} className="delete-btn">Delete</button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
       )}
     </div>
