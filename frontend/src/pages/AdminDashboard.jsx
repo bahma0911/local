@@ -7,13 +7,7 @@ import { API_BASE } from '../utils/api';
 import ReviewsList from '../components/ReviewsList';
 import "./AdminDashboard.css";
 
-// ...existing code...
 const AdminDashboard = () => {
-  // ...existing code...
-  // Fetch categories on mount
-  useEffect(() => {
-    fetchCategories();
-  }, []);
   const [shops, setShops] = useState([]);
   const [selectedShop, setSelectedShop] = useState(null);
   const [activeTab, setActiveTab] = useState("shops"); // default to shops
@@ -35,6 +29,11 @@ const AdminDashboard = () => {
 
   const { logout, isAdmin, isShopOwner, assignedShop, user, csrfToken } = useAuth();
   const navigate = useNavigate();
+
+  // Fetch categories on mount
+  useEffect(() => {
+    fetchCategories();
+  }, []);
 
   // ===================== API Calls =====================
   const fetchShops = async () => {
