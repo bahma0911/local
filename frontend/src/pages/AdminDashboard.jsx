@@ -22,11 +22,31 @@ const AdminDashboard = () => {
   const [categories, setCategories] = useState([]); // backend categories
   const [newCategory, setNewCategory] = useState("");
 
+  // Product-driven categories (from products)
+  // (removed duplicate declaration of shopCategories)
+
+  // derive product categories from available products (exclude empty string)
+  const shopCategories = React.useMemo(() => {
+    const s = new Set();
+    for (const sh of shops) {
+      for (const p of (sh.products || [])) {
+        const c = (p && p.category) ? String(p.category).trim() : '';
+        if (c) s.add(c);
+      }
+    }
+    const derived = Array.from(s);
+    // fallback to static categories from data if no product-level categories found
+    if (derived.length === 0) {
+      if (Array.isArray(fallbackCategories)) return fallbackCategories.filter(c => c !== 'All');
+    }
+    return derived;
+  }, [shops]);
+
   // Merged categories for product forms (union of backend and product-driven)
   const mergedCategories = React.useMemo(() => {
     // shopCategories: product-driven, categories: backend
-    const set = new Set([...(categories || []).
-      map(c => typeof c === 'string' ? c : c.name), ...(shopCategories || [])]);
+    const set = new Set([...(categories || [])
+      .map(c => typeof c === 'string' ? c : c.name), ...(shopCategories || [])]);
     return Array.from(set).filter(Boolean);
   }, [categories, shopCategories]);
 
@@ -555,23 +575,6 @@ const AdminDashboard = () => {
 
   const _accessibleShops = isAdmin ? shops : shops.filter(shop => shop.id === assignedShop);
   const currentShop = shops.find(shop => shop.id === selectedShop?.id) || selectedShop;
-  // derive product categories from available products (exclude empty string)
-  const shopCategories = React.useMemo(() => {
-    const s = new Set();
-    for (const sh of shops) {
-      for (const p of (sh.products || [])) {
-        const c = (p && p.category) ? String(p.category).trim() : '';
-        if (c) s.add(c);
-      }
-    }
-    const derived = Array.from(s);
-    // fallback to static categories from data if no product-level categories found
-    if (derived.length === 0) {
-      // fallback to static categories from data if no product-level categories found
-      if (Array.isArray(fallbackCategories)) return fallbackCategories.filter(c => c !== 'All');
-    }
-    return derived;
-  }, [shops]);
 
   // ===================== Input Handlers =====================
   const handleNewShopInputChange = (e) => {
