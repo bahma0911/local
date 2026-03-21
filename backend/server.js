@@ -1017,7 +1017,7 @@ app.post("/api/test-login", async (req, res) => {
       console.error('DELETE /api/me unexpected error', e && e.message ? e.message : e);
       return res.status(500).json({ message: 'Server error' });
     }
-  });
+});
 
 // Temporary debug route: allows GET/POST to check bcrypt against first Mongo user.
 // IMPORTANT: paste this route BEFORE any global CSRF middleware in server.js so it is not blocked.
@@ -1503,6 +1503,7 @@ app.get('/api/products', async (req, res) => {
         shopLocation: s.address || '',
         category: p.category || null,
         stock: (typeof p.inStock !== 'undefined') ? (p.inStock ? 1 : 0) : 0,
+        inStock: (typeof p.stock !== 'undefined') ? (Number(p.stock) > 0) : ((typeof p.inStock !== 'undefined') ? !!p.inStock : true),
         status: 'active',
         attributes: {}
       }));
@@ -1982,7 +1983,7 @@ app.post('/api/shop/register', validate(schemas.shopRegister), async (req, res) 
           phone: newShop.phone || '',
           deliveryFee: newShop.deliveryFee || '',
           deliveryServices: [],
-          owner: newShop.owner,
+          owner: newShop.owner || {},
           products: []
         });
       } catch (err) {
@@ -2362,9 +2363,7 @@ app.put('/api/shops/:shopId/products/:productId', authenticate, validate(schemas
       updated.stock = (Number.isFinite(s) && !Number.isNaN(s)) ? Math.max(0, Math.floor(s)) : updated.stock;
     }
     // default shopLocation to shop address when not provided
-    if (typeof payload.shopLocation === 'undefined' && (!updated.shopLocation || String(updated.shopLocation).trim() === '')) {
-      updated.shopLocation = shop.address || '';
-    }
+    if (typeof payload.shopLocation === 'undefined' && (!updated.shopLocation || String(updated.shopLocation).trim() === '') && shopDoc && shopDoc.address) updated.shopLocation = shopDoc.address;
     // ensure legacy products have a details field (fallback to description)
     if (typeof updated.details === 'undefined' || updated.details === null) updated.details = updated.description || '';
     shop.products[idx] = updated;
@@ -2808,7 +2807,7 @@ app.post('/api/orders', ordersLimiter, validate(schemas.orderCreate), async (req
   let computedTotal = 0;
   const items = baseItems.map(it => {
     // const { basePrice, commission, finalPrice } = applyCommission(it.price);
-    const finalQuantity = Number(it.qty || it.quantity || 1);
+    const finalQuantity = Number(it.qty || it.quantity || it.qty || 1);
     // computedTotal += finalPrice * finalQuantity;
     computedTotal += it.price * finalQuantity;
     return {
@@ -3355,7 +3354,7 @@ app.post('/api/orders/:id/payment/confirm', requireAuth, async (req, res) => { /
       // Admins are read-only
       if (requester && requester.role === 'admin') return res.status(403).json({ message: 'Admins are read-only' });
       const isOwner = requester && requester.role === 'shop_owner' && (Number(requester.shopId) === Number(order.shopId) || (shop && shop.owner && shop.owner.username === requester.username)); // WHY: shop owners must own the shop for this order
-      if (!isOwner) return res.status(403).json({ message: 'Forbidden' }); // WHY: prevent unauthorized payment confirmation
+      if (!isOwner) return res.status(403).json({ message: 'Forbidden' });
 
       // Apply payment confirmation updates in Mongo
       const nowIso = new Date().toISOString();
@@ -3424,13 +3423,13 @@ app.post('/api/orders/:id/payment/confirm', requireAuth, async (req, res) => { /
     // Update shop's orders entry in shops.json when present
     try {
       const shops = readShops(); // WHY: load shops to update the in-shop notification record
-      let shopIdx = shops.findIndex(s => (s.orders || []).some(o => String(o.orderId) === String(orderId))); // WHY: find shop that has an order with matching orderId
+      let shopIdx = shops.findIndex(s => (s.orders || []).some(o => String(o.orderId) === String(orderId)));
       if (shopIdx === -1) {
         // fallback: match by shopId present in central order (if we found central order)
         if (idx !== -1 && orders[idx] && orders[idx].shopId) shopIdx = shops.findIndex(s => Number(s.id) === Number(orders[idx].shopId)); // WHY: try to find shop by central order shopId
       }
       if (shopIdx !== -1) {
-        const ordIdx = shops[shopIdx].orders.findIndex(o => String(o.orderId) === String(orderId)); // WHY: index of shop order entry
+        const ordIdx = shops[shopIdx].orders.findIndex(o => String(o.orderId) === String(orderId));
         if (ordIdx !== -1) {
           shops[shopIdx].orders[ordIdx].paymentStatus = 'paid'; // WHY: mark shop-level order notification as paid
           shops[shopIdx].orders[ordIdx].payment = shops[shopIdx].orders[ordIdx].payment || {}; // WHY: ensure payment object exists
