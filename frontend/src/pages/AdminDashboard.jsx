@@ -592,14 +592,20 @@ const AdminDashboard = () => {
   };
 
   // ==================== Category Management ====================
-  // Fetch categories from localStorage only
+  // Fetch categories from localStorage only, with fallback to default
   const fetchCategories = () => {
     try {
       const stored = localStorage.getItem('adminCategories');
-      if (stored) setCategories(JSON.parse(stored));
-      else setCategories([]);
+      if (stored && JSON.parse(stored).length > 0) {
+        setCategories(JSON.parse(stored));
+      } else {
+        // fallback to some default categories if none exist
+        const defaultCategories = ["Electronics", "Clothing", "Groceries", "Books", "Home", "Other"];
+        setCategories(defaultCategories);
+        localStorage.setItem('adminCategories', JSON.stringify(defaultCategories));
+      }
     } catch {
-      setCategories([]);
+      setCategories(["Electronics", "Clothing", "Groceries", "Books", "Home", "Other"]);
     }
   };
 
