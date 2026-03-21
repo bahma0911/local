@@ -1,8 +1,35 @@
 import dotenv from 'dotenv';
-import categoryRoutes from './routes/categoryRoutes.js';
-// Register category routes
-app.use('/api/categories', categoryRoutes);
 import express from 'express';
+import cors from 'cors';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+import crypto from 'crypto';
+import path from 'path';
+import multer from 'multer';
+import createCloudinaryStorage from 'multer-storage-cloudinary'; // CommonJS factory: returns a storage instance when called with opts
+import cloudinary from './config/cloudinary.js';
+import bcrypt from 'bcrypt';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import jwt from 'jsonwebtoken';
+import { z } from 'zod';
+import { validate, schemas } from './validators.js';
+import { info, warn, error as logError } from './logger.js';
+import connectMongo from './mongo.js';
+import User from './models/User.js';
+import * as authController from './controllers/authController.js';
+import * as emailController from './controllers/emailController.js';
+import { sendPasswordResetEmail, sendShopInvitationEmail } from './services/email.service.js';
+import requireVerifiedEmail from './middleware/requireVerifiedEmail.js';
+import ShopModel from './models/Shop.js';
+import OrderModel from './models/Order.js';
+import CartModel from './models/Cart.js';
+import NotificationModel from './models/Notification.js';
+import ProductModel from './models/Product.js';
+import ShopInvitationModel from './models/ShopInvitation.js';
+// import { applyCommission } from './utils/pricing.js';
+import mongoose from 'mongoose';
+import categoryRoutes from './routes/categoryRoutes.js';
 import cors from 'cors';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -46,6 +73,9 @@ if (IS_PRODUCTION && (!process.env.FRONTEND_ORIGIN || process.env.FRONTEND_ORIGI
 }
 
 const app = express();
+
+// Register category routes after app is initialized
+app.use('/api/categories', categoryRoutes);
 // trust proxy so secure cookies work behind proxies (Heroku, nginx, dev proxies)
 app.set('trust proxy', 1);
 // Support multiple allowed origins via environment variable.
