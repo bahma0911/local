@@ -1,3 +1,9 @@
+  // Fetch categories when switching to the categories tab or on mount if already active
+  useEffect(() => {
+    if (isAdmin && activeTab === 'categories') {
+      fetchCategories();
+    }
+  }, [isAdmin, activeTab]);
 import React, { useState, useEffect } from "react";
 import { useNavigate } from 'react-router-dom';
 // product categories are computed dynamically from products (do not import shop-based categories)
