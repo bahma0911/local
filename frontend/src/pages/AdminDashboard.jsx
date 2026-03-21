@@ -1,10 +1,3 @@
-// ...existing code...
-const AdminDashboard = () => {
-  // ...existing code...
-  // Fetch categories on mount
-  useEffect(() => {
-    fetchCategories();
-  }, []);
 import React, { useState, useEffect } from "react";
 import { useNavigate } from 'react-router-dom';
 // product categories are computed dynamically from products (do not import shop-based categories)
@@ -14,7 +7,13 @@ import { API_BASE } from '../utils/api';
 import ReviewsList from '../components/ReviewsList';
 import "./AdminDashboard.css";
 
+// ...existing code...
 const AdminDashboard = () => {
+  // ...existing code...
+  // Fetch categories on mount
+  useEffect(() => {
+    fetchCategories();
+  }, []);
   const [shops, setShops] = useState([]);
   const [selectedShop, setSelectedShop] = useState(null);
   const [activeTab, setActiveTab] = useState("shops"); // default to shops
