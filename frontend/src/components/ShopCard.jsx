@@ -9,7 +9,7 @@ const ShopCard = ({ shop, isSelected, onClick }) => {
       tabIndex={0}
     >
       <div className="shop-card-header">
-        <div style={{display:'flex', alignItems:'center', gap:'12px', width:'100%'}}>
+        <div style={{display:'flex', flexDirection:'column', alignItems:'center', gap:'8px', width:'100%'}}>
           {shop.logo && (
             <div className="shop-logo">
               <img 
@@ -25,7 +25,7 @@ const ShopCard = ({ shop, isSelected, onClick }) => {
               </div>
             </div>
           )}
-          <div style={{flex:1, minWidth:0}}>
+          <div style={{width:'100%', textAlign:'center'}}>
             <h2 className="shop-name">{shop.name}</h2>
           </div>
         </div>

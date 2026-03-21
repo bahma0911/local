@@ -1172,6 +1172,7 @@ app.get('/api/shops', async (req, res) => {
             return {
               id: d.legacyId || d._id,
               name: d.name,
+              logo: d.logo,
               category: d.category,
               address: d.address,
               deliveryFee: d.deliveryFee,
@@ -1789,6 +1790,169 @@ app.post('/api/admin/invite-shop', requireAuth, validate(schemas.shopInvite), as
     res.json({ message: 'Invitation sent successfully' });
   } catch (error) {
     console.error('Invite shop error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// ==================== CATEGORY MANAGEMENT ROUTES ====================
+
+// GET /api/admin/categories - list all categories (admin only)
+app.get('/api/admin/categories', requireAuth, async (req, res) => {
+  try {
+    const authUser = await getUserFromRequest(req);
+    if (!authUser || authUser.role !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+
+    if (!mongoose.connection || mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ message: 'MongoDB not connected' });
+    }
+
+    const CategoryModel = (await import('./models/Category.js')).default;
+    const categories = await CategoryModel.find().sort({ sortOrder: 1, name: 1 }).lean().exec();
+    res.json(categories);
+  } catch (error) {
+    console.error('Get categories error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// POST /api/admin/categories - create new category (admin only)
+app.post('/api/admin/categories', requireAuth, async (req, res) => {
+  try {
+    const authUser = await getUserFromRequest(req);
+    if (!authUser || authUser.role !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+
+    if (!mongoose.connection || mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ message: 'MongoDB not connected' });
+    }
+
+    const { name, description, icon, image, isActive, sortOrder } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ message: 'Category name is required' });
+    }
+
+    const CategoryModel = (await import('./models/Category.js')).default;
+
+    // Check if category already exists
+    const existingCategory = await CategoryModel.findOne({
+      name: { $regex: new RegExp(`^${name.trim()}$`, 'i') }
+    });
+
+    if (existingCategory) {
+      return res.status(400).json({ message: 'Category with this name already exists' });
+    }
+
+    const category = new CategoryModel({
+      name: name.trim(),
+      description: description?.trim() || '',
+      icon: icon?.trim() || '📦',
+      image: image?.trim() || '',
+      isActive: isActive !== undefined ? isActive : true,
+      sortOrder: sortOrder || 0
+    });
+
+    await category.save();
+    res.status(201).json(category);
+  } catch (error) {
+    console.error('Create category error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// PUT /api/admin/categories/:id - update category (admin only)
+app.put('/api/admin/categories/:id', requireAuth, async (req, res) => {
+  try {
+    const authUser = await getUserFromRequest(req);
+    if (!authUser || authUser.role !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+
+    if (!mongoose.connection || mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ message: 'MongoDB not connected' });
+    }
+
+    const { id } = req.params;
+    const { name, description, icon, image, isActive, sortOrder } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ message: 'Category name is required' });
+    }
+
+    const CategoryModel = (await import('./models/Category.js')).default;
+    const category = await CategoryModel.findById(id);
+
+    if (!category) {
+      return res.status(404).json({ message: 'Category not found' });
+    }
+
+    // Check if another category with the same name exists
+    const existingCategory = await CategoryModel.findOne({
+      _id: { $ne: id },
+      name: { $regex: new RegExp(`^${name.trim()}$`, 'i') }
+    });
+
+    if (existingCategory) {
+      return res.status(400).json({ message: 'Category with this name already exists' });
+    }
+
+    category.name = name.trim();
+    category.description = description?.trim() || '';
+    category.icon = icon?.trim() || '📦';
+    category.image = image?.trim() || '';
+    category.isActive = isActive !== undefined ? isActive : true;
+    category.sortOrder = sortOrder || 0;
+
+    await category.save();
+    res.json(category);
+  } catch (error) {
+    console.error('Update category error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// DELETE /api/admin/categories/:id - delete category (admin only)
+app.delete('/api/admin/categories/:id', requireAuth, async (req, res) => {
+  try {
+    const authUser = await getUserFromRequest(req);
+    if (!authUser || authUser.role !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+
+    if (!mongoose.connection || mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ message: 'MongoDB not connected' });
+    }
+
+    const { id } = req.params;
+    const CategoryModel = (await import('./models/Category.js')).default;
+
+    const category = await CategoryModel.findByIdAndDelete(id);
+    if (!category) {
+      return res.status(404).json({ message: 'Category not found' });
+    }
+
+    res.json({ message: 'Category deleted successfully' });
+  } catch (error) {
+    console.error('Delete category error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// GET /api/categories - public endpoint to get active categories for frontend
+app.get('/api/categories', async (req, res) => {
+  try {
+    if (!mongoose.connection || mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ message: 'MongoDB not connected' });
+    }
+
+    const CategoryModel = (await import('./models/Category.js')).default;
+    const categories = await CategoryModel.find({ isActive: true }).sort({ sortOrder: 1, name: 1 }).lean().exec();
+    res.json(categories);
+  } catch (error) {
+    console.error('Get public categories error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

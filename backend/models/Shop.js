@@ -19,6 +19,7 @@ const OwnerSchema = new mongoose.Schema({
 const ShopSchema = new mongoose.Schema({
   legacyId: { type: Number, index: true, unique: true, sparse: true },
   name: { type: String, required: true },
+  logo: { type: String }, // Shop logo image URL
   category: { type: String },
   address: { type: String },
   phone: { type: String },

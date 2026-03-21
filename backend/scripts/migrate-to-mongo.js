@@ -30,6 +30,7 @@ const run = async () => {
       const doc = {
         legacyId: s.id,
         name: s.name,
+        logo: s.logo,
         category: s.category,
         address: s.address,
         deliveryFee: s.deliveryFee,

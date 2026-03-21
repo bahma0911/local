@@ -108,20 +108,28 @@ const ShopList = ({ compact = false }) => {
 
   // (Removed shop-level filtering) — products are filtered in `filteredProducts` and per-shop where needed
 
-  // Random products section: pick up to 6 random products from all shops
-  const randomProducts = React.useMemo(() => {
-    const pool = shops.flatMap(shop => (shop.products || []).map(p => ({ ...p, shopName: shop.name, shopId: shop.id })));
-    if (!pool || pool.length === 0) return [];
-    // Filter for in-stock products
-    const inStockPool = pool.filter(p => {
-      const available = typeof p.inStock !== 'undefined' ? p.inStock : ((typeof p.stock !== 'undefined') ? p.stock > 0 : true);
-      return available;
-    });
-    if (inStockPool.length === 0) return [];
-    // simple shuffle and take first 6
-    const shuffled = inStockPool.slice().sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, 6);
-  }, [shops]);
+  // Featured categories sections: show products from all categories
+  const featuredCategoriesData = React.useMemo(() => {
+    const categoryList = categories.filter(cat => cat !== 'All'); // Exclude 'All' category
+    return categoryList.map(category => {
+      const pool = shops.flatMap(shop =>
+        (shop.products || [])
+          .filter(p => (p.category || '').toLowerCase().trim() === category.toLowerCase())
+          .map(p => ({ ...p, shopName: shop.name, shopId: shop.id }))
+      );
+
+      // Filter for in-stock products and take first 8 for horizontal scrolling
+      const inStockPool = pool.filter(p => {
+        const available = typeof p.inStock !== 'undefined' ? p.inStock : ((typeof p.stock !== 'undefined') ? p.stock > 0 : true);
+        return available;
+      });
+
+      return {
+        category,
+        products: inStockPool.slice(0, 8) // Show up to 8 products per category
+      };
+    }).filter(section => section.products.length > 0); // Only show categories that have products
+  }, [shops, categories]);
 
   // For normal shop list view, show all shops when no filters are active.
   // When any filter (search/price/category) is active, only show shops that have matching products.
@@ -133,8 +141,6 @@ const ShopList = ({ compact = false }) => {
 
   return (
     <div className="shop-list-container">
-      <h1 className="shop-list-title">Shops</h1>
-
       {/* Unified Search Bar with Advanced Filters Toggle */}
       <div className="search-section">
         <div className="search-bar-container">
@@ -229,6 +235,8 @@ const ShopList = ({ compact = false }) => {
           </div>
         )}
       </div>
+
+      <h1 className="shop-list-title">Shops</h1>
 
       {/* Search Results OR Normal Shop List */}
       {searchTerm || (priceRange[1] !== null && priceRange[1] < 1000000000) || (selectedCategory !== 'All') ? (
@@ -341,36 +349,38 @@ const ShopList = ({ compact = false }) => {
             })}
           </div>
 
-          {/* Random Picks */}
-          {randomProducts.length > 0 && (
-            <div className="random-products-section">
-              <h2 className="random-products-title">Random Picks</h2>
-              <div className="random-products-grid">
-                {randomProducts.map(p => (
-                  <div
-                    key={`${p.id}-${p.shopId}`}
-                    className="random-product-card"
-                    onClick={() => {
-                      const pid = String(p.id || p._id || '');
-                      const navId = pid.includes('-') ? pid : `${p.shopId}-${pid}`;
-                      window.location.hash = `#/product/${navId}`;
-                    }}
-                  >
-                    <img src={p.image} alt={p.name} onError={(e)=>{e.target.src='https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=300&fit=crop'}} />
-                    <div className="rpc-info">
-                      <div className="rpc-name">{p.name}</div>
-                      <div className="rpc-shop">{p.shopName}</div>
-                      <div className="rpc-price">{p.price} ETB</div>
-                      <div className="rpc-actions">
-                        <button onClick={(e) => { e.stopPropagation(); const inCartLocal = cartItems && cartItems.some(it => String(it.id) === String(p.id)); if (compact && inCartLocal) return; addToCart(p, 'Pickup', p.shopId); }} className="rpc-btn pickup" disabled={compact && cartItems && cartItems.some(it => String(it.id) === String(p.id))}>Pickup</button>
-                        <button onClick={(e) => { e.stopPropagation(); const inCartLocal = cartItems && cartItems.some(it => String(it.id) === String(p.id)); if (compact && inCartLocal) return; addToCart(p, 'Delivery', p.shopId); }} className="rpc-btn delivery" disabled={compact && cartItems && cartItems.some(it => String(it.id) === String(p.id))}>Delivery</button>
+          {/* Featured Categories Products */}
+          {featuredCategoriesData.map(({ category, products }) => (
+            products.length > 0 && (
+              <div key={category} className="featured-products-section">
+                <h2 className="featured-products-title">{category}</h2>
+                <div className="featured-products-grid featured-products-horizontal">
+                  {products.map(p => (
+                    <div
+                      key={`${p.id}-${p.shopId}`}
+                      className="featured-product-card"
+                      onClick={() => {
+                        const pid = String(p.id || p._id || '');
+                        const navId = pid.includes('-') ? pid : `${p.shopId}-${pid}`;
+                        window.location.hash = `#/product/${navId}`;
+                      }}
+                    >
+                      <img src={p.image} alt={p.name} onError={(e)=>{e.target.src='https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=300&fit=crop'}} />
+                      <div className="fpc-info">
+                        <div className="fpc-name">{p.name}</div>
+                        <div className="fpc-shop">{p.shopName}</div>
+                        <div className="fpc-price">{p.price} ETB</div>
+                        <div className="fpc-actions">
+                          <button onClick={(e) => { e.stopPropagation(); const inCartLocal = cartItems && cartItems.some(it => String(it.id) === String(p.id)); if (compact && inCartLocal) return; addToCart(p, 'Pickup', p.shopId); }} className="fpc-btn pickup" disabled={compact && cartItems && cartItems.some(it => String(it.id) === String(p.id))}>Pickup</button>
+                          <button onClick={(e) => { e.stopPropagation(); const inCartLocal = cartItems && cartItems.some(it => String(it.id) === String(p.id)); if (compact && inCartLocal) return; addToCart(p, 'Delivery', p.shopId); }} className="fpc-btn delivery" disabled={compact && cartItems && cartItems.some(it => String(it.id) === String(p.id))}>Delivery</button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )
+          ))}
         </>
       )}
 
