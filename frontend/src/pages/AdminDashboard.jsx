@@ -1,3 +1,7 @@
+  // Fetch categories on mount
+  useEffect(() => {
+    fetchCategories();
+  }, []);
 import React, { useState, useEffect } from "react";
 import { useNavigate } from 'react-router-dom';
 // product categories are computed dynamically from products (do not import shop-based categories)
@@ -617,24 +621,24 @@ const AdminDashboard = () => {
     }
     const name = newCategory.trim();
     // Check for duplicates
-    if (categories.some(c => (typeof c === 'string' ? c : c.name) === name)) {
+    if (categories.some(c => (typeof c === 'string' ? c : c.name).toLowerCase() === name.toLowerCase())) {
       alert('Category already exists');
       return;
     }
     const updated = [...categories, name];
-    setCategories(updated);
     localStorage.setItem('adminCategories', JSON.stringify(updated));
     setNewCategory('');
     alert('Category added successfully!');
+    fetchCategories();
   };
 
   // Delete a category (localStorage only)
   const deleteCategoryAPI = async (categoryName) => {
     if (!window.confirm('Are you sure you want to delete this category?')) return;
     const updated = categories.filter(c => (typeof c === 'string' ? c : c.name) !== categoryName);
-    setCategories(updated);
     localStorage.setItem('adminCategories', JSON.stringify(updated));
     alert('Category deleted successfully!');
+    fetchCategories();
   };
       {/* CATEGORY MANAGEMENT TAB */}
       {isAdmin && activeTab === 'categories' && (
