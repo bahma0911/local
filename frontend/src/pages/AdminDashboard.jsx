@@ -771,9 +771,25 @@ const AdminDashboard = () => {
               <div style={{ color: '#999' }}>No categories found.</div>
             ) : (
               categories.map(cat => (
-                <div key={cat.id || cat._id || cat.name} style={{ display: 'flex', alignItems: 'center', gap: 12, border: '1px solid #eee', borderRadius: 6, padding: 8 }}>
-                  <span>{cat.name}</span>
-                  <button style={{ background: '#f55', color: '#fff', border: 'none', borderRadius: 4, padding: '2px 8px' }} onClick={() => deleteCategoryAPI(cat.id || cat._id)}>Delete</button>
+                <div
+                  key={cat.id || cat._id || cat.name}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    border: '1px solid #eee',
+                    borderRadius: 6,
+                    padding: 8,
+                    gap: 12
+                  }}
+                >
+                  <span style={{ fontWeight: 500 }}>{cat.name}</span>
+                  <button
+                    style={{ background: '#f55', color: '#fff', border: 'none', borderRadius: 4, padding: '2px 12px', marginLeft: 16 }}
+                    onClick={() => deleteCategoryAPI(cat.id || cat._id)}
+                  >
+                    Delete
+                  </button>
                 </div>
               ))
             )}
