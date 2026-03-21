@@ -46,6 +46,7 @@ export const shops = [
   {
     id: 1,
     name: "Abebe Electronics",
+    logo: "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=80&h=80&fit=crop",
     category: "Electronics",
     address: "Bole, Addis Ababa - Near Bole Medhanealem",
     deliveryFee: 150,
@@ -80,6 +81,7 @@ export const shops = [
   {
     id: 2,
     name: "Selam Grocery",
+    logo: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=80&h=80&fit=crop",
     category: "Grocery",
     address: "Merkato, Addis Ababa - Opposite Merkato Market",
     deliveryFee: 50,

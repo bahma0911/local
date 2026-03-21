@@ -4,38 +4,22 @@ import ShopCard from "../components/ShopCard";
 import ProductList from "../components/ProductList";
 import { shops as initialShops, categories as fallbackCategories } from "../data/shopsData";
 import { useCart } from "../hooks/useCart";
+import { useNavigate } from "react-router-dom";
 import apiFetch from "../utils/apiFetch";
 import { API_BASE } from '../utils/api';
 import "./ShopList.css";
 
 const ShopList = ({ compact = false }) => {
+  const navigate = useNavigate();
   const [shops, setShops] = useState([]);
-  const [selectedShop, setSelectedShop] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
   // priceRange: [min, max] — use `null` for unlimited max
   const [priceRange, setPriceRange] = useState([0, null]);
 
-  // compact mode: show limited number on home page and toggle to reveal others
-  const [showAllShops, setShowAllShops] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(3);
-  const [expandedShops, setExpandedShops] = useState([]); // shop ids that are expanded in the list
+  // compact mode: show all shops horizontally on home page
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
-  useEffect(() => {
-    if (!compact) return;
-    const mq = window.matchMedia('(max-width: 640px)');
-    const update = () => setVisibleCount(mq.matches ? 2 : 3);
-    update();
-    if (mq.addEventListener) mq.addEventListener('change', update);
-    else mq.addListener(update);
-    return () => {
-      if (mq.removeEventListener) mq.removeEventListener('change', update);
-      else mq.removeListener(update);
-    };
-  }, [compact]);
-  
-  // Prefer loading shops from backend API (returns normalized `stock`), fallback to localStorage/initial data
   useEffect(() => {
     let mounted = true;
     const load = async () => {
@@ -255,16 +239,14 @@ const ShopList = ({ compact = false }) => {
             {searchTerm ? ` for "${searchTerm}"` : (selectedCategory !== 'All' ? ` in "${selectedCategory}"` : '')}
           </h2>
           
-          <div className="shop-grid">
+          <div className={`shop-grid ${compact ? 'shop-grid-horizontal' : ''}`}>
             {displayedShops.map((shop) => {
-              const matchingCount = filteredProducts.filter(p => p.shopId === shop.id).length;
               return (
                 <ShopCard
                   key={shop.id}
                   shop={shop}
-                  isSelected={selectedShop?.id === shop.id}
-                  onClick={() => setSelectedShop({ ...shop, products: filteredProducts.filter(p => p.shopId === shop.id) })}
-                  productCount={matchingCount}
+                  isSelected={false}
+                  onClick={() => navigate(`/shop/${shop.id}`)}
                 />
               );
             })}
@@ -340,49 +322,24 @@ const ShopList = ({ compact = false }) => {
       ) : (
         // Normal Shop View (when no search)
         <>
-          {/* Compact header: small toggle button on the right to reveal more shops */}
-          {compact && (
-            <div className="shops-header">
-              <div />
-              <button className="compact-shops-toggle" onClick={() => setShowAllShops(s => !s)}>
-                {showAllShops ? 'Hide' : 'Shops'}
-              </button>
-            </div>
-          )}
-
-          <div className="shop-grid">
-            {(compact && !showAllShops ? displayedShops.slice(0, visibleCount) : displayedShops).map((shop) => {
+          <div className={`shop-grid ${compact ? 'shop-grid-horizontal' : ''}`}>
+            {displayedShops.map((shop) => {
               const matchingProducts = (shop.products || []).filter(p => {
                 if (!p) return false;
                 if (selectedCategoryNormalized === 'all') return true;
                 return (p.category || '').toLowerCase().trim() === selectedCategoryNormalized;
               });
 
-              const isExpanded = expandedShops.includes(shop.id);
-
               return (
-                <div key={shop.id} className="shop-list-item">
-                  <ShopCard
-                    shop={shop}
-                    isSelected={selectedShop?.id === shop.id}
-                    onClick={() => {
-                      // toggle expand
-                      setExpandedShops(prev => prev.includes(shop.id) ? prev.filter(id => id !== shop.id) : [...prev, shop.id]);
-                    }}
-                    productCount={matchingProducts.length}
-                  />
-                    {isExpanded && matchingProducts.length > 0 && (
-                    <div className="shop-expanded-products">
-                      <ProductList shop={{ ...shop, products: matchingProducts }} onAddToCart={addToCart} limitSingle={compact} />
-                    </div>
-                  )}
-                </div>
+                <ShopCard
+                  key={shop.id}
+                  shop={shop}
+                  isSelected={false}
+                  onClick={() => navigate(`/shop/${shop.id}`)}
+                />
               );
             })}
           </div>
-
-          {/* If a shop is selected, show its products BEFORE random picks */}
-          {selectedShop && <ProductList shop={selectedShop} onAddToCart={addToCart} limitSingle={compact} />}
 
           {/* Random Picks */}
           {randomProducts.length > 0 && (

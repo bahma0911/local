@@ -1,6 +1,6 @@
 import "./ShopCard.css";
 
-const ShopCard = ({ shop, isSelected, onClick, productCount, isExpanded }) => {
+const ShopCard = ({ shop, isSelected, onClick }) => {
   return (
     <div
       onClick={onClick}
@@ -9,18 +9,26 @@ const ShopCard = ({ shop, isSelected, onClick, productCount, isExpanded }) => {
       tabIndex={0}
     >
       <div className="shop-card-header">
-        <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', width:'100%'}}>
-          <h2 className="shop-name">{shop.name}</h2>
-          <div className={`expand-indicator ${isExpanded ? 'expanded' : ''}`} aria-hidden>
-            ▾
+        <div style={{display:'flex', alignItems:'center', gap:'12px', width:'100%'}}>
+          {shop.logo && (
+            <div className="shop-logo">
+              <img 
+                src={shop.logo} 
+                alt={`${shop.name} logo`}
+                onError={(e) => { 
+                  e.target.style.display = 'none'; 
+                  e.target.nextSibling.style.display = 'flex';
+                }}
+              />
+              <div className="shop-logo-fallback" style={{display:'none'}}>
+                🏪
+              </div>
+            </div>
+          )}
+          <div style={{flex:1, minWidth:0}}>
+            <h2 className="shop-name">{shop.name}</h2>
           </div>
         </div>
-
-        {productCount !== undefined && (
-          <p className="shop-product-count">
-            {productCount} product{productCount !== 1 ? 's' : ''}
-          </p>
-        )}
       </div>
     </div>
   );

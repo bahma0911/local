@@ -13,6 +13,7 @@ import OrderTracking from "./pages/OrderTracking";
 import Wishlist from "./pages/Wishlist";
 import CustomerDashboard from "./pages/CustomerDashboard";
 import ProductDetails from "./pages/ProductDetails";
+import ShopDetails from "./pages/ShopDetails";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Footer from "./components/Footer";
 import Login from "./pages/Login";
@@ -233,6 +234,7 @@ const AppContent = () => {
           <Routes>
             {/* Customer Routes */}
             <Route path="/" element={<Home />} />
+            <Route path="/shop/:id" element={<ShopDetails />} />
             <Route path="/cart" element={<CartPage />} />
             <Route path="/product/:id" element={<ProductDetails />} />
             <Route path="/checkout" element={<Checkout />} />

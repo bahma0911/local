@@ -213,26 +213,21 @@
   margin-bottom: 40px;
 }
 
-/* Compact header used on home page to toggle showing all shops */
-.shops-header {
+.shop-grid-horizontal {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
+  gap: clamp(0.75rem, 2.5vw, 1.5rem);
+  overflow-x: auto;
+  padding-bottom: 10px; /* space for scrollbar */
+  scroll-behavior: smooth;
+  /* prevent vertical stacking */
+  flex-wrap: nowrap;
+  /* ensure items don't shrink */
+  align-items: stretch;
 }
 
-.compact-shops-toggle {
-  background: rgba(255,255,255,0.06);
-  color: var(--hx-text);
-  border: 1px solid rgba(255,255,255,0.08);
-  padding: 6px 10px;
-  border-radius: 6px;
-  font-size: 0.85rem;
-  cursor: pointer;
-}
-
-.compact-shops-toggle:hover {
-  background: rgba(255,255,255,0.10);
+.shop-grid-horizontal > * {
+  flex-shrink: 0;
+  width: 160px; /* fixed width for consistent scrolling */
 }
 
 /* Search results */
