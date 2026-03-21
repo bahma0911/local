@@ -8,12 +8,16 @@ const categoriesPath = path.join(process.cwd(), 'backend', 'data', 'categories.j
 // GET all categories
 router.get('/', (req, res) => {
   fs.readFile(categoriesPath, 'utf8', (err, data) => {
-    if (err) return res.status(500).json({ error: 'Failed to read categories' });
+    if (err) {
+      console.error('Error reading categories.json:', err);
+      return res.status(500).json({ error: 'Failed to read categories', details: err.message });
+    }
     try {
       const categories = JSON.parse(data);
       res.json(categories);
     } catch (e) {
-      res.status(500).json({ error: 'Invalid categories data' });
+      console.error('Error parsing categories.json:', e);
+      res.status(500).json({ error: 'Invalid categories data', details: e.message });
     }
   });
 });
