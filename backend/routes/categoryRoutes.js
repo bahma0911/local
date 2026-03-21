@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 
 const router = express.Router();
-const categoriesPath = path.join(process.cwd(), 'backend', 'data', 'categories.json');
+const categoriesPath = path.join(process.cwd(), 'data', 'categories.json');
 
 // GET all categories
 router.get('/', (req, res) => {
