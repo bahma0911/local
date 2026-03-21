@@ -1,4 +1,7 @@
 import dotenv from 'dotenv';
+import categoryRoutes from './routes/categoryRoutes.js';
+// Register category routes
+app.use('/api/categories', categoryRoutes);
 import express from 'express';
 import cors from 'cors';
 import fs from 'fs';

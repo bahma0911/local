@@ -5,6 +5,7 @@ import { useAuth } from "../hooks/useAuth";
 import apiFetch from '../utils/apiFetch';
 import { API_BASE } from '../utils/api';
 import ReviewsList from '../components/ReviewsList';
+import AdUpload from '../components/AdUpload';
 import "./AdminDashboard.css";
 
 const AdminDashboard = () => {
@@ -673,8 +674,21 @@ const AdminDashboard = () => {
   // declared above near top to ensure effects can reference it
 
   // ===================== Render =====================
+  // Handler for ad upload (replace with real API call if needed)
+  const handleAdUpload = (file) => {
+    // For now, just log or alert
+    alert(`Ad image selected: ${file.name}`);
+    // TODO: Upload to server and update banner
+  };
+
   return (
     <div className="admin-dashboard">
+      {isAdmin && (
+        <div className="ad-upload-section">
+          <h3>Upload Ad Banner</h3>
+          <AdUpload onUpload={handleAdUpload} />
+        </div>
+      )}
       {/* HEADER */}
       <div className="admin-header">
         <h1 className="admin-title">{isAdmin ? "Admin Dashboard" : "My Shop Dashboard"}</h1>

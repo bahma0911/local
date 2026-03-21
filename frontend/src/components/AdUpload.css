@@ -1,0 +1,21 @@
+.ad-upload {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 16px 0;
+}
+.ad-upload input[type="file"] {
+  margin-bottom: 8px;
+}
+.ad-preview {
+  max-width: 320px;
+  max-height: 80px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  border: 1px solid #eee;
+}
+.ad-upload-error {
+  color: #c00;
+  font-size: 0.95em;
+}

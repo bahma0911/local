@@ -16,6 +16,7 @@ import ProductDetails from "./pages/ProductDetails";
 import ShopDetails from "./pages/ShopDetails";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Footer from "./components/Footer";
+import AdBanner from "./components/AdBanner";
 import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Register from "./pages/Register";
@@ -115,6 +116,7 @@ const AppContent = () => {
 
   return (
     <div className="App">
+      {/* Ad Banner removed as requested */}
       {/* Navigation Bar */}
       <div className="app-header">
         <div className="app-header-content">
