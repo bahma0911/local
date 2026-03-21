@@ -592,22 +592,14 @@ const AdminDashboard = () => {
   };
 
   // ==================== Category Management ====================
-  // Fetch categories from localStorage or API
-  const fetchCategories = async () => {
+  // Fetch categories from localStorage only
+  const fetchCategories = () => {
     try {
-      const data = await apiFetch(`${API_BASE}/api/categories`);
-      setCategories(data || []);
-      localStorage.setItem('adminCategories', JSON.stringify(data || []));
-    } catch (err) {
-      // fallback to localStorage if API fails
-      console.error('Error fetching categories:', err);
-      try {
-        const stored = localStorage.getItem('adminCategories');
-        if (stored) setCategories(JSON.parse(stored));
-        else setCategories([]);
-      } catch {
-        setCategories([]);
-      }
+      const stored = localStorage.getItem('adminCategories');
+      if (stored) setCategories(JSON.parse(stored));
+      else setCategories([]);
+    } catch {
+      setCategories([]);
     }
   };
 
