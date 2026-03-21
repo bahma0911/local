@@ -1,7 +1,6 @@
 import dotenv from 'dotenv';
 import express from 'express';
 import categoryRoutes from './routes/categoryRoutes.js';
-// ...existing code...
 import cors from 'cors';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -34,8 +33,6 @@ import mongoose from 'mongoose';
 
 dotenv.config();
 
-// Authentication removed: running as public-only server (no JWT required)
-
 // In production require FRONTEND_ORIGIN to be set so CORS and cookies are configured safely
 const IS_PRODUCTION = (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'prod');
 if (IS_PRODUCTION && (!process.env.FRONTEND_ORIGIN || process.env.FRONTEND_ORIGIN.trim().length === 0)) {
@@ -47,7 +44,6 @@ if (IS_PRODUCTION && (!process.env.FRONTEND_ORIGIN || process.env.FRONTEND_ORIGI
 const app = express();
 
 // Register category routes after app is initialized
-app.use('/api/categories', categoryRoutes);
 // trust proxy so secure cookies work behind proxies (Heroku, nginx, dev proxies)
 app.set('trust proxy', 1);
 // Support multiple allowed origins via environment variable.
@@ -78,6 +74,8 @@ app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 app.use(helmet());
 app.use(express.json({ limit: '1mb' }));
+
+app.use('/api/categories', categoryRoutes);
 
 // simple request logger to help debug upload 404s
 app.use((req, res, next) => {
