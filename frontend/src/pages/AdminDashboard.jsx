@@ -19,8 +19,16 @@ const AdminDashboard = () => {
   const [detailsShop, setDetailsShop] = useState(null);
 
   // Categories state
-  const [categories, setCategories] = useState([]);
+  const [categories, setCategories] = useState([]); // backend categories
   const [newCategory, setNewCategory] = useState("");
+
+  // Merged categories for product forms (union of backend and product-driven)
+  const mergedCategories = React.useMemo(() => {
+    // shopCategories: product-driven, categories: backend
+    const set = new Set([...(categories || []).
+      map(c => typeof c === 'string' ? c : c.name), ...(shopCategories || [])]);
+    return Array.from(set).filter(Boolean);
+  }, [categories, shopCategories]);
 
   // Owner tab for shop-owner UI: 'orders' | 'products' | 'add'
   const [ownerTab, setOwnerTab] = useState('orders');
@@ -898,7 +906,7 @@ const AdminDashboard = () => {
               <input placeholder="Product name" value={newProduct.name} onChange={e => setNewProduct(prev => ({ ...prev, name: e.target.value }))} />
               <select value={newProduct.category} onChange={e => setNewProduct(prev => ({ ...prev, category: e.target.value }))}>
                 <option value="">Select category</option>
-                {shopCategories.map(c => <option key={c} value={c}>{c}</option>)}
+                {mergedCategories.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
               <input placeholder="Price in ETB" type="number" value={newProduct.price} onChange={e => setNewProduct(prev => ({ ...prev, price: Number(e.target.value) }))} />
                 <input placeholder="Short description" value={newProduct.description} onChange={e => setNewProduct(prev => ({ ...prev, description: e.target.value }))} />
@@ -992,7 +1000,7 @@ const AdminDashboard = () => {
               <h4>Edit Product</h4>
               <select value={editingProduct.category || ''} onChange={e => setEditingProduct(prev => ({ ...prev, category: e.target.value }))}>
                 <option value="">Select category</option>
-                {shopCategories.map(c => <option key={c} value={c}>{c}</option>)}
+                {mergedCategories.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
               <input value={editingProduct.name} onChange={e => setEditingProduct(prev => ({ ...prev, name: e.target.value }))} />
               <input type="number" placeholder="Price in ETB" value={editingProduct.price} onChange={e => setEditingProduct(prev => ({ ...prev, price: Number(e.target.value) }))} />
