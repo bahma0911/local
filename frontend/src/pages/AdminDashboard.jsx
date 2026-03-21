@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from 'react-router-dom';
-// product categories are computed dynamically from products (do not import shop-based categories)
+import { categories as fallbackCategories } from '../data/shopsData';
 import { useAuth } from "../hooks/useAuth";
 import apiFetch from '../utils/apiFetch';
 import { API_BASE } from '../utils/api';
@@ -567,13 +567,8 @@ const AdminDashboard = () => {
     const derived = Array.from(s);
     // fallback to static categories from data if no product-level categories found
     if (derived.length === 0) {
-      try {
-        // dynamic import to avoid top-level dependency if file changes
-        const { categories: fallback } = require('../data/shopsData');
-        if (Array.isArray(fallback)) return fallback.filter(c => c !== 'All');
-      } catch (e) {
-        // ignore and return empty
-      }
+      // fallback to static categories from data if no product-level categories found
+      if (Array.isArray(fallbackCategories)) return fallbackCategories.filter(c => c !== 'All');
     }
     return derived;
   }, [shops]);
