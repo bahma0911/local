@@ -699,6 +699,14 @@ const AdminDashboard = () => {
     fetchCategories();
   }, []);
 
+  // Load current ad link from localStorage
+  useEffect(() => {
+    const currentLink = localStorage.getItem('currentAdBannerLink');
+    if (currentLink) {
+      setAdLink(currentLink);
+    }
+  }, []);
+
   return (
     <div className="admin-dashboard">
       {/* HEADER */}
