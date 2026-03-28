@@ -556,6 +556,7 @@ html[data-theme="dark"] .owner-tabs button.active {
   border-bottom: 2px solid #e9ecef;
   padding-bottom: 10px;
   margin-left: -12px;
+  flex-wrap: nowrap; /* Prevent wrapping */
 }
 
 @media (max-width: 768px) {
@@ -565,6 +566,7 @@ html[data-theme="dark"] .owner-tabs button.active {
     overflow-x: auto;
     white-space: nowrap;
     -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap; /* Ensure no wrapping */
   }
   .admin-tabs button {
     flex: 0 0 auto;
@@ -573,7 +575,7 @@ html[data-theme="dark"] .owner-tabs button.active {
 
 @media (max-width: 600px) {
   .admin-tabs button {
-    flex: 1 0 auto;
+    flex: 0 0 auto;
   }
 }
 
