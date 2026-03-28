@@ -11,8 +11,44 @@
   max-height: 60px;
 }
 .ad-banner img {
-  max-width: 100%;
+  width: 100%;
   max-height: 44px;
-  object-fit: contain;
+  object-fit: cover;
   border-radius: 6px;
+}
+
+/* Mobile phones (up to 768px) */
+@media (max-width: 768px) {
+  .ad-banner {
+    max-height: 50px;
+    padding: 6px 0;
+    margin-bottom: 6px;
+  }
+  .ad-banner img {
+    max-height: 38px;
+  }
+}
+
+/* Tablets (768px to 1024px) */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .ad-banner {
+    max-height: 55px;
+    padding: 7px 0;
+    margin-bottom: 7px;
+  }
+  .ad-banner img {
+    max-height: 41px;
+  }
+}
+
+/* PCs (1024px and above) */
+@media (min-width: 1024px) {
+  .ad-banner {
+    max-height: 60px;
+    padding: 8px 0;
+    margin-bottom: 8px;
+  }
+  .ad-banner img {
+    max-height: 44px;
+  }
 }
