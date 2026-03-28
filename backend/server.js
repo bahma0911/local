@@ -1798,6 +1798,181 @@ app.post('/api/admin/invite-shop', requireAuth, validate(schemas.shopInvite), as
   }
 });
 
+// -------------------- Advertisement endpoints --------------------
+// GET /api/admin/advertisements - get all advertisements (admin only)
+app.get('/api/admin/advertisements', requireAuth, async (req, res) => {
+  try {
+    const authUser = await getUserFromRequest(req);
+    if (!authUser || authUser.role !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+
+    const AdvertisementModel = (await import('./models/Advertisement.js')).default;
+    const advertisements = await AdvertisementModel.find({})
+      .sort({ createdAt: -1 })
+      .lean()
+      .exec();
+
+    res.json(advertisements);
+  } catch (error) {
+    console.error('GET /api/admin/advertisements error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// POST /api/admin/advertisements - create new advertisement (admin only)
+app.post('/api/admin/advertisements', requireAuth, async (req, res) => {
+  try {
+    const authUser = await getUserFromRequest(req);
+    if (!authUser || authUser.role !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+
+    const { imageUrl, link, altText, isActive } = req.body;
+
+    if (!imageUrl || !imageUrl.trim()) {
+      return res.status(400).json({ message: 'Image URL is required' });
+    }
+
+    const AdvertisementModel = (await import('./models/Advertisement.js')).default;
+    const newAd = await AdvertisementModel.create({
+      imageUrl: imageUrl.trim(),
+      link: link ? link.trim() : '',
+      altText: altText ? altText.trim() : '',
+      isActive: isActive !== undefined ? !!isActive : true,
+      createdBy: authUser._id || authUser.username || 'admin'
+    });
+
+    res.status(201).json(newAd);
+  } catch (error) {
+    console.error('POST /api/admin/advertisements error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// PUT /api/admin/advertisements/:id - update advertisement (admin only)
+app.put('/api/admin/advertisements/:id', requireAuth, async (req, res) => {
+  try {
+    const authUser = await getUserFromRequest(req);
+    if (!authUser || authUser.role !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+
+    const { id } = req.params;
+    const { imageUrl, link, altText, isActive } = req.body;
+
+    if (!imageUrl || !imageUrl.trim()) {
+      return res.status(400).json({ message: 'Image URL is required' });
+    }
+
+    const AdvertisementModel = (await import('./models/Advertisement.js')).default;
+    const updatedAd = await AdvertisementModel.findByIdAndUpdate(
+      id,
+      {
+        imageUrl: imageUrl.trim(),
+        link: link ? link.trim() : '',
+        altText: altText ? altText.trim() : '',
+        isActive: isActive !== undefined ? !!isActive : true
+      },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedAd) {
+      return res.status(404).json({ message: 'Advertisement not found' });
+    }
+
+    res.json(updatedAd);
+  } catch (error) {
+    console.error('PUT /api/admin/advertisements/:id error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// DELETE /api/admin/advertisements/:id - delete advertisement (admin only)
+app.delete('/api/admin/advertisements/:id', requireAuth, async (req, res) => {
+  try {
+    const authUser = await getUserFromRequest(req);
+    if (!authUser || authUser.role !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+
+    const { id } = req.params;
+    const AdvertisementModel = (await import('./models/Advertisement.js')).default;
+    const deletedAd = await AdvertisementModel.findByIdAndDelete(id);
+
+    if (!deletedAd) {
+      return res.status(404).json({ message: 'Advertisement not found' });
+    }
+
+    res.json({ message: 'Advertisement deleted successfully' });
+  } catch (error) {
+    console.error('DELETE /api/admin/advertisements/:id error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// GET /api/advertisements/active - get active advertisements for public display
+app.get('/api/advertisements/active', async (req, res) => {
+  try {
+    const AdvertisementModel = (await import('./models/Advertisement.js')).default;
+    const activeAds = await AdvertisementModel.find({ isActive: true })
+      .sort({ createdAt: -1 })
+      .lean()
+      .exec();
+
+    res.json(activeAds);
+  } catch (error) {
+    console.error('GET /api/advertisements/active error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// POST /api/advertisements/:id/click - track advertisement click (public)
+app.post('/api/advertisements/:id/click', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const AdvertisementModel = (await import('./models/Advertisement.js')).default;
+
+    const ad = await AdvertisementModel.findByIdAndUpdate(
+      id,
+      { $inc: { clickCount: 1 } },
+      { new: true }
+    );
+
+    if (!ad) {
+      return res.status(404).json({ message: 'Advertisement not found' });
+    }
+
+    res.json({ message: 'Click tracked successfully' });
+  } catch (error) {
+    console.error('POST /api/advertisements/:id/click error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// POST /api/advertisements/:id/impression - track advertisement impression (public)
+app.post('/api/advertisements/:id/impression', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const AdvertisementModel = (await import('./models/Advertisement.js')).default;
+
+    const ad = await AdvertisementModel.findByIdAndUpdate(
+      id,
+      { $inc: { impressions: 1 } },
+      { new: true }
+    );
+
+    if (!ad) {
+      return res.status(404).json({ message: 'Advertisement not found' });
+    }
+
+    res.json({ message: 'Impression tracked successfully' });
+  } catch (error) {
+    console.error('POST /api/advertisements/:id/impression error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // GET /api/shop/verify-invitation - verify invitation token
 app.get('/api/shop/verify-invitation', async (req, res) => {
   try {

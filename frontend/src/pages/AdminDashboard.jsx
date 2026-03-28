@@ -25,6 +25,9 @@ const AdminDashboard = () => {
   const [categories, setCategories] = useState([]); // backend categories
   const [newCategory, setNewCategory] = useState("");
 
+  // Advertisements state
+  const [advertisements, setAdvertisements] = useState([]);
+
   // Product-driven categories (from products)
   // (removed duplicate declaration of shopCategories)
 
@@ -674,6 +677,91 @@ const AdminDashboard = () => {
     setDetailsShop(null);
   };
 
+  // ==================== Advertisement Management ====================
+  const fetchAdvertisements = async () => {
+    try {
+      const data = await apiFetch(`${API_BASE}/api/admin/advertisements`);
+      setAdvertisements(data || []);
+    } catch (err) {
+      console.error('Error fetching advertisements:', err);
+      setAdvertisements([]);
+    }
+  };
+
+  const createAdvertisement = async (adData) => {
+    try {
+      const newAd = await apiFetch(`${API_BASE}/api/admin/advertisements`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) },
+        body: JSON.stringify(adData)
+      });
+      fetchAdvertisements(); // Refresh the list
+      alert('Advertisement created successfully!');
+      return newAd;
+    } catch (err) {
+      console.error('Error creating advertisement:', err);
+      alert('Failed to create advertisement: ' + (err.message || err));
+      throw err;
+    }
+  };
+
+  const updateAdvertisement = async (id, adData) => {
+    try {
+      const updatedAd = await apiFetch(`${API_BASE}/api/admin/advertisements/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) },
+        body: JSON.stringify(adData)
+      });
+      fetchAdvertisements(); // Refresh the list
+      alert('Advertisement updated successfully!');
+      return updatedAd;
+    } catch (err) {
+      console.error('Error updating advertisement:', err);
+      alert('Failed to update advertisement: ' + (err.message || err));
+      throw err;
+    }
+  };
+
+  const deleteAdvertisement = async (id) => {
+    if (!confirm('Are you sure you want to delete this advertisement?')) return;
+    try {
+      await apiFetch(`${API_BASE}/api/admin/advertisements/${id}`, {
+        method: 'DELETE',
+        headers: { ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) }
+      });
+      fetchAdvertisements(); // Refresh the list
+      alert('Advertisement deleted successfully!');
+    } catch (err) {
+      console.error('Error deleting advertisement:', err);
+      alert('Failed to delete advertisement: ' + (err.message || err));
+    }
+  };
+
+  // Handler for ad upload (persist to database)
+  const handleAdUpload = (value) => {
+    const imageUrl = typeof value === 'string' ? value : (value?.url || null);
+    if (imageUrl) {
+      // Normalize the ad link to ensure it's an absolute URL
+      let normalizedLink = adLink.trim();
+      if (normalizedLink && !normalizedLink.match(/^https?:\/\//)) {
+        normalizedLink = 'https://' + normalizedLink;
+      }
+
+      createAdvertisement({
+        imageUrl,
+        link: normalizedLink,
+        altText: '',
+        isActive: true
+      }).then(() => {
+        setAdLink(''); // Clear the link input
+      }).catch(() => {
+        // Error already handled in createAdvertisement
+      });
+    } else {
+      alert('Ad upload appears successful but no URL was returned.');
+    }
+  };
+
     // product controls removed
 
   // product form state for shop owners
@@ -683,27 +771,13 @@ const AdminDashboard = () => {
   // declared above near top to ensure effects can reference it
 
   // ===================== Render =====================
-  // Handler for ad upload (persist URL for homepage banner)
-  const handleAdUpload = (value) => {
-    const imageUrl = typeof value === 'string' ? value : (value?.url || null);
-    if (imageUrl) {
-      // Normalize the ad link to ensure it's an absolute URL
-      let normalizedLink = adLink.trim();
-      if (normalizedLink && !normalizedLink.match(/^https?:\/\//)) {
-        normalizedLink = 'https://' + normalizedLink;
-      }
-      
-      localStorage.setItem('currentAdBannerUrl', imageUrl);
-      localStorage.setItem('currentAdBannerLink', normalizedLink);
-      alert('Ad banner updated successfully. It should now appear on the home page.');
-    } else {
-      alert('Ad upload appears successful but no URL was returned.');
-    }
-  };
 
   useEffect(() => {
     fetchCategories();
-  }, []);
+    if (isAdmin) {
+      fetchAdvertisements();
+    }
+  }, [isAdmin]);
 
   return (
     <div className="admin-dashboard">
@@ -774,29 +848,153 @@ const AdminDashboard = () => {
       {/* ADS MANAGEMENT */}
       {isAdmin && activeTab === "ads" && (
         <div className="ads-management" style={{ marginTop: 24 }}>
-          <h3>Manage Ad Banner</h3>
-          <div style={{ marginBottom: 12 }}>
-            <label style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>
-              Ad Link (optional):
-            </label>
-            <input
-              type="url"
-              placeholder="https://example.com or example.com"
-              value={adLink}
-              onChange={(e) => setAdLink(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                border: '1px solid #ddd',
-                borderRadius: 4,
-                fontSize: 14
-              }}
-            />
-            <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
-              https:// will be added automatically if not included
+          <h3>Manage Advertisements</h3>
+
+          {/* Create New Ad Section */}
+          <div style={{ marginBottom: 24, padding: 16, border: '1px solid #ddd', borderRadius: 8 }}>
+            <h4>Create New Advertisement</h4>
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>
+                Ad Link (optional):
+              </label>
+              <input
+                type="url"
+                placeholder="https://example.com or example.com"
+                value={adLink}
+                onChange={(e) => setAdLink(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid #ddd',
+                  borderRadius: 4,
+                  fontSize: 14
+                }}
+              />
+              <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
+                https:// will be added automatically if not included
+              </div>
             </div>
+            <AdUpload onUpload={handleAdUpload} />
           </div>
-          <AdUpload onUpload={handleAdUpload} />
+
+          {/* Existing Ads List */}
+          <div style={{ marginTop: 24 }}>
+            <h4>Existing Advertisements</h4>
+            <button
+              onClick={fetchAdvertisements}
+              style={{ marginBottom: 16, padding: '8px 16px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: 4 }}
+            >
+              Refresh List
+            </button>
+
+            {advertisements.length === 0 ? (
+              <div style={{ color: '#999', padding: 16, textAlign: 'center' }}>
+                No advertisements found. Create your first advertisement above.
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gap: 16 }}>
+                {advertisements.map((ad) => (
+                  <div key={ad._id} style={{ border: '1px solid #ddd', borderRadius: 8, padding: 16 }}>
+                    <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+                      <div style={{ flex: '0 0 200px' }}>
+                        <img
+                          src={ad.imageUrl}
+                          alt={ad.altText || 'Advertisement'}
+                          style={{ width: '100%', height: 'auto', borderRadius: 4, maxHeight: 120, objectFit: 'cover' }}
+                        />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ marginBottom: 8 }}>
+                          <strong>Status:</strong>
+                          <span style={{
+                            color: ad.isActive ? '#28a745' : '#dc3545',
+                            marginLeft: 8,
+                            fontWeight: 'bold'
+                          }}>
+                            {ad.isActive ? 'Active' : 'Inactive'}
+                          </span>
+                        </div>
+                        {ad.link && (
+                          <div style={{ marginBottom: 8 }}>
+                            <strong>Link:</strong>
+                            <a
+                              href={ad.link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{ marginLeft: 8, color: '#007bff', textDecoration: 'none' }}
+                            >
+                              {ad.link}
+                            </a>
+                          </div>
+                        )}
+                        {ad.altText && (
+                          <div style={{ marginBottom: 8 }}>
+                            <strong>Alt Text:</strong> <span style={{ marginLeft: 8 }}>{ad.altText}</span>
+                          </div>
+                        )}
+                        <div style={{ marginBottom: 8 }}>
+                          <strong>Clicks:</strong> <span style={{ marginLeft: 8 }}>{ad.clickCount || 0}</span>
+                          <strong style={{ marginLeft: 16 }}>Impressions:</strong> <span style={{ marginLeft: 8 }}>{ad.impressions || 0}</span>
+                        </div>
+                        <div style={{ marginBottom: 8 }}>
+                          <strong>Created:</strong> <span style={{ marginLeft: 8 }}>{new Date(ad.createdAt).toLocaleDateString()}</span>
+                          <strong style={{ marginLeft: 16 }}>By:</strong> <span style={{ marginLeft: 8 }}>{ad.createdBy || 'Unknown'}</span>
+                        </div>
+                        <div style={{ marginTop: 12 }}>
+                          <button
+                            onClick={() => updateAdvertisement(ad._id, { ...ad, isActive: !ad.isActive })}
+                            style={{
+                              padding: '6px 12px',
+                              marginRight: 8,
+                              backgroundColor: ad.isActive ? '#dc3545' : '#28a745',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: 4,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {ad.isActive ? 'Deactivate' : 'Activate'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              const newLink = prompt('Enter new link URL:', ad.link || '');
+                              if (newLink !== null) {
+                                updateAdvertisement(ad._id, { ...ad, link: newLink.trim() });
+                              }
+                            }}
+                            style={{
+                              padding: '6px 12px',
+                              marginRight: 8,
+                              backgroundColor: '#ffc107',
+                              color: 'black',
+                              border: 'none',
+                              borderRadius: 4,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Edit Link
+                          </button>
+                          <button
+                            onClick={() => deleteAdvertisement(ad._id)}
+                            style={{
+                              padding: '6px 12px',
+                              backgroundColor: '#dc3545',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: 4,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 

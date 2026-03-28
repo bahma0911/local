@@ -50,8 +50,6 @@ const AdUpload = ({ onUpload }) => {
         throw new Error(`Upload succeeded but no URL returned. Response: ${text}`);
       }
 
-      // Persist the ad URL so it is shown on home across reloads
-      localStorage.setItem('currentAdBannerUrl', data.url);
       onUpload && onUpload(data.url);
       setPreview(data.url);
       alert('Ad uploaded successfully!');
