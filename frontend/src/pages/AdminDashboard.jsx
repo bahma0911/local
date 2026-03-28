@@ -680,12 +680,20 @@ const AdminDashboard = () => {
   // declared above near top to ensure effects can reference it
 
   // ===================== Render =====================
-  // Handler for ad upload (replace with real API call if needed)
-  const handleAdUpload = (file) => {
-    // For now, just log or alert
-    alert(`Ad image selected: ${file.name}`);
-    // TODO: Upload to server and update banner
+  // Handler for ad upload (persist URL for homepage banner)
+  const handleAdUpload = (value) => {
+    const imageUrl = typeof value === 'string' ? value : (value?.url || null);
+    if (imageUrl) {
+      localStorage.setItem('currentAdBannerUrl', imageUrl);
+      alert('Ad banner updated successfully. It should now appear on the home page.');
+    } else {
+      alert('Ad upload appears successful but no URL was returned.');
+    }
   };
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
 
   return (
     <div className="admin-dashboard">

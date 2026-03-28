@@ -21,14 +21,32 @@ const AdUpload = ({ onUpload }) => {
     setUploading(true);
     setError("");
     try {
-      // Simulate upload, replace with real API call
-      setTimeout(() => {
-        setUploading(false);
-        onUpload && onUpload(file);
-        alert("Ad uploaded!");
-      }, 1000);
+      const fd = new FormData();
+      fd.append('file', file);
+
+      const res = await fetch(`/api/upload`, {
+        method: 'POST',
+        credentials: 'include',
+        body: fd,
+      });
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        throw new Error(`Upload failed (${res.status}): ${text}`);
+      }
+
+      const data = await res.json();
+      if (!data || !data.url) throw new Error('Upload succeeded but no URL returned');
+
+      // Persist the ad URL so it is shown on home across reloads
+      localStorage.setItem('currentAdBannerUrl', data.url);
+      onUpload && onUpload(data.url);
+      setPreview(data.url);
+      alert('Ad uploaded successfully!');
     } catch (e) {
-      setError("Upload failed");
+      console.error('AdUpload upload error', e);
+      setError('Upload failed. ' + (e.message || '')); 
+    } finally {
       setUploading(false);
     }
   };
