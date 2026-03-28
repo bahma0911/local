@@ -895,8 +895,8 @@ const AdminDashboard = () => {
               <div style={{ display: 'grid', gap: 16 }}>
                 {advertisements.map((ad) => (
                   <div key={ad._id} style={{ border: '1px solid #ddd', borderRadius: 8, padding: 16 }}>
-                    <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-                      <div style={{ flex: '0 0 200px' }}>
+                    <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                      <div style={{ flex: '1 1 220px', minWidth: 120, maxWidth: 220, width: '100%' }}>
                         <img
                           src={ad.imageUrl}
                           alt={ad.altText || 'Advertisement'}

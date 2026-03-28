@@ -4,15 +4,16 @@
   justify-content: center;
   align-items: center;
   background: #f7f7f7;
-  padding: 6px 0;
+  padding: 10px 0;
   margin-bottom: 8px;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-  max-height: 50px;
+  min-height: 60px;
+  max-height: 140px;
 }
 .ad-banner img {
   max-width: 100%;
-  max-height: 34px;
+  max-height: 120px;
   object-fit: contain;
   border-radius: 6px;
 }
