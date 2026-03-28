@@ -8,12 +8,13 @@
   margin-bottom: 8px;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-  max-height: 60px;
+  max-height: 80px; /* Default for large screens */
 }
+
 .ad-banner img {
   width: 100%;
-  max-height: 44px;
-  object-fit: cover;
+  height: 100%;
+  object-fit: fill; /* Stretch to fill container */
   border-radius: 6px;
 }
 
@@ -22,33 +23,21 @@
   .ad-banner {
     max-height: 50px;
     padding: 6px 0;
-    margin-bottom: 6px;
-  }
-  .ad-banner img {
-    max-height: 38px;
   }
 }
 
-/* Tablets (768px to 1024px) */
-@media (min-width: 768px) and (max-width: 1024px) {
+/* Tablets (769px to 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
   .ad-banner {
-    max-height: 55px;
+    max-height: 65px;
     padding: 7px 0;
-    margin-bottom: 7px;
-  }
-  .ad-banner img {
-    max-height: 41px;
   }
 }
 
-/* PCs (1024px and above) */
-@media (min-width: 1024px) {
+/* Large screens (1025px+) */
+@media (min-width: 1025px) {
   .ad-banner {
-    max-height: 60px;
+    max-height: 80px;
     padding: 8px 0;
-    margin-bottom: 8px;
-  }
-  .ad-banner img {
-    max-height: 44px;
   }
 }
