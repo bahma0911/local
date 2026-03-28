@@ -555,6 +555,26 @@ html[data-theme="dark"] .owner-tabs button.active {
   margin-bottom: 30px;
   border-bottom: 2px solid #e9ecef;
   padding-bottom: 10px;
+  margin-left: -12px;
+}
+
+@media (max-width: 768px) {
+  .admin-tabs {
+    margin-left: 0;
+    padding-left: 6px;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+  .admin-tabs button {
+    flex: 0 0 auto;
+  }
+}
+
+@media (max-width: 600px) {
+  .admin-tabs button {
+    flex: 1 0 auto;
+  }
 }
 
 .tab-button {
