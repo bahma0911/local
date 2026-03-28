@@ -35,8 +35,19 @@ const AdUpload = ({ onUpload }) => {
         throw new Error(`Upload failed (${res.status}): ${text}`);
       }
 
-      const data = await res.json();
-      if (!data || !data.url) throw new Error('Upload succeeded but no URL returned');
+      let data;
+      const text = await res.text().catch(() => '');
+      if (!text) {
+        throw new Error('Upload succeeded but no response body received');
+      }
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = { url: text.trim() };
+      }
+      if (!data || !data.url) {
+        throw new Error(`Upload succeeded but no URL returned. Response: ${text}`);
+      }
 
       // Persist the ad URL so it is shown on home across reloads
       localStorage.setItem('currentAdBannerUrl', data.url);
