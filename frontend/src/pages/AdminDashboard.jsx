@@ -20,6 +20,8 @@ const AdminDashboard = () => {
 
   // Ad banner state
   const [adLink, setAdLink] = useState("");
+  const [adError, setAdError] = useState("");
+  const [adSuccess, setAdSuccess] = useState("");
 
   // Categories state
   const [categories, setCategories] = useState([]); // backend categories
@@ -696,11 +698,14 @@ const AdminDashboard = () => {
         body: JSON.stringify(adData)
       });
       fetchAdvertisements(); // Refresh the list
-      alert('Advertisement created successfully!');
+      setAdSuccess('Advertisement created successfully!');
+      setAdError('');
       return newAd;
     } catch (err) {
       console.error('Error creating advertisement:', err);
-      alert('Failed to create advertisement: ' + (err.message || err));
+      const message = err && err.message ? err.message : 'Unknown error. Please try again in a moment.';
+      setAdError(`Failed to create advertisement: ${message}`);
+      setAdSuccess('');
       throw err;
     }
   };
@@ -713,11 +718,14 @@ const AdminDashboard = () => {
         body: JSON.stringify(adData)
       });
       fetchAdvertisements(); // Refresh the list
-      alert('Advertisement updated successfully!');
+      setAdSuccess('Advertisement updated successfully!');
+      setAdError('');
       return updatedAd;
     } catch (err) {
       console.error('Error updating advertisement:', err);
-      alert('Failed to update advertisement: ' + (err.message || err));
+      const message = err && err.message ? err.message : 'Unknown error. Please try again in a moment.';
+      setAdError(`Failed to update advertisement: ${message}`);
+      setAdSuccess('');
       throw err;
     }
   };
@@ -730,10 +738,13 @@ const AdminDashboard = () => {
         headers: { ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) }
       });
       fetchAdvertisements(); // Refresh the list
-      alert('Advertisement deleted successfully!');
+      setAdSuccess('Advertisement deleted successfully!');
+      setAdError('');
     } catch (err) {
       console.error('Error deleting advertisement:', err);
-      alert('Failed to delete advertisement: ' + (err.message || err));
+      const message = err && err.message ? err.message : 'Unknown error. Please try again in a moment.';
+      setAdError(`Failed to delete advertisement: ${message}`);
+      setAdSuccess('');
     }
   };
 
@@ -758,10 +769,10 @@ const AdminDashboard = () => {
         // Error already handled in createAdvertisement
       });
     } else {
-      alert('Ad upload appears successful but no URL was returned.');
+      setAdError('The uploaded asset could not be located. Please try a different image file.');
+      setAdSuccess('');
     }
   };
-
     // product controls removed
 
   // product form state for shop owners
@@ -849,6 +860,9 @@ const AdminDashboard = () => {
       {isAdmin && activeTab === "ads" && (
         <div className="ads-management" style={{ marginTop: 24 }}>
           <h3>Manage Advertisements</h3>
+
+          {adError && <div className="error-message">{adError}</div>}
+          {adSuccess && <div className="success-message">{adSuccess}</div>}
 
           {/* Create New Ad Section */}
           <div style={{ marginBottom: 24, padding: 16, border: '1px solid #ddd', borderRadius: 8 }}>

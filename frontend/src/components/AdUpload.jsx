@@ -7,12 +7,14 @@ const AdUpload = ({ onUpload }) => {
   const [preview, setPreview] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
       setPreview(URL.createObjectURL(file));
       setError("");
+      setSuccess("");
     }
   };
 
@@ -52,10 +54,12 @@ const AdUpload = ({ onUpload }) => {
 
       onUpload && onUpload(data.url);
       setPreview(data.url);
-      alert('Ad uploaded successfully!');
+      setSuccess('Ad uploaded successfully!');
+      setError('');
     } catch (e) {
       console.error('AdUpload upload error', e);
-      setError('Upload failed. ' + (e.message || '')); 
+      setError('Upload failed. ' + (e.message || 'Please try again.'));
+      setSuccess('');
     } finally {
       setUploading(false);
     }
@@ -66,7 +70,8 @@ const AdUpload = ({ onUpload }) => {
       <input type="file" accept="image/*" ref={fileInput} onChange={handleFileChange} />
       {preview && <img src={preview} alt="Preview" className="ad-preview" />}
       <button onClick={handleUpload} disabled={uploading}>{uploading ? "Uploading..." : "Upload Ad"}</button>
-      {error && <div className="ad-upload-error">{error}</div>}
+      {error && <div className="error-message">{error}</div>}
+      {success && <div className="success-message">{success}</div>}
     </div>
   );
 };
