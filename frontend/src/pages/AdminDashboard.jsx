@@ -701,30 +701,6 @@ const AdminDashboard = () => {
 
   return (
     <div className="admin-dashboard">
-      {isAdmin && (
-        <div className="ad-upload-section">
-          <h3>Upload Ad Banner</h3>
-          <div style={{ marginBottom: 12 }}>
-            <label style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>
-              Ad Link (optional):
-            </label>
-            <input
-              type="url"
-              placeholder="https://example.com"
-              value={adLink}
-              onChange={(e) => setAdLink(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                border: '1px solid #ddd',
-                borderRadius: 4,
-                fontSize: 14
-              }}
-            />
-          </div>
-          <AdUpload onUpload={handleAdUpload} />
-        </div>
-      )}
       {/* HEADER */}
       <div className="admin-header">
         <h1 className="admin-title">{isAdmin ? "Admin Dashboard" : "My Shop Dashboard"}</h1>
@@ -739,8 +715,9 @@ const AdminDashboard = () => {
       {isAdmin && (
         <div className="admin-tabs">
           <button className={activeTab === "shops" ? "active" : ""} onClick={() => setActiveTab("shops")}>🏪 Manage Shops</button>
-          <button className={activeTab === "categories" ? "active" : ""} onClick={() => setActiveTab("categories")}>📂 Manage Categories</button>
+          <button className={activeTab === "ads" ? "active" : ""} onClick={() => setActiveTab("ads")}>📢 Manage Ads</button>
           <button className="" onClick={() => navigate('/admin/orders')}>📋 Manage Orders</button>
+          <button className={activeTab === "categories" ? "active" : ""} onClick={() => setActiveTab("categories")}>📂 Manage Categories</button>
         </div>
       )}
 
@@ -785,6 +762,32 @@ const AdminDashboard = () => {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* ADS MANAGEMENT */}
+      {isAdmin && activeTab === "ads" && (
+        <div className="ads-management" style={{ marginTop: 24 }}>
+          <h3>Manage Ad Banner</h3>
+          <div style={{ marginBottom: 12 }}>
+            <label style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>
+              Ad Link (optional):
+            </label>
+            <input
+              type="url"
+              placeholder="https://example.com"
+              value={adLink}
+              onChange={(e) => setAdLink(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                border: '1px solid #ddd',
+                borderRadius: 4,
+                fontSize: 14
+              }}
+            />
+          </div>
+          <AdUpload onUpload={handleAdUpload} />
         </div>
       )}
 
