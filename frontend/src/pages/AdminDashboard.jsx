@@ -18,6 +18,9 @@ const AdminDashboard = () => {
   });
   const [detailsShop, setDetailsShop] = useState(null);
 
+  // Ad banner state
+  const [adLink, setAdLink] = useState("");
+
   // Categories state
   const [categories, setCategories] = useState([]); // backend categories
   const [newCategory, setNewCategory] = useState("");
@@ -685,6 +688,7 @@ const AdminDashboard = () => {
     const imageUrl = typeof value === 'string' ? value : (value?.url || null);
     if (imageUrl) {
       localStorage.setItem('currentAdBannerUrl', imageUrl);
+      localStorage.setItem('currentAdBannerLink', adLink.trim());
       alert('Ad banner updated successfully. It should now appear on the home page.');
     } else {
       alert('Ad upload appears successful but no URL was returned.');
@@ -700,6 +704,24 @@ const AdminDashboard = () => {
       {isAdmin && (
         <div className="ad-upload-section">
           <h3>Upload Ad Banner</h3>
+          <div style={{ marginBottom: 12 }}>
+            <label style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>
+              Ad Link (optional):
+            </label>
+            <input
+              type="url"
+              placeholder="https://example.com"
+              value={adLink}
+              onChange={(e) => setAdLink(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                border: '1px solid #ddd',
+                borderRadius: 4,
+                fontSize: 14
+              }}
+            />
+          </div>
           <AdUpload onUpload={handleAdUpload} />
         </div>
       )}
