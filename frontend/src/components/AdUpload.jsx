@@ -1,4 +1,5 @@
 import React, { useRef, useState } from "react";
+import { API_BASE } from "../utils/api";
 import "./AdUpload.css";
 
 const AdUpload = ({ onUpload }) => {
@@ -24,7 +25,7 @@ const AdUpload = ({ onUpload }) => {
       const fd = new FormData();
       fd.append('file', file);
 
-      const res = await fetch(`/api/upload`, {
+      const res = await fetch(`${API_BASE}/api/upload`, {
         method: 'POST',
         credentials: 'include',
         body: fd,
