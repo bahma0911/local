@@ -687,8 +687,14 @@ const AdminDashboard = () => {
   const handleAdUpload = (value) => {
     const imageUrl = typeof value === 'string' ? value : (value?.url || null);
     if (imageUrl) {
+      // Normalize the ad link to ensure it's an absolute URL
+      let normalizedLink = adLink.trim();
+      if (normalizedLink && !normalizedLink.match(/^https?:\/\//)) {
+        normalizedLink = 'https://' + normalizedLink;
+      }
+      
       localStorage.setItem('currentAdBannerUrl', imageUrl);
-      localStorage.setItem('currentAdBannerLink', adLink.trim());
+      localStorage.setItem('currentAdBannerLink', normalizedLink);
       alert('Ad banner updated successfully. It should now appear on the home page.');
     } else {
       alert('Ad upload appears successful but no URL was returned.');
@@ -697,14 +703,6 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     fetchCategories();
-  }, []);
-
-  // Load current ad link from localStorage
-  useEffect(() => {
-    const currentLink = localStorage.getItem('currentAdBannerLink');
-    if (currentLink) {
-      setAdLink(currentLink);
-    }
   }, []);
 
   return (
@@ -783,7 +781,7 @@ const AdminDashboard = () => {
             </label>
             <input
               type="url"
-              placeholder="https://example.com"
+              placeholder="https://example.com or example.com"
               value={adLink}
               onChange={(e) => setAdLink(e.target.value)}
               style={{
@@ -794,6 +792,9 @@ const AdminDashboard = () => {
                 fontSize: 14
               }}
             />
+            <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
+              https:// will be added automatically if not included
+            </div>
           </div>
           <AdUpload onUpload={handleAdUpload} />
         </div>
