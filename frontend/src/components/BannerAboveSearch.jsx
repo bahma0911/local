@@ -12,10 +12,18 @@ const BannerAboveSearch = () => {
     const fetchActiveAds = async () => {
       try {
         const ads = await apiFetch(`${API_BASE}/api/advertisements/active`);
-        setAdvertisements(ads || []);
+        const activeAds = Array.isArray(ads)
+          ? ads.filter((ad) => ad && ad.isActive)
+          : [];
+        setAdvertisements(activeAds);
+
+        if (activeAds.length === 0) {
+          setCurrentAdIndex(0);
+        } else if (currentAdIndex >= activeAds.length) {
+          setCurrentAdIndex(0);
+        }
       } catch (error) {
         console.error('Error fetching advertisements:', error);
-        // Fallback to default ad if API fails
         setAdvertisements([]);
       } finally {
         setLoading(false);
@@ -23,7 +31,7 @@ const BannerAboveSearch = () => {
     };
 
     fetchActiveAds();
-  }, []);
+  }, [currentAdIndex]);
 
   // Cycle through ads every 30 seconds if there are multiple
   useEffect(() => {
