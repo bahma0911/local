@@ -135,5 +135,68 @@ async function sendShopInvitationEmail(toEmail, token) {
   }
 }
 
+async function sendOrderConfirmationEmail(toEmail, orderId, total) {
+  if (!resend) {
+    const err = new Error('RESEND_API_KEY not configured');
+    err.code = 'NO_RESEND_KEY';
+    throw err;
+  }
+
+  const html = `
+    <p>Hello,</p>
+    <p>Thank you for your order!</p>
+    <p><strong>Order ID:</strong> ${orderId}</p>
+    <p><strong>Total:</strong> ${total} ETB</p>
+    <p>You can track your order status in your account dashboard.</p>
+    <p>Thank you for shopping with ሰኞ ገበያ!</p>
+  `;
+
+  try {
+    const resp = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: toEmail,
+      subject: 'Order Confirmation - ሰኞ ገበያ',
+      html
+    });
+    return { ok: true, id: resp.id, resp };
+  } catch (e) {
+    const out = new Error('Failed to send order confirmation email');
+    out.cause = e;
+    throw out;
+  }
+}
+
+async function sendOrderStatusUpdateEmail(toEmail, orderId, status) {
+  if (!resend) {
+    const err = new Error('RESEND_API_KEY not configured');
+    err.code = 'NO_RESEND_KEY';
+    throw err;
+  }
+
+  const statusText = status === 'confirmed' ? 'confirmed and paid' : status;
+  const html = `
+    <p>Hello,</p>
+    <p>Your order status has been updated.</p>
+    <p><strong>Order ID:</strong> ${orderId}</p>
+    <p><strong>New Status:</strong> ${statusText}</p>
+    <p>You can view order details in your account dashboard.</p>
+    <p>Thank you for shopping with ሰኞ ገበያ!</p>
+  `;
+
+  try {
+    const resp = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: toEmail,
+      subject: `Order ${statusText} - ሰኞ ገበያ`,
+      html
+    });
+    return { ok: true, id: resp.id, resp };
+  } catch (e) {
+    const out = new Error('Failed to send order status update email');
+    out.cause = e;
+    throw out;
+  }
+}
+
 export default sendVerificationEmail;
-export { sendVerificationEmail, sendPasswordResetEmail, sendOrderNotificationEmail, sendShopInvitationEmail };
+export { sendVerificationEmail, sendPasswordResetEmail, sendOrderNotificationEmail, sendShopInvitationEmail, sendOrderConfirmationEmail, sendOrderStatusUpdateEmail };
