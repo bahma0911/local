@@ -120,7 +120,7 @@ const ProductCard = ({ product, onAddToCart, shopId, limitSingle = false }) => {
         </div>
       </div>
       
-      <p className="product-price">Price: {priceAmount} ETB
+      <p className="product-price">Price: {priceAmount} ETB / {product.unit || 'piece'}
         <span style={{ marginLeft: 8, color: '#9ad' }}>
           {typeof product.stock !== 'undefined'
             ? (product.stock > 0 ? `${product.stock} in stock` : 'Out of stock')

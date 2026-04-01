@@ -1372,7 +1372,7 @@ app.post('/api/products', requireAuth, requireVerifiedEmail, requireShopOwner, v
     const shop = await ShopModel.findOne({ legacyId: legacyShopId }).exec();
     if (!shop) return res.status(404).json({ message: 'Shop not found' });
 
-    const { name, description = '', details = '', price, images = [], category, stock, inStock, status = 'draft', attributes = {}, condition = 'new', shopPhone = '', shopLocation = '' } = req.body;
+    const { name, description = '', details = '', price, images = [], category, stock, inStock, status = 'draft', attributes = {}, condition, unit = 'piece', shopPhone = '', shopLocation = '' } = req.body;
     // Basic required-field validation with clear messages
     if (!name || String(name).trim().length === 0) return res.status(400).json({ message: 'Product name is required' });
     // Normalize price into { amount, currency }
@@ -1392,7 +1392,7 @@ app.post('/api/products', requireAuth, requireVerifiedEmail, requireShopOwner, v
     }
 
     // Validate condition field
-    if (condition && !['new', 'used'].includes(String(condition))) {
+    if (typeof condition !== 'undefined' && condition !== '' && !['new', 'used'].includes(String(condition))) {
       return res.status(400).json({ message: 'condition must be either "new" or "used"' });
     }
 
@@ -1402,7 +1402,8 @@ app.post('/api/products', requireAuth, requireVerifiedEmail, requireShopOwner, v
       details: details || '',
       price: priceObj,
       images: imagesArr,
-      condition: String(condition) || 'new',
+      condition: (condition === 'new' || condition === 'used') ? String(condition) : undefined,
+      unit: (unit === 'piece' || unit === 'kg') ? unit : 'piece',
       shopPhone: shopPhone || '',
       // Default shopLocation to the shop's stored address when not provided
       shopLocation: (shopLocation && String(shopLocation).trim()) ? shopLocation : (shop.address || ''),
@@ -1475,7 +1476,8 @@ app.get('/api/products', async (req, res) => {
             details: d.details || '',
             price: d.price || { amount: 0, currency: 'ETB' },
             images: d.images || (d.image ? [d.image] : []),
-            condition: d.condition || 'new',
+            condition: d.condition || null,
+            unit: d.unit || 'piece',
             shopPhone: d.shopPhone || (shopsMap[d.shopLegacyId] ? shopsMap[d.shopLegacyId].phone || '' : ''),
             shopLocation: (d.shopLocation && String(d.shopLocation).trim()) ? d.shopLocation : (shopsMap[d.shopLegacyId] ? shopsMap[d.shopLegacyId].address || '' : ''),
             shopId: d.shopLegacyId || null,
@@ -1562,7 +1564,8 @@ app.get('/api/products/:id', async (req, res) => {
         if ((!out.images || out.images.length === 0) && out.image) out.images = [out.image];
         out.id = out._id;
         out.shopId = out.shopLegacyId || null;
-        out.condition = out.condition || 'new';
+        out.condition = out.condition || null;
+        out.unit = out.unit || 'piece';
         out.shopPhone = out.shopPhone || '';
         // If product doesn't include shopLocation, try to read it from the Shop collection
         if (!out.shopLocation || String(out.shopLocation).trim() === '') {
@@ -1601,7 +1604,8 @@ app.get('/api/products/:id', async (req, res) => {
             inStock: (typeof p.stock !== 'undefined') ? (Number(p.stock) > 0) : ((typeof p.inStock !== 'undefined') ? !!p.inStock : true),
             status: 'active',
             attributes: p.attributes || {},
-            condition: p.condition || 'new',
+            condition: p.condition || null,
+            unit: p.unit || 'piece',
             shopPhone: p.shopPhone || (s.phone || '') || '',
             shopLocation: p.shopLocation || s.address || ''
           };
@@ -2428,7 +2432,9 @@ app.get('/api/shops/:id/products', async (req, res) => {
             image: (p.images && p.images.length) ? p.images[0] : '',
             description: p.description || '',
             inStock: typeof p.stock !== 'undefined' ? (p.stock > 0) : true,
-            category: p.category || null
+            category: p.category || null,
+            condition: p.condition || null,
+            unit: p.unit || 'piece'
           }));
           return res.json(mapped);
         }

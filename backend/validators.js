@@ -64,6 +64,8 @@ export const schemas = {
     category: z.string().optional(),
     stock: z.number().int().nonnegative().optional(),
     status: z.enum(['active', 'draft', 'archived']).optional(),
+    condition: z.union([z.enum(['new', 'used']), z.literal('')]).optional(),
+    unit: z.enum(['piece', 'kg']).optional(),
     attributes: z.record(z.string()).optional()
   }),
   shopOrderNotify: z.object({ orderId: z.union([z.string(), z.number()]), items: z.array(z.any()).optional(), total: z.number().optional(), customer: z.object({ username: z.string().optional(), email: z.string().optional() }).optional() }),
