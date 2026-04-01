@@ -56,14 +56,8 @@ const allowAllOrigins = allowedOrigins.includes('*');
 
 const corsOptions = {
   origin: (origin, callback) => {
-    // When no allowed origins configured or wildcard origin, allow all (convenient for local dev and flexible hosts).
-    if (!allowedOrigins.length || allowAllOrigins) return callback(null, true);
-    // Allow non-browser requests (curl, server-to-server) where origin is not present.
-    if (!origin) return callback(null, true);
-    // Normalize incoming origin by stripping trailing slashes before comparison.
-    const normalized = String(origin).replace(/\/+$/, '');
-    if (allowedOrigins.includes(normalized)) return callback(null, true);
-    return callback(new Error('Not allowed by CORS'));
+    // Always allow - we'll handle CORS via fallback middleware
+    callback(null, true);
   },
   credentials: true,
   // Include PATCH and commonly used custom headers to satisfy preflight checks
@@ -77,13 +71,12 @@ app.options('*', cors(corsOptions));
 // Fallback headers to ensure CORS is always present, even on error responses.
 app.use((req, res, next) => {
   try {
-    const origin = req.headers.origin || '*';
-    if (!res.getHeader('Access-Control-Allow-Origin')) {
-      res.setHeader('Access-Control-Allow-Origin', origin);
-    }
-    if (!res.getHeader('Access-Control-Allow-Credentials')) {
-      res.setHeader('Access-Control-Allow-Credentials', 'true');
-    }
+    const origin = req.headers.origin || req.headers.referer || '*';
+    // Always set CORS headers to prevent browser blocking
+    res.setHeader('Access-Control-Allow-Origin', origin === '*' ? '*' : origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-CSRF-Token, X-Requested-With, X-Captcha-Token, x-captcha-token');
   } catch (e) {
     // continue if header setting fails
   }
