@@ -72,7 +72,11 @@ const BannerAboveSearch = () => {
     // Fallback to default ad if no active ads
     return (
       <div style={{ marginBottom: 12 }}>
-        <AdBanner imageUrl="/uploads/sample-ad.jpg" link="" alt="Default advertisement" />
+        <AdBanner
+          imageUrl="https://images.unsplash.com/photo-1598550975904-4b9e74a6a1d0?auto=format&fit=crop&w=1200&q=80"
+          link=""
+          alt="Default advertisement"
+        />
       </div>
     );
   }

@@ -52,12 +52,17 @@ app.set('trust proxy', 1);
 // strip trailing slashes) and used to dynamically validate request origins.
 const rawOrigins = (process.env.FRONTEND_ORIGINS && process.env.FRONTEND_ORIGINS.trim()) || (process.env.FRONTEND_ORIGIN && process.env.FRONTEND_ORIGIN.trim()) || '';
 const allowedOrigins = rawOrigins.split(',').map(s => String(s || '').trim().replace(/\/+$/, '')).filter(Boolean);
-const allowAllOrigins = allowedOrigins.includes('*');
 
 const corsOptions = {
   origin: (origin, callback) => {
-    // Always allow - we'll handle CORS via fallback middleware
-    callback(null, true);
+    // When no allowed origins configured, allow all (convenient for local dev).
+    if (!allowedOrigins.length) return callback(null, true);
+    // Allow non-browser requests (curl, server-to-server) where origin is not present.
+    if (!origin) return callback(null, true);
+    // Normalize incoming origin by stripping trailing slashes before comparison.
+    const normalized = String(origin).replace(/\/+$/, '');
+    if (allowedOrigins.includes(normalized)) return callback(null, true);
+    return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
   // Include PATCH and commonly used custom headers to satisfy preflight checks
@@ -67,22 +72,6 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
-
-// Fallback headers to ensure CORS is always present, even on error responses.
-app.use((req, res, next) => {
-  try {
-    const origin = req.headers.origin || req.headers.referer || '*';
-    // Always set CORS headers to prevent browser blocking
-    res.setHeader('Access-Control-Allow-Origin', origin === '*' ? '*' : origin);
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-CSRF-Token, X-Requested-With, X-Captcha-Token, x-captcha-token');
-  } catch (e) {
-    // continue if header setting fails
-  }
-  next();
-});
-
 app.use(helmet());
 app.use(express.json({ limit: '1mb' }));
 
@@ -1929,16 +1918,49 @@ app.delete('/api/admin/advertisements/:id', requireAuth, async (req, res) => {
 // GET /api/advertisements/active - get active advertisements for public display
 app.get('/api/advertisements/active', async (req, res) => {
   try {
+    if (!mongoose.connection || mongoose.connection.readyState !== 1) {
+      console.warn('GET /api/advertisements/active: MongoDB not connected, returning fallback ad');
+      return res.json([{
+        _id: 'fallback-ad',
+        imageUrl: 'https://images.unsplash.com/photo-1598550975904-4b9e74a6a1d0?auto=format&fit=crop&w=1200&q=80',
+        link: '',
+        altText: 'Sample advertisement',
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }]);
+    }
+
     const AdvertisementModel = (await import('./models/Advertisement.js')).default;
     const activeAds = await AdvertisementModel.find({ isActive: true })
       .sort({ createdAt: -1 })
       .lean()
       .exec();
 
+    if (!Array.isArray(activeAds) || activeAds.length === 0) {
+      return res.json([{
+        _id: 'fallback-ad',
+        imageUrl: 'https://images.unsplash.com/photo-1598550975904-4b9e74a6a1d0?auto=format&fit=crop&w=1200&q=80',
+        link: '',
+        altText: 'Sample advertisement',
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }]);
+    }
+
     res.json(activeAds);
   } catch (error) {
     console.error('GET /api/advertisements/active error:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(200).json([{
+      _id: 'fallback-ad',
+      imageUrl: 'https://images.unsplash.com/photo-1598550975904-4b9e74a6a1d0?auto=format&fit=crop&w=1200&q=80',
+      link: '',
+      altText: 'Sample advertisement',
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }]);
   }
 });
 
