@@ -52,11 +52,12 @@ app.set('trust proxy', 1);
 // strip trailing slashes) and used to dynamically validate request origins.
 const rawOrigins = (process.env.FRONTEND_ORIGINS && process.env.FRONTEND_ORIGINS.trim()) || (process.env.FRONTEND_ORIGIN && process.env.FRONTEND_ORIGIN.trim()) || '';
 const allowedOrigins = rawOrigins.split(',').map(s => String(s || '').trim().replace(/\/+$/, '')).filter(Boolean);
+const allowAllOrigins = allowedOrigins.includes('*');
 
 const corsOptions = {
   origin: (origin, callback) => {
-    // When no allowed origins configured, allow all (convenient for local dev).
-    if (!allowedOrigins.length) return callback(null, true);
+    // When no allowed origins configured or wildcard origin, allow all (convenient for local dev and flexible hosts).
+    if (!allowedOrigins.length || allowAllOrigins) return callback(null, true);
     // Allow non-browser requests (curl, server-to-server) where origin is not present.
     if (!origin) return callback(null, true);
     // Normalize incoming origin by stripping trailing slashes before comparison.
@@ -72,6 +73,23 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
+
+// Fallback headers to ensure CORS is always present, even on error responses.
+app.use((req, res, next) => {
+  try {
+    const origin = req.headers.origin || '*';
+    if (!res.getHeader('Access-Control-Allow-Origin')) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+    if (!res.getHeader('Access-Control-Allow-Credentials')) {
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+    }
+  } catch (e) {
+    // continue if header setting fails
+  }
+  next();
+});
+
 app.use(helmet());
 app.use(express.json({ limit: '1mb' }));
 
