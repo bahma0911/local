@@ -2425,6 +2425,7 @@ app.put('/api/shops/:id', authenticate, validate(schemas.shopUpdate), async (req
     try {
       await ShopModel.findOneAndUpdate({ legacyId: id }, {
         name: updated.name,
+        logo: updated.logo,
         address: updated.address,
         phone: updated.phone || '',
         deliveryFee: updated.deliveryFee,

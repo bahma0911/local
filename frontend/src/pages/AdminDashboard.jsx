@@ -1321,6 +1321,48 @@ const AdminDashboard = () => {
                 </div>
                 
                 <div>
+                  <label style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>Shop Logo</label>
+                  {currentShop?.logo && (
+                    <div style={{ marginBottom: 8 }}>
+                      <img 
+                        src={currentShop.logo} 
+                        alt="Current logo" 
+                        style={{ maxWidth: 100, maxHeight: 100, border: '1px solid #ddd', borderRadius: 4 }} 
+                      />
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={e => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        // Validate file type
+                        const ALLOWED = ['image/jpeg', 'image/png', 'image/webp'];
+                        if (!ALLOWED.includes(file.type)) {
+                          alert('Please select a JPG, PNG, or WEBP image file.');
+                          e.target.value = '';
+                          return;
+                        }
+                        // Validate file size (5MB max)
+                        const MAX_BYTES = 5 * 1024 * 1024;
+                        if (file.size > MAX_BYTES) {
+                          alert('Image file is too large. Maximum size is 5MB.');
+                          e.target.value = '';
+                          return;
+                        }
+                        // Store the file for upload
+                        setSelectedShop(prev => prev ? { ...prev, logoFile: file } : null);
+                      }
+                    }}
+                    style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 4 }}
+                  />
+                  <small style={{ color: '#666', display: 'block', marginTop: 4 }}>
+                    Upload a new logo image (JPG, PNG, or WEBP, max 5MB)
+                  </small>
+                </div>
+                
+                <div>
                   <label style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>Delivery Fee (ETB)</label>
                   <input
                     type="number"
@@ -1336,10 +1378,36 @@ const AdminDashboard = () => {
                     onClick={async () => {
                       if (!currentShop) return;
                       try {
+                        let logoUrl = currentShop.logo; // Keep existing logo by default
+                        
+                        // Upload new logo if selected
+                        if (currentShop.logoFile) {
+                          const fd = new FormData();
+                          fd.append('file', currentShop.logoFile);
+                          const up = await uploadFile(fd);
+                          if (!up) {
+                            const attempts = (window._lastUploadAttempts || []).join(', ');
+                            throw new Error(`Logo upload failed: no response from server. Attempted: ${attempts}`);
+                          }
+                          if (!up.ok) {
+                            const text = await up.text().catch(() => '');
+                            throw new Error(`Logo upload failed (${up.status}): ${text}`);
+                          }
+                          const upText = await up.text().catch(() => '');
+                          let j;
+                          try { j = upText ? JSON.parse(upText) : {}; } catch (e) { j = upText; }
+                          if (j && j.url) {
+                            logoUrl = j.url;
+                          } else {
+                            throw new Error('Logo upload failed: no URL returned from server');
+                          }
+                        }
+                        
                         const payload = {
                           name: currentShop.name,
                           address: currentShop.address,
                           phone: currentShop.phone || '',
+                          logo: logoUrl,
                           deliveryFee: currentShop.deliveryFee || 0,
                           deliveryServices: currentShop.deliveryServices || [],
                           owner: {
@@ -1359,6 +1427,8 @@ const AdminDashboard = () => {
                         
                         if (response.ok) {
                           alert('Shop information updated successfully!');
+                          // Clear the logoFile after successful upload
+                          setSelectedShop(prev => prev ? { ...prev, logoFile: null } : null);
                           fetchShops(); // Refresh shop data
                         } else {
                           const error = await response.text();
