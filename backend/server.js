@@ -962,6 +962,27 @@ app.post("/api/test-login", async (req, res) => {
             return res.status(500).json({ message: 'Failed to update profile' });
           }
 
+          // For shop owners, also update the corresponding shop's owner information
+          if (authUser.role === 'shop_owner' && (update.name || update.phone || update.address || update.city)) {
+            try {
+              const ShopModel = (await import('./models/Shop.js')).default;
+              const shopUpdate = {};
+              if (update.name) shopUpdate['owner.name'] = update.name;
+              if (update.phone) shopUpdate['owner.phone'] = update.phone;
+              if (update.address) shopUpdate['owner.address'] = update.address;
+              // Note: city is not stored in shop owner, only in user profile
+
+              await ShopModel.findOneAndUpdate(
+                { 'owner.username': authUser.username },
+                { $set: shopUpdate },
+                { new: true }
+              ).exec();
+            } catch (shopErr) {
+              console.warn('PUT /api/me - failed to sync shop owner info', shopErr && shopErr.message ? shopErr.message : shopErr);
+              // Don't fail the entire request if shop sync fails
+            }
+          }
+
           // Return sanitized user info
           const safe = { username: updated.username, email: updated.email, phone: updated.phone, address: updated.address, city: updated.city, name: updated.name, role: updated.role || authUser.role };
           return res.json({ user: safe });
@@ -2367,7 +2388,15 @@ app.put('/api/shops/:id', authenticate, validate(schemas.shopUpdate), async (req
   const shops = readShops();
   const idx = shops.findIndex(s => s.id === id);
   if (idx === -1) return res.status(404).json({ message: 'Shop not found' });
-  // Public: allow updating shops in public-only mode
+
+  // Authorization: allow admins to update any shop, shop owners to update their own shop
+  const authUser = await getUserFromRequest(req);
+  const isAdmin = authUser && authUser.role === 'admin';
+  const isShopOwner = authUser && authUser.role === 'shop_owner' && shops[idx].owner && shops[idx].owner.username === authUser.username;
+  
+  if (!isAdmin && !isShopOwner) {
+    return res.status(403).json({ message: 'You can only update your own shop' });
+  }
 
   // don't allow changing id
   const updated = { ...shops[idx], ...payload, id };

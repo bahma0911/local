@@ -1088,6 +1088,7 @@ const AdminDashboard = () => {
             <button className={ownerTab === 'products' ? 'active' : ''} onClick={() => setOwnerTab('products')}>Products</button>
             <button className={ownerTab === 'add' ? 'active' : ''} onClick={() => setOwnerTab('add')}>Add Product</button>
             <button className={ownerTab === 'reviews' ? 'active' : ''} onClick={() => setOwnerTab('reviews')}>Reviews</button>
+            <button className={ownerTab === 'shop-info' ? 'active' : ''} onClick={() => setOwnerTab('shop-info')}>Shop Info</button>
           </div>
 
           {ownerTab === 'orders' && (
@@ -1276,6 +1277,111 @@ const AdminDashboard = () => {
                   </div>
                 )
               )}
+            </div>
+          )}
+
+          {ownerTab === 'shop-info' && (
+            <div className="shop-info" style={{ marginTop: 20 }}>
+              <h4>Shop Information</h4>
+              <p style={{ color: '#666', marginBottom: 16 }}>This information is displayed on your product listings and is separate from your personal profile.</p>
+              
+              <div style={{ display: 'grid', gap: 12, maxWidth: 400 }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>Shop Name</label>
+                  <input
+                    type="text"
+                    value={currentShop?.name || ''}
+                    onChange={e => setSelectedShop(prev => prev ? { ...prev, name: e.target.value } : null)}
+                    style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 4 }}
+                  />
+                </div>
+                
+                <div>
+                  <label style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>Shop Phone (shown on products)</label>
+                  <input
+                    type="tel"
+                    value={currentShop?.owner?.phone || ''}
+                    onChange={e => setSelectedShop(prev => prev ? { 
+                      ...prev, 
+                      owner: { ...prev.owner, phone: e.target.value } 
+                    } : null)}
+                    style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 4 }}
+                    placeholder="Phone number displayed on your products"
+                  />
+                </div>
+                
+                <div>
+                  <label style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>Shop Address</label>
+                  <input
+                    type="text"
+                    value={currentShop?.address || ''}
+                    onChange={e => setSelectedShop(prev => prev ? { ...prev, address: e.target.value } : null)}
+                    style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 4 }}
+                  />
+                </div>
+                
+                <div>
+                  <label style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>Delivery Fee (ETB)</label>
+                  <input
+                    type="number"
+                    value={currentShop?.deliveryFee || 0}
+                    onChange={e => setSelectedShop(prev => prev ? { ...prev, deliveryFee: Number(e.target.value) || 0 } : null)}
+                    style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 4 }}
+                    min="0"
+                  />
+                </div>
+                
+                <div style={{ marginTop: 16 }}>
+                  <button 
+                    onClick={async () => {
+                      if (!currentShop) return;
+                      try {
+                        const payload = {
+                          name: currentShop.name,
+                          address: currentShop.address,
+                          phone: currentShop.phone || '',
+                          deliveryFee: currentShop.deliveryFee || 0,
+                          deliveryServices: currentShop.deliveryServices || [],
+                          owner: {
+                            ...currentShop.owner,
+                            phone: currentShop.owner?.phone || '',
+                            name: currentShop.owner?.name || '',
+                            address: currentShop.owner?.address || ''
+                          }
+                        };
+                        
+                        const response = await fetch(`${API_BASE}/api/shops/${currentShop.id}`, {
+                          method: 'PUT',
+                          credentials: 'include',
+                          headers: { 'Content-Type': 'application/json', ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) },
+                          body: JSON.stringify(payload)
+                        });
+                        
+                        if (response.ok) {
+                          alert('Shop information updated successfully!');
+                          fetchShops(); // Refresh shop data
+                        } else {
+                          const error = await response.text();
+                          alert('Failed to update shop information: ' + error);
+                        }
+                      } catch (err) {
+                        console.error('Update shop info error:', err);
+                        alert('Error updating shop information: ' + (err.message || err));
+                      }
+                    }}
+                    style={{ 
+                      background: '#007bff', 
+                      color: 'white', 
+                      border: 'none', 
+                      padding: '10px 20px', 
+                      borderRadius: 4, 
+                      cursor: 'pointer' 
+                    }}
+                  >
+                    Save Shop Information
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
