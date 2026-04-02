@@ -13,6 +13,10 @@ const ProductSchema = new mongoose.Schema({
 
 const OwnerSchema = new mongoose.Schema({
   username: { type: String },
+  email: { type: String },
+  name: { type: String },
+  phone: { type: String },
+  address: { type: String },
   password: { type: String }
 }, { _id: false });
 

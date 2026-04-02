@@ -801,6 +801,17 @@ const AdminDashboard = () => {
     }
   }, [isAdmin]);
 
+  // Populate product form with shop contact info when shop changes
+  useEffect(() => {
+    if (isShopOwner && currentShop) {
+      setNewProduct(prev => ({
+        ...prev,
+        shopPhone: currentShop.owner?.phone || prev.shopPhone || '',
+        shopLocation: currentShop.address || prev.shopLocation || ''
+      }));
+    }
+  }, [isShopOwner, currentShop]);
+
   return (
     <div className="admin-dashboard">
       {/* HEADER */}
@@ -1201,7 +1212,13 @@ const AdminDashboard = () => {
               <div style={{ marginTop: 8 }}>
                 <button onClick={async () => {
                   const created = await addProductAPI(currentShop.id, newProduct);
-                  if (created) { setNewProduct({ name: '', price: '', image: '', images: [], imageFile: null, imageFiles: [], description: '', details: '', condition: '', unit: 'piece', shopPhone: '', shopLocation: '', inStock: true, stock: 1, category: '' }); fetchShops(); setOwnerTab('products'); }
+                  if (created) { 
+                    const shopPhone = currentShop?.owner?.phone || '';
+                    const shopLocation = currentShop?.address || '';
+                    setNewProduct({ name: '', price: '', image: '', images: [], imageFile: null, imageFiles: [], description: '', details: '', condition: '', unit: 'piece', shopPhone, shopLocation, inStock: true, stock: 1, category: '' }); 
+                    fetchShops(); 
+                    setOwnerTab('products'); 
+                  }
                 }}>Add Product</button>
               </div>
             </div>

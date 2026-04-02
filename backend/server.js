@@ -1567,12 +1567,23 @@ app.get('/api/products/:id', async (req, res) => {
         out.condition = out.condition || null;
         out.unit = out.unit || 'piece';
         out.shopPhone = out.shopPhone || '';
+        // If product doesn't include shopPhone, try to read it from the Shop collection
+        if (!out.shopPhone || String(out.shopPhone).trim() === '') {
+          try {
+            if (typeof out.shopLegacyId !== 'undefined' && out.shopLegacyId !== null) {
+              const s = await ShopModel.findOne({ legacyId: Number(out.shopLegacyId) }).lean().exec();
+              if (s && s.owner && s.owner.phone) out.shopPhone = s.owner.phone;
+            }
+          } catch (e) {
+            // ignore lookup failures
+          }
+        }
         // If product doesn't include shopLocation, try to read it from the Shop collection
         if (!out.shopLocation || String(out.shopLocation).trim() === '') {
           try {
             if (typeof out.shopLegacyId !== 'undefined' && out.shopLegacyId !== null) {
               const s = await ShopModel.findOne({ legacyId: Number(out.shopLegacyId) }).lean().exec();
-              if (s) out.shopLocation = s.address || '';
+              if (s) out.shopLocation = s.address || (s.owner && s.owner.address) || '';
             }
           } catch (e) {
             // ignore lookup failures
@@ -1606,8 +1617,8 @@ app.get('/api/products/:id', async (req, res) => {
             attributes: p.attributes || {},
             condition: p.condition || null,
             unit: p.unit || 'piece',
-            shopPhone: p.shopPhone || (s.phone || '') || '',
-            shopLocation: p.shopLocation || s.address || ''
+            shopPhone: p.shopPhone || (s.owner && s.owner.phone) || '',
+            shopLocation: p.shopLocation || s.address || (s.owner && s.owner.address) || ''
           };
           return res.json(out);
         }
