@@ -59,7 +59,7 @@ const AdminDashboard = () => {
   }, [categories, shopCategories]);
 
   // Owner tab for shop-owner UI: 'orders' | 'products' | 'add'
-  const [ownerTab, setOwnerTab] = useState('orders');
+  const [ownerTab, setOwnerTab] = useState('shop-info');
 
   // reviews state for shop-owner view
   const [shopReviewsByProduct, setShopReviewsByProduct] = useState({});
@@ -1105,14 +1105,23 @@ const AdminDashboard = () => {
       {isShopOwner && currentShop && (
         <div className="product-management">
           <h3>Manage — {currentShop.name}</h3>
+          {ownerTab === 'shop-info' && (
+            <div style={{ marginBottom: 20, padding: 16, background: '#f8f9fa', borderRadius: 8, border: '1px solid #e9ecef' }}>
+              <h4 style={{ margin: 0, marginBottom: 8 }}>Shop Information</h4>
+              <p style={{ color: '#666', margin: 0, fontSize: '14px' }}>
+                Manage your shop's public information that customers see on product listings. 
+                This is separate from your personal profile.
+              </p>
+            </div>
+          )}
 
           {/* Owner tabs: Orders / Products / Add Product */}
           <div className="owner-tabs" style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+            <button className={ownerTab === 'shop-info' ? 'active' : ''} onClick={() => setOwnerTab('shop-info')}>Shop Info</button>
             <button className={ownerTab === 'orders' ? 'active' : ''} onClick={() => { setOwnerTab('orders'); fetchShopOrders(currentShop.id || assignedShop); }}>Orders</button>
             <button className={ownerTab === 'products' ? 'active' : ''} onClick={() => setOwnerTab('products')}>Products</button>
             <button className={ownerTab === 'add' ? 'active' : ''} onClick={() => setOwnerTab('add')}>Add Product</button>
             <button className={ownerTab === 'reviews' ? 'active' : ''} onClick={() => setOwnerTab('reviews')}>Reviews</button>
-            <button className={ownerTab === 'shop-info' ? 'active' : ''} onClick={() => setOwnerTab('shop-info')}>Shop Info</button>
           </div>
 
           {ownerTab === 'orders' && (
@@ -1306,11 +1315,6 @@ const AdminDashboard = () => {
 
           {ownerTab === 'shop-info' && (
             <div className="shop-info" style={{ marginTop: 20 }}>
-              <h4>Shop Information</h4>
-              <p style={{ color: '#666', marginBottom: 20, fontSize: '14px' }}>
-                Manage your shop's public information that customers see on product listings. 
-                This is separate from your personal profile.
-              </p>
               
               <div style={{ 
                 display: 'grid', 
