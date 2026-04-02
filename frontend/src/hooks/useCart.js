@@ -71,7 +71,7 @@ export const useCart = () => {
   // Group cart items by shop
   const cartItemsByShop = cartItems.reduce((acc, item) => {
     const currentShops = getCurrentShops();
-    const shop = currentShops.find(s => s.products.some(p => p.id === item.id));
+    const shop = currentShops.find(s => (s.products || []).some(p => String(p.id) === String(item.id)));
     if (shop) {
       if (!acc[shop.id]) {
         acc[shop.id] = {
