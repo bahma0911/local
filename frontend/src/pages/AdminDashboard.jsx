@@ -64,6 +64,16 @@ const AdminDashboard = () => {
   // reviews state for shop-owner view
   const [shopReviewsByProduct, setShopReviewsByProduct] = useState({});
 
+  // shop info form state
+  const [shopInfoForm, setShopInfoForm] = useState({
+    name: '',
+    phone: '',
+    address: '',
+    deliveryFee: 0,
+    logo: '',
+    logoFile: null
+  });
+
   const { logout, isAdmin, isShopOwner, assignedShop, user, csrfToken } = useAuth();
   const navigate = useNavigate();
 
@@ -812,6 +822,20 @@ const AdminDashboard = () => {
     }
   }, [isShopOwner, currentShop]);
 
+  // Initialize shop info form when currentShop changes or when shop-info tab is selected
+  useEffect(() => {
+    if (currentShop && ownerTab === 'shop-info') {
+      setShopInfoForm({
+        name: currentShop.name || '',
+        phone: currentShop.owner?.phone || '',
+        address: currentShop.address || '',
+        deliveryFee: currentShop.deliveryFee || 0,
+        logo: currentShop.logo || '',
+        logoFile: null
+      });
+    }
+  }, [currentShop, ownerTab]);
+
   return (
     <div className="admin-dashboard">
       {/* HEADER */}
@@ -1283,51 +1307,97 @@ const AdminDashboard = () => {
           {ownerTab === 'shop-info' && (
             <div className="shop-info" style={{ marginTop: 20 }}>
               <h4>Shop Information</h4>
-              <p style={{ color: '#666', marginBottom: 16 }}>This information is displayed on your product listings and is separate from your personal profile.</p>
+              <p style={{ color: '#666', marginBottom: 20, fontSize: '14px' }}>
+                Manage your shop's public information that customers see on product listings. 
+                This is separate from your personal profile.
+              </p>
               
-              <div style={{ display: 'grid', gap: 12, maxWidth: 400 }}>
+              <div style={{ 
+                display: 'grid', 
+                gap: 16, 
+                maxWidth: 500,
+                background: '#f8f9fa',
+                padding: 20,
+                borderRadius: 8,
+                border: '1px solid #e9ecef'
+              }}>
                 <div>
-                  <label style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>Shop Name</label>
+                  <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, color: '#333' }}>
+                    Shop Name
+                  </label>
                   <input
                     type="text"
-                    value={currentShop?.name || ''}
-                    onChange={e => setSelectedShop(prev => prev ? { ...prev, name: e.target.value } : null)}
-                    style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 4 }}
+                    value={shopInfoForm.name}
+                    onChange={e => setShopInfoForm(prev => ({ ...prev, name: e.target.value }))}
+                    style={{ 
+                      width: '100%', 
+                      padding: '10px 12px', 
+                      border: '1px solid #ced4da', 
+                      borderRadius: 6,
+                      fontSize: '14px',
+                      background: 'white'
+                    }}
+                    placeholder="Enter your shop name"
                   />
                 </div>
                 
                 <div>
-                  <label style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>Shop Phone (shown on products)</label>
+                  <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, color: '#333' }}>
+                    Shop Phone <span style={{ fontWeight: 400, color: '#666', fontSize: '12px' }}>(shown on products)</span>
+                  </label>
                   <input
                     type="tel"
-                    value={currentShop?.owner?.phone || ''}
-                    onChange={e => setSelectedShop(prev => prev ? { 
-                      ...prev, 
-                      owner: { ...prev.owner, phone: e.target.value } 
-                    } : null)}
-                    style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 4 }}
+                    value={shopInfoForm.phone}
+                    onChange={e => setShopInfoForm(prev => ({ ...prev, phone: e.target.value }))}
+                    style={{ 
+                      width: '100%', 
+                      padding: '10px 12px', 
+                      border: '1px solid #ced4da', 
+                      borderRadius: 6,
+                      fontSize: '14px',
+                      background: 'white'
+                    }}
                     placeholder="Phone number displayed on your products"
                   />
                 </div>
                 
                 <div>
-                  <label style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>Shop Address</label>
+                  <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, color: '#333' }}>
+                    Shop Address
+                  </label>
                   <input
                     type="text"
-                    value={currentShop?.address || ''}
-                    onChange={e => setSelectedShop(prev => prev ? { ...prev, address: e.target.value } : null)}
-                    style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 4 }}
+                    value={shopInfoForm.address}
+                    onChange={e => setShopInfoForm(prev => ({ ...prev, address: e.target.value }))}
+                    style={{ 
+                      width: '100%', 
+                      padding: '10px 12px', 
+                      border: '1px solid #ced4da', 
+                      borderRadius: 6,
+                      fontSize: '14px',
+                      background: 'white'
+                    }}
+                    placeholder="Enter your shop address"
                   />
                 </div>
                 
                 <div>
-                  <label style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>Shop Logo</label>
-                  {currentShop?.logo && (
+                  <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, color: '#333' }}>
+                    Shop Logo
+                  </label>
+                  {shopInfoForm.logo && (
                     <div style={{ marginBottom: 8 }}>
                       <img 
-                        src={currentShop.logo} 
+                        src={shopInfoForm.logo} 
                         alt="Current logo" 
-                        style={{ maxWidth: 100, maxHeight: 100, border: '1px solid #ddd', borderRadius: 4 }} 
+                        style={{ 
+                          maxWidth: 120, 
+                          maxHeight: 120, 
+                          border: '2px solid #dee2e6', 
+                          borderRadius: 8,
+                          background: 'white',
+                          padding: 4
+                        }} 
                       />
                     </div>
                   )}
@@ -1352,36 +1422,53 @@ const AdminDashboard = () => {
                           return;
                         }
                         // Store the file for upload
-                        setSelectedShop(prev => prev ? { ...prev, logoFile: file } : null);
+                        setShopInfoForm(prev => ({ ...prev, logoFile: file }));
                       }
                     }}
-                    style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 4 }}
+                    style={{ 
+                      width: '100%', 
+                      padding: '8px 12px', 
+                      border: '1px solid #ced4da', 
+                      borderRadius: 6,
+                      fontSize: '14px',
+                      background: 'white'
+                    }}
                   />
-                  <small style={{ color: '#666', display: 'block', marginTop: 4 }}>
-                    Upload a new logo image (JPG, PNG, or WEBP, max 5MB)
+                  <small style={{ color: '#666', display: 'block', marginTop: 6, fontSize: '12px' }}>
+                    Upload a new logo image (JPG, PNG, or WEBP, max 5MB). Leave empty to keep current logo.
                   </small>
                 </div>
                 
                 <div>
-                  <label style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>Delivery Fee (ETB)</label>
+                  <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, color: '#333' }}>
+                    Delivery Fee (ETB)
+                  </label>
                   <input
                     type="number"
-                    value={currentShop?.deliveryFee || 0}
-                    onChange={e => setSelectedShop(prev => prev ? { ...prev, deliveryFee: Number(e.target.value) || 0 } : null)}
-                    style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 4 }}
+                    value={shopInfoForm.deliveryFee}
+                    onChange={e => setShopInfoForm(prev => ({ ...prev, deliveryFee: Number(e.target.value) || 0 }))}
+                    style={{ 
+                      width: '100%', 
+                      padding: '10px 12px', 
+                      border: '1px solid #ced4da', 
+                      borderRadius: 6,
+                      fontSize: '14px',
+                      background: 'white'
+                    }}
                     min="0"
+                    step="0.01"
                   />
                 </div>
                 
-                <div style={{ marginTop: 16 }}>
+                <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid #dee2e6' }}>
                   <button 
                     onClick={async () => {
                       if (!currentShop) return;
                       try {
-                        let logoUrl = currentShop.logo; // Keep existing logo by default
+                        let logoUrl = shopInfoForm.logo; // Keep existing logo by default
                         
                         // Upload new logo if selected
-                        if (currentShop.logoFile) {
+                        if (shopInfoForm.logoFile) {
                           const fd = new FormData();
                           fd.append('file', currentShop.logoFile);
                           const up = await uploadFile(fd);
@@ -1404,15 +1491,15 @@ const AdminDashboard = () => {
                         }
                         
                         const payload = {
-                          name: currentShop.name,
-                          address: currentShop.address,
-                          phone: currentShop.phone || '',
+                          name: shopInfoForm.name,
+                          address: shopInfoForm.address,
+                          phone: shopInfoForm.phone || '',
                           logo: logoUrl,
-                          deliveryFee: currentShop.deliveryFee || 0,
+                          deliveryFee: shopInfoForm.deliveryFee || 0,
                           deliveryServices: currentShop.deliveryServices || [],
                           owner: {
                             ...currentShop.owner,
-                            phone: currentShop.owner?.phone || '',
+                            phone: shopInfoForm.phone || '',
                             name: currentShop.owner?.name || '',
                             address: currentShop.owner?.address || ''
                           }
@@ -1428,7 +1515,7 @@ const AdminDashboard = () => {
                         if (response.ok) {
                           alert('Shop information updated successfully!');
                           // Clear the logoFile after successful upload
-                          setSelectedShop(prev => prev ? { ...prev, logoFile: null } : null);
+                          setShopInfoForm(prev => ({ ...prev, logoFile: null, logo: logoUrl }));
                           fetchShops(); // Refresh shop data
                         } else {
                           const error = await response.text();
@@ -1443,9 +1530,12 @@ const AdminDashboard = () => {
                       background: '#007bff', 
                       color: 'white', 
                       border: 'none', 
-                      padding: '10px 20px', 
-                      borderRadius: 4, 
-                      cursor: 'pointer' 
+                      padding: '12px 24px', 
+                      borderRadius: 6, 
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      fontWeight: 500,
+                      width: '100%'
                     }}
                   >
                     Save Shop Information
