@@ -38,8 +38,6 @@
 
 .category-button:hover {
   transform: translateY(-2px);
-  border-color: var(--border-light);
-  background: var(--overlay-2);
 }
 
 .category-button.active {
@@ -62,9 +60,7 @@
 }
 
 [data-theme="light"] .category-button:hover {
-  background: #f9fafb;
-  border-color: #9ca3af;
-  color: #374151;
+  transform: translateY(-2px);
 }
 
 [data-theme="light"] .category-button.active {

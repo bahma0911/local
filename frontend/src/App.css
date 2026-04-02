@@ -221,7 +221,7 @@
   border-radius: 6px;
 }
 
-.user-dropdown .dropdown-item:hover { background: var(--overlay-1); }
+.user-dropdown .dropdown-item:hover { transform: translateY(-2px); }
 
 .app-main {
   width: min(1200px, 92%);

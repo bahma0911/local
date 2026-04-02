@@ -115,9 +115,11 @@ const ProductDetails = () => {
         <div className="pd-info">
           <h2>{product.name}</h2>
           <div style={{ margin: '8px 0' }}><strong>Price:</strong> {priceAmount} ETB</div>
-          <div style={{ margin: '8px 0' }}>
-            <strong>Condition:</strong> <span style={{ padding: '4px 8px', background: product.condition === 'used' ? '#ffc' : (product.condition === 'new' ? 'rgb(233, 132, 31)' : '#eee'), borderRadius: 6, color: product.condition ? '#000' : '#444' }}>{product.condition ? product.condition.toUpperCase() : 'N/A'}</span>
-          </div>
+          {product.condition && (
+            <div style={{ margin: '8px 0' }}>
+              <strong>Condition:</strong> <span style={{ padding: '4px 8px', background: product.condition === 'used' ? '#ffc' : (product.condition === 'new' ? 'rgb(233, 132, 31)' : '#eee'), borderRadius: 6, color: product.condition ? '#000' : '#444' }}>{product.condition ? product.condition.toUpperCase() : 'N/A'}</span>
+            </div>
+          )}
 
           <div style={{ marginTop: 12 }}>
             <strong>Details</strong>

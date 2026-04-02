@@ -96,7 +96,6 @@
 
 .product-action-btn.pickup:hover:not(:disabled) {
   transform: translateY(-2px);
-  background: rgba(34, 211, 238, 0.28);
 }
 
 .product-action-btn.delivery {
@@ -107,7 +106,6 @@
 
 .product-action-btn.delivery:hover:not(:disabled) {
   transform: translateY(-2px);
-  background: rgba(255, 107, 44, 0.28);
 }
 
 .product-image {
@@ -211,7 +209,6 @@
 }
 
 .review-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
   transform: translateY(-2px);
 }
 

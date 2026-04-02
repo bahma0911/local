@@ -399,9 +399,9 @@
 .fpc-actions { display:flex; gap:8px; }
 .fpc-btn { flex:1; padding:8px 10px; border-radius:6px; border:none; cursor:pointer; font-size:0.85rem; transition: background-color 0.2s; }
 .fpc-btn.pickup { background:#f1f5f9; }
-.fpc-btn.pickup:hover { background:#e2e8f0; }
+.fpc-btn.pickup:hover { transform: translateY(-2px); }
 .fpc-btn.delivery { background:linear-gradient(90deg,#667eea,#764ba2); color:#fff; }
-.fpc-btn.delivery:hover { background:linear-gradient(90deg,#5a67d8,#553c9a); }
+.fpc-btn.delivery:hover { transform: translateY(-2px); }
 
 /* Light theme specific styling for advanced filters */
 [data-theme="light"] .advanced-filters-toggle {
