@@ -100,7 +100,7 @@
 .price-filter {
   margin-bottom: 20px;
   padding: 16px;
-  background: rgba(30, 41, 59, 0.6);
+  background: rgba(8, 23, 47, 0.6);
   border-radius: var(--hx-radius);
   border: 1px solid rgba(255, 255, 255, 0.06);
   backdrop-filter: blur(6px);
