@@ -47,7 +47,7 @@ const BannerAboveSearch = () => {
   const currentAd = advertisements[currentAdIndex];
 
   useEffect(() => {
-    if (!currentAd || !currentAd._id || currentAd._id === 'fallback-ad') return;
+    if (!currentAd || !currentAd._id) return;
     const trackImpression = async () => {
       try {
         await apiFetch(`${API_BASE}/api/advertisements/${currentAd._id}/impression`, {
