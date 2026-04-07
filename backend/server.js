@@ -16,7 +16,7 @@ import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 import { validate, schemas } from './validators.js';
 import { info, warn, error as logError } from './logger.js';
-import connectMongo from './mongo.js';
+import { connectMySQL } from './mysql.js';
 import User from './models/User.js';
 import * as authController from './controllers/authController.js';
 import * as emailController from './controllers/emailController.js';
@@ -166,9 +166,9 @@ app.use((req, _res, next) => {
 
 // Passport/third-party auth removed for public-only mode
 
-// Connect to MongoDB (if configured)
-connectMongo().catch((err) => {
-  console.warn('Mongo connection warning:', err && err.message ? err.message : err);
+// Connect to MySQL (if configured)
+connectMySQL().catch((err) => {
+  console.warn('MySQL connection warning:', err && err.message ? err.message : err);
 });
 
 // Google auth routes removed
@@ -380,12 +380,9 @@ const getAuthCookieOptions = () => ({
   secure: app.get('env') === 'production' || (process.env.DEV_SAMESITE_SECURE === '1'),
   sameSite: determineSameSite(),
   maxAge: AUTH_COOKIE_MAX_AGE,
-  // Chrome plans to reject third-party cookies without the partitioned attribute
-  // when the cookie is treated as foreign. Setting this ensures future compliance.
-  partitioned: true,
 });
 
-// helper that wraps res.cookie() and makes sure the Partitioned marker is present
+// helper that wraps res.cookie() and makes sure the Partitioned marker is present in production
 const setAuthCookie = (res, token) => {
   res.cookie(AUTH_COOKIE_NAME, token, getAuthCookieOptions());
   try {
@@ -395,7 +392,9 @@ const setAuthCookie = (res, token) => {
       const newArr = arr.map(h => {
         const str = h.toString();
         if (str.toLowerCase().includes('partitioned')) return str;
-        return str + '; Partitioned';
+        // Only add Partitioned in production where secure is true
+        if (app.get('env') === 'production') return str + '; Partitioned';
+        return str;
       });
       res.setHeader('Set-Cookie', newArr);
     }
