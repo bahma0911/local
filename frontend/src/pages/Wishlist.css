@@ -72,7 +72,7 @@
 }
 
 .wishlist-item {
-  background: white;
+  background: var(--auth-bg);
   border-radius: 12px;
   padding: 1.5rem;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -163,7 +163,7 @@
 }
 
 .modal-content {
-  background: white;
+  background: var(--auth-bg);
   border-radius: 12px;
   padding: 2rem;
   max-width: 900px;

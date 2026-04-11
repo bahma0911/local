@@ -117,29 +117,21 @@ export const useCart = () => {
     }
 
     setCartItems((prevItems) => {
-      const existing = prevItems.find((item) => String(item.id) === String(pid));
+      if (prevItems.some(item => item.shopId === shopId)) {
+        alert("You can only add 1 item per shop to the cart.");
+        return prevItems;
+      }
       // normalize numeric price for cart items
       const numericPrice = (product && product.price && typeof product.price === 'object' && typeof product.price.amount !== 'undefined')
         ? Number(product.price.amount)
         : (typeof product.price === 'number' ? Number(product.price) : 0);
 
-      if (existing) {
-        const newQty = existing.quantity + 1;
-        if (typeof stockCheck.available === 'number' && newQty > Number(stockCheck.available)) {
-          alert(`Cannot add more than available stock (${stockCheck.available}) for ${existing.name || pid}`);
-          return prevItems;
-        }
-        return prevItems.map((item) =>
-          String(item.id) === String(pid) ? { ...item, quantity: newQty } : item
-        );
-      } else {
-        if (typeof stockCheck.available === 'number' && 1 > Number(stockCheck.available)) {
-          alert(`Cannot add item — no stock available for ${product.name || pid}`);
-          return prevItems;
-        }
-        const itemToAdd = { ...product, id: pid, quantity: 1, shopId, price: numericPrice };
-        return [...prevItems, itemToAdd];
+      if (typeof stockCheck.available === 'number' && 1 > Number(stockCheck.available)) {
+        alert(`Cannot add item — no stock available for ${product.name || pid}`);
+        return prevItems;
       }
+      const itemToAdd = { ...product, id: pid, quantity: 1, shopId, price: numericPrice };
+      return [...prevItems, itemToAdd];
     });
 
     // Set delivery option for this shop
@@ -158,6 +150,10 @@ export const useCart = () => {
     const stockCheck = checkProductStock(productId);
     const existing = cartItems.find(it => String(it.id) === String(productId));
     const currentQty = existing ? Number(existing.quantity || 0) : 0;
+    if (currentQty >= 1) {
+      alert("Maximum 1 per item.");
+      return;
+    }
     const available = Number(stockCheck.available || 0);
     if (!stockCheck.inStock || currentQty + 1 > available) {
       alert(`Cannot add more - only ${available} available`);

@@ -107,6 +107,7 @@ const Cart = ({
                           <span className="cart-item-quantity">{item.quantity}</span>
                           <button 
                             onClick={() => onIncreaseQuantity && onIncreaseQuantity(item.id)} 
+                            disabled={item.quantity >= 1}
                             className="quantity-btn increase"
                           >
                             +

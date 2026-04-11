@@ -554,7 +554,7 @@
   text-align: center;
   cursor: pointer;
   transition: all 0.3s ease;
-  background: white;
+  background: var(--auth-bg);
 }
 
 .payment-method-option:hover {
@@ -585,7 +585,7 @@
 
 /* Chapa Payment Styles */
 .chapa-payment-section {
-  background: white;
+  background: var(--auth-bg);
   padding: 1.5rem;
   border-radius: 12px;
   border: 2px solid #e1e5e9;
@@ -689,7 +689,7 @@
 
 /* Telebirr Payment Styles */
 .telebirr-payment-section {
-  background: white;
+  background: var(--auth-bg);
   padding: 1.5rem;
   border-radius: 12px;
   border: 2px solid #e1e5e9;
@@ -726,7 +726,7 @@
 
 /* Cash Payment Styles */
 .cash-payment-section {
-  background: white;
+  background: var(--auth-bg);
   padding: 1.5rem;
   border-radius: 12px;
   border: 2px solid #e1e5e9;

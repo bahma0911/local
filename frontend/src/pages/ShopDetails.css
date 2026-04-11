@@ -30,7 +30,7 @@
   display: flex;
   gap: 1.5rem;
   align-items: center;
-  background: #fbfde7;
+  background: var(--auth-bg);
   padding: 2rem;
   border-radius: var(--hx-radius);
   border: 1px solid rgba(255, 255, 255, 0.08);
