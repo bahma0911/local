@@ -1401,8 +1401,9 @@ app.post('/api/products', requireAuth, requireVerifiedEmail, requireShopOwner, v
     }
 
     // Validate images array (accept single string as well)
-    const imagesArr = Array.isArray(images) ? images : (images ? [images] : []);
-    if (!Array.isArray(imagesArr) || imagesArr.length === 0) {
+    const imagesArr = Array.isArray(images) ? images.filter(Boolean) : (images ? [images] : []);
+    const uniqueImages = [...new Set(imagesArr.map((item) => String(item).trim()))].filter(Boolean);
+    if (!Array.isArray(uniqueImages) || uniqueImages.length === 0) {
       return res.status(400).json({ message: 'images is required and must include at least one image URL' });
     }
 
@@ -1416,7 +1417,7 @@ app.post('/api/products', requireAuth, requireVerifiedEmail, requireShopOwner, v
       description,
       details: details || '',
       price: priceObj,
-      images: imagesArr,
+      images: uniqueImages,
       condition: (condition === 'new' || condition === 'used') ? String(condition) : undefined,
       unit: (unit === 'piece' || unit === 'kg') ? unit : 'piece',
       shopPhone: shopPhone || '',
@@ -1484,6 +1485,7 @@ app.get('/api/products', async (req, res) => {
           }
 
           // sanitize shape for public consumption and prefer shop address when product lacks shopLocation
+          const purchaseCountMap = await fetchPurchaseCountsForIds((docs || []).map(d => d._id));
           const out = docs.map(d => ({
             id: d._id,
             name: d.name,
@@ -1500,6 +1502,7 @@ app.get('/api/products', async (req, res) => {
             stock: d.stock || 0,
             status: d.status || 'draft',
             attributes: d.attributes || {},
+            purchaseCount: purchaseCountMap[String(d._id)] || 0,
             createdAt: d.createdAt,
             updatedAt: d.updatedAt
           }));
@@ -1535,7 +1538,11 @@ app.get('/api/products', async (req, res) => {
     if (search) pool = pool.filter(p => (p.name || '').toLowerCase().includes(String(search).toLowerCase()));
 
     const start = (p - 1) * l;
-    const sliced = pool.slice(start, start + l);
+    let sliced = pool.slice(start, start + l);
+    if (mongoose.connection && mongoose.connection.readyState === 1 && sliced.length) {
+      const counts = await fetchPurchaseCountsForIds(sliced.map(item => item.id));
+      sliced = sliced.map(item => ({ ...item, purchaseCount: counts[String(item.id)] || 0 }));
+    }
     return res.json(sliced);
   } catch (e) {
     console.error('GET /api/products error', e && e.message ? e.message : e);
@@ -1579,6 +1586,7 @@ app.get('/api/products/:id', async (req, res) => {
         if ((!out.images || out.images.length === 0) && out.image) out.images = [out.image];
         out.id = out._id;
         out.shopId = out.shopLegacyId || null;
+        out.purchaseCount = (await fetchPurchaseCountsForIds([out._id]))[String(out._id)] || 0;
         out.condition = out.condition || null;
         out.unit = out.unit || 'piece';
         out.shopPhone = out.shopPhone || '';
@@ -1633,8 +1641,13 @@ app.get('/api/products/:id', async (req, res) => {
             condition: p.condition || null,
             unit: p.unit || 'piece',
             shopPhone: p.shopPhone || (s.owner && s.owner.phone) || '',
-            shopLocation: p.shopLocation || s.address || (s.owner && s.owner.address) || ''
+            shopLocation: p.shopLocation || s.address || (s.owner && s.owner.address) || '',
+            purchaseCount: 0
           };
+          if (mongoose.connection && mongoose.connection.readyState === 1) {
+            const counts = await fetchPurchaseCountsForIds([candidateId]);
+            out.purchaseCount = counts[String(candidateId)] || 0;
+          }
           return res.json(out);
         }
       }
@@ -2492,6 +2505,52 @@ app.delete('/api/shops/:id', authenticate, async (req, res) => {
 });
 
 // -------------------- Product endpoints --------------------
+const buildProductIdCandidates = (productId) => {
+  const seen = new Set();
+  const candidates = [];
+  const add = (value) => {
+    if (value === undefined || value === null) return;
+    const key = `${typeof value}:${String(value)}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      candidates.push(value);
+    }
+  };
+  add(productId);
+  const pid = String(productId || '').trim();
+  add(pid);
+  if (/^\d+$/.test(pid)) add(Number(pid));
+  try {
+    if (mongoose.Types.ObjectId.isValid(pid)) add(new mongoose.Types.ObjectId(pid));
+  } catch (e) {}
+  const hyphenMatch = pid.match(/^(\d+)-([0-9a-fA-F]{24})$/);
+  if (hyphenMatch) {
+    add(hyphenMatch[1]);
+    try {
+      add(new mongoose.Types.ObjectId(hyphenMatch[2]));
+    } catch (e) {}
+  }
+  return candidates;
+};
+
+const fetchPurchaseCountsForIds = async (productIds) => {
+  if (!mongoose.connection || mongoose.connection.readyState !== 1) return {};
+  const allCandidates = productIds.flatMap(buildProductIdCandidates);
+  if (!allCandidates.length) return {};
+  const agg = await OrderModel.aggregate([
+    { $match: { status: { $nin: ['pending', 'cancelled'] }, 'items.productId': { $in: allCandidates } } },
+    { $project: { items: 1, customerKey: { $ifNull: ['$customer.username', '$customerId'] } } },
+    { $unwind: '$items' },
+    { $match: { 'items.productId': { $in: allCandidates } } },
+    { $group: { _id: { productId: '$items.productId', customerKey: '$customerKey' } } },
+    { $group: { _id: '$_id.productId', uniqueBuyers: { $sum: 1 } } }
+  ]).exec();
+  return (agg || []).reduce((map, item) => {
+    map[String(item._id)] = item.uniqueBuyers || 0;
+    return map;
+  }, {});
+};
+
 // GET products for a shop
 app.get('/api/shops/:id/products', async (req, res) => {
   try {
@@ -2501,7 +2560,8 @@ app.get('/api/shops/:id/products', async (req, res) => {
       try {
         const prods = await ProductModel.find({ shopLegacyId: legacyId }).lean().exec();
         if (prods && prods.length) {
-          const mapped = prods.map(p => ({
+          const purchaseCountMap = await fetchPurchaseCountsForIds((prods || []).map(p => p._id));
+        const mapped = prods.map(p => ({
             id: p._id,
             name: p.name,
             price: p.price ? p.price.amount : 0,
@@ -2510,7 +2570,8 @@ app.get('/api/shops/:id/products', async (req, res) => {
             inStock: typeof p.stock !== 'undefined' ? (p.stock > 0) : true,
             category: p.category || null,
             condition: p.condition || null,
-            unit: p.unit || 'piece'
+            unit: p.unit || 'piece',
+            purchaseCount: purchaseCountMap[String(p._id)] || 0
           }));
           return res.json(mapped);
         }
@@ -2577,7 +2638,10 @@ app.put('/api/shops/:shopId/products/:productId', authenticate, validate(schemas
       if (typeof payload.name !== 'undefined') prod.name = payload.name;
       if (typeof payload.description !== 'undefined') prod.description = payload.description;
       if (typeof payload.details !== 'undefined') prod.details = payload.details;
-      if (typeof payload.images !== 'undefined') prod.images = Array.isArray(payload.images) ? payload.images : (payload.images ? [payload.images] : []);
+      if (typeof payload.images !== 'undefined') {
+        const imagesArr = Array.isArray(payload.images) ? payload.images : (payload.images ? [payload.images] : []);
+        prod.images = [...new Set(imagesArr.filter(Boolean).map((item) => String(item).trim()))];
+      }
       if (typeof payload.category !== 'undefined') prod.category = payload.category;
       if (typeof payload.stock !== 'undefined' && payload.stock !== null) {
         const s = Number(payload.stock);
@@ -3043,15 +3107,58 @@ app.post('/api/orders', ordersLimiter, validate(schemas.orderCreate), async (req
     productId: i.productId ?? i.id ?? i.product ?? null,
     name: i.name ?? i.title ?? '',
     qty: Number(i.quantity ?? i.qty ?? 1),
-    price: Number(i.price ?? i.unitPrice ?? 0)
+    price: Number(i.price ?? i.unitPrice ?? 0),
+    image: i.image || i.photo || i.thumbnail || null
   }));
   if (!shopId || !Array.isArray(baseItems) || baseItems.length === 0 || typeof total === 'undefined') {
     return res.status(400).json({ message: 'Missing required order fields: shopId, items, total' });
   }
 
+  const resolveProductImageById = async (productId) => {
+    if (!productId) return null;
+    const pid = String(productId).trim();
+    if (!pid) return null;
+
+    if (mongoose.connection && mongoose.connection.readyState === 1 && mongoose.Types.ObjectId.isValid(pid)) {
+      try {
+        const prod = await ProductModel.findById(pid).lean().exec();
+        if (prod && prod.images && prod.images.length) return prod.images[0];
+        if (prod && prod.image) return prod.image;
+      } catch (e) {
+        /* ignore */
+      }
+    }
+
+    try {
+      const numericId = Number(pid);
+      if (!Number.isNaN(numericId)) {
+        const shops = readShops();
+        for (const shop of shops || []) {
+          const product = (shop.products || []).find(p => Number(p.id) === numericId || String(p.id) === pid);
+          if (product) return product.image || null;
+        }
+      }
+    } catch (e) {
+      /* ignore */
+    }
+
+    return null;
+  };
+
   const orderId = `ORD-${Date.now()}`;
   // merge client-supplied customer info with whatever we know about the authenticated user
   const rawCustomer = (payload.customer && typeof payload.customer === 'object') ? payload.customer : {};
+  for (const item of baseItems) {
+    if ((!item.image || String(item.image).trim() === '') && item.productId) {
+      try {
+        const image = await resolveProductImageById(item.productId);
+        if (image) item.image = image;
+      } catch (e) {
+        // ignore image enrichment failures
+      }
+    }
+  }
+
   const customerPayload = {
     username: rawCustomer.username || authUser?.username || '',
     fullName: rawCustomer.fullName || authUser?.fullName || authUser?.username || '',

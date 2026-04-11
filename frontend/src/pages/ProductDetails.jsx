@@ -114,7 +114,19 @@ const ProductDetails = () => {
 
         <div className="pd-info">
           <h2>{product.name}</h2>
-          <div style={{ margin: '8px 0' }}><strong>Price:</strong> {priceAmount} ETB</div>
+          <div style={{ margin: '8px 0' }}>
+            <strong>Price:</strong> {priceAmount} ETB{product.unit ? ` / ${product.unit}` : ''}
+          </div>
+          {typeof product.purchaseCount !== 'undefined' && (
+            <div style={{ margin: '8px 0' }}>
+              <strong>Purchased by:</strong> {product.purchaseCount} {product.purchaseCount === 1 ? 'person' : 'people'}
+            </div>
+          )}
+          {product.unit && (
+            <div style={{ margin: '8px 0' }}>
+              <strong>Unit:</strong> {product.unit === 'kg' ? 'kg' : 'piece'}
+            </div>
+          )}
           {product.condition && (
             <div style={{ margin: '8px 0' }}>
               <strong>Condition:</strong> <span style={{ padding: '4px 8px', background: product.condition === 'used' ? '#ffc' : (product.condition === 'new' ? 'rgb(233, 132, 31)' : '#eee'), borderRadius: 6, color: product.condition ? '#000' : '#444' }}>{product.condition ? product.condition.toUpperCase() : 'N/A'}</span>
@@ -139,10 +151,7 @@ const ProductDetails = () => {
                 <strong>Already in Cart!</strong> Go to <a href="/cart">cart</a> to adjust quantity.
               </div>
             ) : (
-              <>
-                <button disabled={!available} onClick={() => addToCart(product, 'Pickup', product.shopId || product.shopLegacyId || null)} style={{ padding: '10px 16px' }}>Add to Cart</button>
-                <button disabled={!available} onClick={() => addToCart(product, 'Delivery', product.shopId || product.shopLegacyId || null)} style={{ padding: '10px 16px' }}>Buy with Delivery</button>
-              </>
+              <button disabled={!available} onClick={() => addToCart(product, 'Pickup', product.shopId || product.shopLegacyId || null)} style={{ padding: '10px 16px' }}>Add to Cart</button>
             )}
           </div>
           

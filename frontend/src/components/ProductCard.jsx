@@ -120,6 +120,11 @@ const ProductCard = ({ product, onAddToCart, shopId, limitSingle = false }) => {
         </div>
       </div>
       
+      {typeof product.purchaseCount !== 'undefined' && (
+        <p className="product-purchase-count" style={{ margin: '4px 0 8px', color: '#4a5568', fontSize: 13 }}>
+          {product.purchaseCount > 0 ? `${product.purchaseCount} people bought this` : 'No purchases yet'}
+        </p>
+      )}
       <p className="product-price">Price: {priceAmount} ETB / {product.unit || 'piece'}
         <span style={{ marginLeft: 8, color: '#9ad' }}>
           {typeof product.stock !== 'undefined'

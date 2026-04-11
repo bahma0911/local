@@ -151,13 +151,62 @@ const Orders = () => {
     return [];
   };
 
+  const getFulfillmentMethod = (order) => {
+    if (!order || typeof order !== 'object') return 'delivery';
+    const raw = order.fulfillmentMethod || order.deliveryMethod || order.method || order.fulfillment || null;
+    if (typeof raw === 'string' && raw.trim().length) {
+      const normalized = raw.trim().toLowerCase();
+      if (normalized.includes('pickup') || normalized.includes('pick_up') || normalized.includes('picked_up')) return 'pickup';
+      if (normalized.includes('delivery') || normalized.includes('deliver')) return 'delivery';
+    }
+    if (order.deliveryOptions && typeof order.deliveryOptions === 'object') {
+      const sid = order.shopId || order.shop?.id || Object.keys(order.deliveryOptions)[0];
+      const v = order.deliveryOptions[sid] ?? Object.values(order.deliveryOptions)[0];
+      if (typeof v === 'string') {
+        const normalized = v.trim().toLowerCase();
+        if (normalized.includes('pickup')) return 'pickup';
+        if (normalized.includes('delivery')) return 'delivery';
+      }
+      if (typeof v === 'object') {
+        if (v.delivery || v.fulfillment) {
+          const value = String(v.delivery || v.fulfillment).toLowerCase();
+          if (value.includes('pickup')) return 'pickup';
+          if (value.includes('delivery')) return 'delivery';
+        }
+      }
+    }
+    return 'delivery';
+  };
+
+  const lookupOrderItemImage = (item) => {
+    const directImage = item.image || item.photo || item.thumbnail || item.imageUrl || item.photoUrl || '';
+    if (directImage) return directImage;
+    const candidateId = item.id ?? item.productId ?? item._id;
+    if (!candidateId) return '';
+
+    try {
+      const shops = JSON.parse(localStorage.getItem('updatedShops') || '[]');
+      for (const shop of shops || []) {
+        for (const product of shop.products || []) {
+          if (String(product.id) === String(candidateId) || String(product._id || product.id) === String(candidateId)) {
+            return product.image || (product.images && product.images[0]) || '';
+          }
+        }
+      }
+    } catch (e) {
+      // ignore local storage or parsing issues
+    }
+
+    return '';
+  };
+
   const normalizeItem = (item, idx) => {
-    if (!item) return { id: `itm-${idx}`, name: 'Unknown', quantity: 0, price: 0 };
+    if (!item) return { id: `itm-${idx}`, name: 'Unknown', quantity: 0, price: 0, image: '' };
     const qty = Number(item.quantity ?? item.qty ?? item.count ?? 0) || 0;
     const price = Number(item.price ?? item.unitPrice ?? item.amount ?? 0) || 0;
     const id = item.id ?? item.productId ?? item._id ?? `itm-${idx}`;
     const name = item.name ?? item.title ?? item.productName ?? 'Item';
-    const image = item.image || item.photo || item.thumbnail || '';
+    const image = lookupOrderItemImage(item);
     return { id, name, quantity: qty, price, image };
   };
 
@@ -286,6 +335,10 @@ const Orders = () => {
               <div className="info-item">
                 <strong>Status:</strong>
                 <span>{getStatusBadge(selectedOrder)}</span>
+              </div>
+              <div className="info-item">
+                <strong>Fulfillment:</strong>
+                <span>{getFulfillmentMethod(selectedOrder) === 'pickup' ? 'Pickup' : 'Delivery'}</span>
               </div>
               <div className="info-item">
                 <strong>Total Amount:</strong>
@@ -470,12 +523,13 @@ const Orders = () => {
             <div key={order.id || order._id || order.orderId} className="order-card">
               <div className="order-card-header">
                 <div className="order-info">
-                  <h3>Order #{order.id.slice(-8)}</h3>
+                  <h3>Order #{String(order.id || order.orderId || order._id).slice(-8)}</h3>
                   <p className="order-date">
                     {new Date(order.createdAt).toLocaleDateString()} • 
                     {getTotalItems(order)} items • 
                     {order.itemsByShop ? Object.keys(order.itemsByShop).length : 1} shop(s)
                   </p>
+                  <p className="order-method">Method: {getFulfillmentMethod(order) === 'pickup' ? 'Pickup' : 'Delivery'}</p>
                 </div>
                 <div className="order-status-section">
                   {getStatusBadge(order)}

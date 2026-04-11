@@ -442,7 +442,14 @@ const AdminDashboard = () => {
         payload.image = j.url;
         payload.images = [j.url];
       }
+      if (Array.isArray(payload.images)) {
+        payload.images = payload.images.filter(Boolean);
+        payload.images = [...new Set(payload.images)];
+      } else if (payload.image) {
+        payload.images = [payload.image];
+      }
       delete payload.imageFile;
+      delete payload.image;
       // normalize price into object expected by the API
       if (typeof payload.price === 'number' || typeof payload.price === 'string') {
         payload.price = { amount: Math.floor(Number(payload.price) || 0), currency: 'ETB' };
@@ -538,6 +545,14 @@ const AdminDashboard = () => {
         payload.image = j.url;
         payload.images = [j.url];
       }
+      if (Array.isArray(payload.images)) {
+        payload.images = payload.images.filter(Boolean);
+        payload.images = [...new Set(payload.images)];
+      } else if (payload.image) {
+        payload.images = [payload.image];
+      }
+      delete payload.imageFile;
+      delete payload.image;
       // Ensure stock is sent as a number. Prefer the explicit stock value when provided.
       if (typeof payload.stock !== 'undefined' && payload.stock !== null) {
         const n = Number(payload.stock);
@@ -1117,11 +1132,11 @@ const AdminDashboard = () => {
 
           {/* Owner tabs: Orders / Products / Add Product */}
           <div className="owner-tabs" style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-            <button className={ownerTab === 'shop-info' ? 'active' : ''} onClick={() => setOwnerTab('shop-info')}>Shop Info</button>
             <button className={ownerTab === 'orders' ? 'active' : ''} onClick={() => { setOwnerTab('orders'); fetchShopOrders(currentShop.id || assignedShop); }}>Orders</button>
             <button className={ownerTab === 'products' ? 'active' : ''} onClick={() => setOwnerTab('products')}>Products</button>
             <button className={ownerTab === 'add' ? 'active' : ''} onClick={() => setOwnerTab('add')}>Add Product</button>
             <button className={ownerTab === 'reviews' ? 'active' : ''} onClick={() => setOwnerTab('reviews')}>Reviews</button>
+            <button className={ownerTab === 'shop-info' ? 'active' : ''} onClick={() => setOwnerTab('shop-info')}>Shop Info</button>
           </div>
 
           {ownerTab === 'orders' && (
@@ -1194,6 +1209,7 @@ const AdminDashboard = () => {
                             );
                           })()}
                         </div>
+                        <div><strong>Method:</strong> {getFulfillmentMethod(o) === 'pickup' ? 'Pickup' : 'Delivery'}</div>
                         <div style={{ color: '#aaa', fontSize: 12 }}>Received: {receivedAt ? new Date(receivedAt).toLocaleString() : '—'}</div>
                         {/* Show 'Mark Paid' only after order is delivered or picked up (appear after owner chooses) */}
                         {((o.status === 'delivered' || o.status === 'picked_up') && !(o.paymentStatus === 'paid' || (o.payment && (o.payment.status === 'paid' || o.payment.paidAt)))) && (
