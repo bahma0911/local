@@ -2,8 +2,9 @@ import { OAuth2Client } from 'google-auth-library';
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import pool from '../mysql.js';
 import { sendVerificationEmail } from '../services/email.service.js';
+import UserModel from '../models/User.js';
+import PendingUser from '../models/PendingUser.js';
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const oauthClient = new OAuth2Client(GOOGLE_CLIENT_ID);
@@ -73,24 +74,15 @@ export const startRegister = async (req, res) => {
     if (!email) return res.status(400).json({ message: 'email required' });
 
     // Check existing users
-    let existsQuery = 'SELECT id FROM users WHERE email = ?';
-    let existsParams = [email];
-    if (username) {
-      existsQuery += ' OR username = ?';
-      existsParams.push(username);
-    }
-    const [existsRows] = await pool.execute(existsQuery, existsParams);
-    if (existsRows.length > 0) return res.status(409).json({ message: 'User with that email or username already exists' });
+    const userQuery = { email };
+    if (username) userQuery.$or = [{ email }, { username }];
+    const existingUser = await UserModel.findOne(userQuery).lean().exec();
+    if (existingUser) return res.status(409).json({ message: 'User with that email or username already exists' });
 
-    // Check pending reservations
-    let pendingExistsQuery = 'SELECT id FROM pending_users WHERE email = ?';
-    let pendingExistsParams = [email];
-    if (username) {
-      pendingExistsQuery += ' OR username = ?';
-      pendingExistsParams.push(username);
-    }
-    const [pendingRows] = await pool.execute(pendingExistsQuery, pendingExistsParams);
-    if (pendingRows.length > 0) return res.status(409).json({ message: 'A registration is already pending for that email or username' });
+    // Check pending registrations
+    const pendingQuery = username ? { $or: [{ email }, { username }] } : { email };
+    const pendingExisting = await PendingUser.findOne(pendingQuery).lean().exec();
+    if (pendingExisting) return res.status(409).json({ message: 'A registration is already pending for that email or username' });
 
     const verificationToken = crypto.randomBytes(24).toString('hex');
     const expiresAt = new Date(Date.now() + (15 * 60 * 1000)); // 15 minutes
@@ -99,7 +91,13 @@ export const startRegister = async (req, res) => {
       try { passwordHash = await bcrypt.hash(String(password), 10); } catch (e) { /* ignore */ }
     }
 
-    await pool.execute('INSERT INTO pending_users (email, username, password_hash, verification_token, expires_at) VALUES (?, ?, ?, ?, ?)', [email, username || null, passwordHash, verificationToken, expiresAt]);
+    await PendingUser.create({
+      email,
+      username: username || null,
+      passwordHash,
+      verificationToken,
+      expiresAt,
+    });
 
     try {
       await sendVerificationEmail(email, verificationToken);

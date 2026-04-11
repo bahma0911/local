@@ -16,7 +16,7 @@ import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 import { validate, schemas } from './validators.js';
 import { info, warn, error as logError } from './logger.js';
-import { connectMySQL } from './mysql.js';
+import connectMongo from './mongo.js';
 import User from './models/User.js';
 import * as authController from './controllers/authController.js';
 import * as emailController from './controllers/emailController.js';
@@ -165,11 +165,6 @@ app.use((req, _res, next) => {
 });
 
 // Passport/third-party auth removed for public-only mode
-
-// Connect to MySQL (if configured)
-connectMySQL().catch((err) => {
-  console.warn('MySQL connection warning:', err && err.message ? err.message : err);
-});
 
 // Google auth routes removed
 
@@ -1999,6 +1994,10 @@ app.get('/api/advertisements/active', async (req, res) => {
 app.post('/api/advertisements/:id/click', async (req, res) => {
   try {
     const { id } = req.params;
+    if (id === 'fallback-ad') {
+      return res.json({ message: 'Fallback advertisement click ignored' });
+    }
+
     const AdvertisementModel = (await import('./models/Advertisement.js')).default;
 
     const ad = await AdvertisementModel.findByIdAndUpdate(
@@ -2022,6 +2021,10 @@ app.post('/api/advertisements/:id/click', async (req, res) => {
 app.post('/api/advertisements/:id/impression', async (req, res) => {
   try {
     const { id } = req.params;
+    if (id === 'fallback-ad') {
+      return res.json({ message: 'Fallback advertisement impression ignored' });
+    }
+
     const AdvertisementModel = (await import('./models/Advertisement.js')).default;
 
     const ad = await AdvertisementModel.findByIdAndUpdate(
@@ -4140,8 +4143,11 @@ app.delete('/api/shops/:shopId/orders/:orderId', authenticate, async (req, res) 
   res.json({ message: 'Order deleted' });
 });
 
-// Run migration for owner passwords then start
-migrateShopOwnerPasswords().finally(() => {
+// Run migration for owner passwords, connect MongoDB, then start
+Promise.allSettled([
+  connectMongo(),
+  migrateShopOwnerPasswords()
+]).finally(() => {
   app.listen(PORT, () => {
     info('Backend server listening', { port: PORT, env: process.env.NODE_ENV || app.get('env'), frontendOrigin: process.env.FRONTEND_ORIGIN ? true : false });
     console.log(`Backend server listening on port ${PORT}`);
