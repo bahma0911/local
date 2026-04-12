@@ -2398,8 +2398,98 @@ app.post('/api/shops', authenticate, validate(schemas.shopCreate), async (req, r
 
 // PUT /api/shops/:id - update shop
 app.put('/api/shops/:id', authenticate, validate(schemas.shopUpdate), async (req, res) => {
-  const id = parseInt(req.params.id, 10);
+  const idParam = req.params.id;
   const payload = req.body;
+
+  // Try to find shop in MongoDB first (by legacyId or _id)
+  let mongoShop = null;
+  if (mongoose.connection && mongoose.connection.readyState === 1) {
+    try {
+      const idNum = parseInt(idParam, 10);
+      mongoShop = await ShopModel.findOne({
+        $or: [
+          { legacyId: idNum },
+          { _id: idParam }
+        ]
+      }).lean().exec();
+    } catch (e) {
+      // ignore Mongo lookup errors
+    }
+  }
+
+  // If found in MongoDB, update it
+  if (mongoShop) {
+    // Authorization: allow admins to update any shop, shop owners to update their own shop
+    const authUser = await getUserFromRequest(req);
+    const isAdmin = authUser && authUser.role === 'admin';
+    const isShopOwner = authUser && authUser.role === 'shop_owner' && mongoShop.owner && mongoShop.owner.username === authUser.username;
+
+    if (!isAdmin && !isShopOwner) {
+      return res.status(403).json({ message: 'You can only update your own shop' });
+    }
+
+    // Normalize/merge owner profile fields
+    const updatedOwner = payload.owner ? {
+      ...mongoShop.owner,
+      ...payload.owner,
+      email: payload.owner.email || payload.owner.username || mongoShop.owner?.email || mongoShop.owner?.username || '',
+      name: (payload.owner.name ?? mongoShop.owner?.name) || '',
+      phone: (payload.owner.phone ?? mongoShop.owner?.phone) || '',
+      address: (payload.owner.address ?? mongoShop.owner?.address) || ''
+    } : { ...mongoShop.owner };
+
+    // Hash password if provided
+    if (payload.owner && payload.owner.password) {
+      updatedOwner.password = bcrypt.hashSync(String(payload.owner.password), 10);
+    }
+
+    try {
+      const updated = await ShopModel.findOneAndUpdate(
+        { _id: mongoShop._id },
+        {
+          name: payload.name ?? mongoShop.name,
+          logo: payload.logo ?? mongoShop.logo,
+          address: payload.address ?? mongoShop.address,
+          phone: payload.phone ?? mongoShop.phone || '',
+          deliveryFee: payload.deliveryFee ?? mongoShop.deliveryFee,
+          deliveryServices: payload.deliveryServices ?? mongoShop.deliveryServices || [],
+          owner: updatedOwner,
+          products: payload.products ?? mongoShop.products || []
+        },
+        { new: true }
+      ).exec();
+
+      // Keep the corresponding Mongo user record in sync when owner credentials are updated
+      if (updatedOwner && updatedOwner.username && updatedOwner.password) {
+        try {
+          const UserModel = (await import('./models/User.js')).default;
+          await UserModel.findOneAndUpdate(
+            { email: updatedOwner.username },
+            {
+              username: updatedOwner.username,
+              email: updatedOwner.email || updatedOwner.username,
+              role: 'shop_owner',
+              password: updatedOwner.password,
+              name: updatedOwner.name || '',
+              phone: updatedOwner.phone || '',
+              address: updatedOwner.address || updated.address || ''
+            },
+            { upsert: true, new: true, setDefaultsOnInsert: true }
+          ).exec();
+        } catch (e) {
+          console.warn('Shop update: failed to create/update shop owner user', e && e.message ? e.message : e);
+        }
+      }
+
+      return res.json(updated);
+    } catch (err) {
+      console.error('PUT /api/shops/:id - Mongo update error', err && err.message ? err.message : err);
+      return res.status(500).json({ message: 'Failed to update shop' });
+    }
+  }
+
+  // Fall back to legacy JSON update
+  const id = parseInt(idParam, 10);
   const shops = readShops();
   const idx = shops.findIndex(s => s.id === id);
   if (idx === -1) return res.status(404).json({ message: 'Shop not found' });
@@ -2434,6 +2524,10 @@ app.put('/api/shops/:id', authenticate, validate(schemas.shopUpdate), async (req
   if (payload.owner && payload.owner.password) {
     updated.owner.password = bcrypt.hashSync(String(payload.owner.password), 10);
   }
+
+  // Update JSON file
+  shops[idx] = updated;
+  writeShops(shops);
 
   // If Mongo is available, persist updates using legacyId
   if (mongoose.connection && mongoose.connection.readyState === 1) {
