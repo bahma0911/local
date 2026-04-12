@@ -7,21 +7,33 @@ export const sendVerificationEmail = async (userOrEmail, token) => {
 
 export const sendOrderEmails = async (order, shopOwnerEmail, shopOwnerName) => {
   try {
-    // Send notification email to shop owner
     const orderDetails = {
       orderId: order.id,
       customerName: order.customer?.fullName || order.customer?.username || 'Customer',
       total: order.total,
       items: order.items || []
     };
-    await sendOrderNotificationEmail(shopOwnerEmail, orderDetails);
-    
-    // Send confirmation to customer
+
+    if (shopOwnerEmail) {
+      try {
+        await sendOrderNotificationEmail(shopOwnerEmail, orderDetails);
+      } catch (e) {
+        console.error('Failed to send shop owner notification email', e && e.message ? e.message : e);
+      }
+    }
+
     const customerEmail = order.customer && (order.customer.email || order.customer.emailAddress || order.customer.username) || null;
-    if (customerEmail) await sendOrderConfirmationEmail(customerEmail, order.id, order.total);
+    if (customerEmail) {
+      try {
+        await sendOrderConfirmationEmail(customerEmail, order.id, order.total);
+      } catch (e) {
+        console.error('Failed to send customer confirmation email', e && e.message ? e.message : e);
+      }
+    }
+
     return true;
   } catch (e) {
-    console.error('sendOrderEmails error', e && e.message ? e.message : e);
+    console.error('sendOrderEmails unexpected error', e && e.message ? e.message : e);
     return false;
   }
 };

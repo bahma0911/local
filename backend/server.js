@@ -3380,7 +3380,7 @@ app.post('/api/orders', ordersLimiter, validate(schemas.orderCreate), async (req
         const shop = await ShopModel.findOne({ legacyId: Number(shopId) }).lean().exec();
         const shopOwnerEmail = shop && shop.owner && shop.owner.email ? shop.owner.email : null;
         const shopOwnerName = shop && shop.owner && shop.owner.username ? shop.owner.username : null;
-        if (shopOwnerEmail) await emailController.sendOrderEmails(orderDoc.toObject ? orderDoc.toObject() : orderDoc, shopOwnerEmail, shopOwnerName);
+        await emailController.sendOrderEmails(orderDoc.toObject ? orderDoc.toObject() : orderDoc, shopOwnerEmail, shopOwnerName);
       } catch (e) {
         console.warn('Failed to send order emails', e && e.message ? e.message : e);
       }
@@ -3470,7 +3470,7 @@ app.post('/api/orders', ordersLimiter, validate(schemas.orderCreate), async (req
       const shop = shops[shopIdx];
       const shopOwnerEmail = shop && shop.owner && shop.owner.email ? shop.owner.email : null;
       const shopOwnerName = shop && shop.owner && shop.owner.username ? shop.owner.username : null;
-      if (shopOwnerEmail) await emailController.sendOrderEmails(order, shopOwnerEmail, shopOwnerName);
+      await emailController.sendOrderEmails(order, shopOwnerEmail, shopOwnerName);
     } catch (e) {
       console.warn('Failed to send legacy order emails', e && e.message ? e.message : e);
     }
