@@ -55,6 +55,7 @@ const Checkout = () => {
   const [orderCompleted, setOrderCompleted] = useState(false);
   const [captchaToken, setCaptchaToken] = useState(null);
   const [widgetId, setWidgetId] = useState(null);
+  const [captchaReady, setCaptchaReady] = useState(false);
   const widgetRef = React.useRef(null);
   if (import.meta.env.DEV && !import.meta.env.VITE_TURNSTILE_SITE_KEY) {
     console.warn('Turnstile site key not set; captcha will not work');
@@ -86,6 +87,7 @@ const Checkout = () => {
         'error-callback': () => setCaptchaToken(null)
       });
       setWidgetId(id);
+      setCaptchaReady(true);
     }
 
     return () => {
@@ -784,6 +786,17 @@ const Checkout = () => {
               }}
               ref={widgetRef}
             />
+
+            <div className="captcha-status">
+              <strong>Cloudflare check:</strong>{' '}
+              {import.meta.env.DEV && !import.meta.env.VITE_TURNSTILE_SITE_KEY
+                ? 'Not configured for this environment'
+                : !captchaReady
+                  ? 'Loading Cloudflare validation...'
+                  : captchaToken
+                    ? 'Verified — ready to place order'
+                    : 'Not passed yet. The order will be submitted after the Cloudflare check completes.'}
+            </div>
 
             <button
               type="submit"
