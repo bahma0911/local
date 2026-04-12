@@ -2494,9 +2494,8 @@ app.put('/api/shops/:id', authenticate, validate(schemas.shopUpdate), async (req
   }
 
   // Fall back to legacy JSON update
-  const id = parseInt(idParam, 10);
   const shops = readShops();
-  const idx = shops.findIndex(s => s.id === id);
+  const idx = shops.findIndex(s => String(s.id) === String(idParam));
   if (idx === -1) return res.status(404).json({ message: 'Shop not found' });
 
   // Authorization: allow admins to update any shop, shop owners to update their own shop
