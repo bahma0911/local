@@ -1,6 +1,5 @@
 import dotenv from 'dotenv';
 import express from 'express';
-import categoryRoutes from './routes/categoryRoutes.js';
 import cors from 'cors';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -13,25 +12,23 @@ import bcrypt from 'bcrypt';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import jwt from 'jsonwebtoken';
-import { z } from 'zod';
 import { validate, schemas } from './validators.js';
 import { info, warn, error as logError } from './logger.js';
 import connectMongo from './mongo.js';
 import User from './models/User.js';
 import * as authController from './controllers/authController.js';
 import * as emailController from './controllers/emailController.js';
-import { sendPasswordResetEmail, sendShopInvitationEmail } from './services/email.service.js';
 import requireVerifiedEmail from './middleware/requireVerifiedEmail.js';
 import ShopModel from './models/Shop.js';
 import OrderModel from './models/Order.js';
 import CartModel from './models/Cart.js';
 import NotificationModel from './models/Notification.js';
 import ProductModel from './models/Product.js';
-import ShopInvitationModel from './models/ShopInvitation.js';
-// import { applyCommission } from './utils/pricing.js';
 import mongoose from 'mongoose';
 
 dotenv.config();
+
+// Authentication removed: running as public-only server (no JWT required)
 
 // In production require FRONTEND_ORIGIN to be set so CORS and cookies are configured safely
 const IS_PRODUCTION = (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'prod');
@@ -42,8 +39,6 @@ if (IS_PRODUCTION && (!process.env.FRONTEND_ORIGIN || process.env.FRONTEND_ORIGI
 }
 
 const app = express();
-
-// Register category routes after app is initialized
 // trust proxy so secure cookies work behind proxies (Heroku, nginx, dev proxies)
 app.set('trust proxy', 1);
 // Support multiple allowed origins via environment variable.
@@ -74,8 +69,6 @@ app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 app.use(helmet());
 app.use(express.json({ limit: '1mb' }));
-
-app.use('/api/categories', categoryRoutes);
 
 // simple request logger to help debug upload 404s
 app.use((req, res, next) => {
@@ -166,6 +159,11 @@ app.use((req, _res, next) => {
 
 // Passport/third-party auth removed for public-only mode
 
+// Connect to MongoDB (if configured)
+connectMongo().catch((err) => {
+  console.warn('Mongo connection warning:', err && err.message ? err.message : err);
+});
+
 // Google auth routes removed
 
 const PORT = process.env.PORT || 5000;
@@ -220,8 +218,6 @@ if (hasCloudinary) {
     allowed_formats: ['jpg', 'png', 'jpeg', 'webp'], // WHY: further validate allowed file formats server-side
     resource_type: 'auto', // WHY: let Cloudinary detect type (helps avoid "empty file" or resource-type mismatches)
   });
-
-  
   upload = multer({
     storage: clStorage,
     limits: { fileSize: Number(process.env.UPLOAD_MAX_BYTES || 5 * 1024 * 1024) }, // WHY: protect server by capping upload size
@@ -377,33 +373,6 @@ const getAuthCookieOptions = () => ({
   maxAge: AUTH_COOKIE_MAX_AGE,
 });
 
-// helper that wraps res.cookie() and makes sure the Partitioned marker is present in production
-const setAuthCookie = (res, token) => {
-  res.cookie(AUTH_COOKIE_NAME, token, getAuthCookieOptions());
-  try {
-    const header = res.getHeader('Set-Cookie');
-    if (header) {
-      const arr = Array.isArray(header) ? header : [header];
-      const newArr = arr.map(h => {
-        const str = h.toString();
-        if (str.toLowerCase().includes('partitioned')) return str;
-        // Only add Partitioned in production where secure is true
-        if (app.get('env') === 'production') return str + '; Partitioned';
-        return str;
-      });
-      res.setHeader('Set-Cookie', newArr);
-    }
-  } catch (e) {
-    // ignore header manipulation errors
-  }
-};
-
-const clearAuthCookie = (res) => {
-  res.clearCookie(AUTH_COOKIE_NAME, getAuthCookieOptions());
-  // no need to mark partitioned when clearing
-};
-
-
 // JWT helpers: sign and verify tokens stored in httpOnly cookie
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_jwt_secret_change_me';
 const signToken = (payload, opts = {}) => {
@@ -423,16 +392,6 @@ const verifyToken = (token) => {
   }
 };
 
-const normalizeUsername = (value) => {
-  if (!value) return '';
-  return String(value).trim().toLowerCase()
-    .replace(/[^\w\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .substring(0, 50);
-};
-
 // Helper to read authenticated user payload from cookie (returns payload or null)
 const getUserFromRequest = async (req) => {
   try {
@@ -440,12 +399,12 @@ const getUserFromRequest = async (req) => {
     if (!cookie) return null;
     const payload = verifyToken(cookie);
     if (!payload) return null;
-    // For customers and shop owners, attempt to fetch fresh data from Mongo if available
-    if (payload.role === 'customer' || payload.role === 'shop_owner') {
+    // For customers, attempt to fetch fresh data from Mongo if available
+    if (payload.role === 'customer') {
       try {
         const UserModel = (await import('./models/User.js')).default;
-        const user = await UserModel.findOne({ $or: [{ username: payload.username }, { email: payload.username }] }).lean().exec();
-        if (user) return { username: user.username, email: user.email, phone: user.phone, address: user.address, city: user.city, name: user.name, role: user.role || payload.role, emailVerified: !!user.emailVerified };
+        const user = await UserModel.findOne({ username: payload.username }).lean().exec();
+        if (user) return { username: user.username, email: user.email, phone: user.phone, address: user.address, city: user.city, name: user.name, role: 'customer', emailVerified: !!user.emailVerified };
       } catch (e) {
         // ignore DB errors, fall back to token payload
       }
@@ -479,171 +438,34 @@ app.post('/api/login', loginRegisterLimiter, validate(schemas.authLogin), async 
   const { username, password } = req.body || {};
   if (!username || !password) return res.status(400).json({ message: 'username and password required' });
 
-  let normalizedUsername = String(username).trim().toLowerCase();
-
-  // Check if the input matches a shop name; if so, resolve to the owner's email
-  let resolvedEmail = normalizedUsername;
-  const shops = readShops();
-  const shopByName = shops.find(s => String(s.name || '').trim().toLowerCase() === normalizedUsername);
-  if (shopByName && shopByName.owner && shopByName.owner.username) {
-    resolvedEmail = String(shopByName.owner.username).trim().toLowerCase();
-  } else if (mongoose.connection && mongoose.connection.readyState === 1) {
-    try {
-      const mongoShop = await ShopModel.findOne({ name: { $regex: new RegExp('^' + normalizedUsername.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i') } }).lean().exec();
-      if (mongoShop && mongoShop.owner && mongoShop.owner.username) {
-        resolvedEmail = String(mongoShop.owner.username).trim().toLowerCase();
-      }
-    } catch (e) {
-      console.warn('Login: Mongo shop name lookup failed', e && e.message ? e.message : e);
-    }
-  }
-
-  // Use resolvedEmail for authentication
-  const authUsername = resolvedEmail;
-
-
   // 1) Admin via env
-  if (process.env.ADMIN_USER && process.env.ADMIN_PASS && normalizedUsername === String(process.env.ADMIN_USER).trim().toLowerCase()) {
-    const match = normalizedUsername === String(process.env.ADMIN_USER).trim().toLowerCase() && password === process.env.ADMIN_PASS;
+  if (process.env.ADMIN_USER && process.env.ADMIN_PASS && username === process.env.ADMIN_USER) {
+    const match = username === process.env.ADMIN_USER && password === process.env.ADMIN_PASS;
     if (match) {
-      const token = signToken({ username: normalizedUsername, role: 'admin' });
-      setAuthCookie(res, token);
-      info('Login success', { requestId: req.id, username: normalizedUsername, role: 'admin' });
-      return res.json({ user: { username: normalizedUsername, role: 'admin' } });
+      const token = signToken({ username, role: 'admin' });
+      res.cookie(AUTH_COOKIE_NAME, token, getAuthCookieOptions());
+      info('Login success', { requestId: req.id, username, role: 'admin' });
+      return res.json({ user: { username, role: 'admin' } });
     }
-    warn('Login failed: admin credential mismatch', { requestId: req.id, username: normalizedUsername });
+    warn('Login failed: admin credential mismatch', { requestId: req.id, username });
   }
 
-  // 2) Shop owner login via Mongo User collection (preferred source for credentials)
-  try {
-    if (mongoose.connection && mongoose.connection.readyState === 1) {
-      try {
-        const User = (await import('./models/User.js')).default;
-        const shopOwnerUser = await User.findOne({
-          $or: [
-            { username: authUsername },
-            { email: authUsername }
-          ],
-          password: { $exists: true, $ne: null }
-        }).lean().exec();
-
-        if (shopOwnerUser) {
-          const ok = await bcrypt.compare(String(password), String(shopOwnerUser.password));
-          if (ok) {
-            // Determine if this user should be treated as a shop owner (exists a shop for them)
-            let shopId = null;
-            let shopName = undefined;
-            let isShopOwner = shopOwnerUser.role === 'shop_owner';
-
-            try {
-              const shopFromMongo = await ShopModel.findOne({
-                $or: [
-                  { 'owner.username': shopOwnerUser.username },
-                  { 'owner.email': shopOwnerUser.email },
-                  { 'owner.username': authUsername },
-                  { 'owner.email': authUsername }
-                ]
-              }).lean().exec();
-              if (shopFromMongo) {
-                isShopOwner = true;
-                shopId = shopFromMongo.legacyId || shopFromMongo.id;
-                shopName = shopFromMongo.name;
-              }
-            } catch (e) {
-              // ignore
-            }
-
-            const role = isShopOwner ? 'shop_owner' : shopOwnerUser.role || 'customer';
-            const emailVerified = !!shopOwnerUser.emailVerified;
-            const email = shopOwnerUser.email || authUsername;
-            const authName = shopOwnerUser.username || authUsername;
-            const token = signToken({ username: authName, role, shopId, email, emailVerified });
-            setAuthCookie(res, token);
-            info('Login success', { requestId: req.id, username: authName, role, shopId, emailVerified });
-            return res.json({ user: { username: authName, email, role, shopId, shopName, emailVerified } });
-          }
-          warn('Login failed: credential mismatch (mongo user)', { requestId: req.id, username: authUsername });
-        }
-      } catch (e) {
-        console.warn('Mongo shop-owner login lookup failed', e && e.message ? e.message : e);
-      }
-    }
-  } catch (e) {
-    console.warn('Shop owner Mongo login error', e && e.message ? e.message : e);
-  }
-
-  // 3) Shop owners (match against shops data or Mongo)
-  let shop = null;
-  shop = shops.find(s => {
-    const ownerId = String(s.owner?.username || s.owner?.email || '').trim().toLowerCase();
-    return ownerId === authUsername;
-  });
-
-  // If we found a shop in JSON but it has no stored password, attempt to find it in Mongo (where it may have been persisted correctly)
-  if (shop && !(shop.owner && shop.owner.password) && mongoose.connection && mongoose.connection.readyState === 1) {
-    try {
-      const mongoShop = await ShopModel.findOne({
-        $or: [
-          { 'owner.username': authUsername },
-          { 'owner.email': authUsername }
-        ]
-      }).lean().exec();
-      if (mongoShop && mongoShop.owner && mongoShop.owner.password) {
-        shop = mongoShop;
-      }
-    } catch (e) {
-      console.warn('Login: Mongo shop lookup failed (fallback from JSON shop without password)', e && e.message ? e.message : e);
-    }
-  }
-
-  // If no shop found in JSON, try Mongo directly
-  if (!shop && mongoose.connection && mongoose.connection.readyState === 1) {
-    try {
-      shop = await ShopModel.findOne({ 'owner.username': authUsername }).lean().exec();
-    } catch (e) {
-      console.warn('Login: Mongo shop lookup failed', e && e.message ? e.message : e);
-    }
-  }
-
+  // 2) Shop owners (match against shops data)
+  const shops = readShops();
+  const shop = shops.find(s => s.owner?.username === username);
   if (shop && shop.owner && shop.owner.password) {
     const ok = await bcrypt.compare(String(password), String(shop.owner.password));
     if (ok) {
-      // Determine emailVerified if we have a corresponding user record
-      let emailVerified = true;
-      let email = authUsername;
-      try {
-        if (mongoose.connection && mongoose.connection.readyState === 1) {
-          const UserModel = (await import('./models/User.js')).default;
-          const userDoc = await UserModel.findOne({
-            $or: [
-              { username: authUsername },
-              { email: authUsername },
-              { username: ownerUsername },
-              { email: ownerUsername }
-            ]
-          }).lean().exec();
-          if (userDoc) {
-            emailVerified = !!userDoc.emailVerified;
-            email = userDoc.email || authUsername;
-          }
-        }
-      } catch (e) {
-        // ignore
-      }
-
-      const ownerUsername = (shop.owner && shop.owner.username) ? String(shop.owner.username).trim() : authUsername;
-      const loginUsername = ownerUsername || authUsername;
-      const token = signToken({ username: loginUsername, role: 'shop_owner', shopId: shop.id || shop.legacyId, email, emailVerified });
-      setAuthCookie(res, token);
-      info('Login success', { requestId: req.id, username: loginUsername, role: 'shop_owner', shopId: shop.id || shop.legacyId, emailVerified });
-      return res.json({ user: { username: loginUsername, email, role: 'shop_owner', shopId: shop.id || shop.legacyId, shopName: shop.name, emailVerified } });
+      const token = signToken({ username, role: 'shop_owner', shopId: shop.id });
+      res.cookie(AUTH_COOKIE_NAME, token, getAuthCookieOptions());
+      info('Login success', { requestId: req.id, username, role: 'shop_owner', shopId: shop.id });
+      return res.json({ user: { username, role: 'shop_owner', shopId: shop.id, shopName: shop.name } });
     }
-    warn('Login failed: shop owner credential mismatch', { requestId: req.id, username: authUsername });
-  } else {
-    warn('Login failed: shop owner not found in shops', { requestId: req.id, username: authUsername, jsonShopsCount: shops.length, mongoConnected: !!(mongoose.connection && mongoose.connection.readyState === 1) });
+    warn('Login failed: shop owner credential mismatch', { requestId: req.id, username });
   }
 
-  // 4) Customers (MongoDB)
+
+  // 3) Customers (MongoDB)
   try {
     let customer = null;
     // Attempt MongoDB login when available
@@ -652,8 +474,8 @@ app.post('/api/login', loginRegisterLimiter, validate(schemas.authLogin), async 
         const User = (await import('./models/User.js')).default;
         customer = await User.findOne({
           $or: [
-            { username: authUsername },
-            { email: authUsername }
+            { username: username },
+            { email: username }
           ],
           role: 'customer',
           password: { $exists: true, $ne: null }
@@ -667,29 +489,29 @@ app.post('/api/login', loginRegisterLimiter, validate(schemas.authLogin), async 
     // Local customers.json fallback
     if (!customer) {
       const locals = readCustomers();
-      const lc = locals.find(c => (c.username === authUsername) || (c.email === authUsername));
+      const lc = locals.find(c => (c.username === username) || (c.email === username));
       if (lc) customer = lc; // note: schema slightly different but has password
     }
 
     if (!customer) {
-      warn('Login failed: customer not found', { requestId: req.id, username: authUsername });
+      warn('Login failed: customer not found', { requestId: req.id, username });
     }
 
     if (customer && customer.password) {
       // Require email verification for customers when the flag is present
       if (typeof customer.emailVerified !== 'undefined' && !customer.emailVerified) {
-        warn('Login blocked: email not verified', { requestId: req.id, username: authUsername });
+        warn('Login blocked: email not verified', { requestId: req.id, username });
         return res.status(403).json({ message: 'Please verify your email before logging in' });
       }
       const ok = await bcrypt.compare(String(password), String(customer.password));
       if (ok) {
-        const token = signToken({ username: customer.username, role: 'customer', email: customer.email, emailVerified: !!customer.emailVerified });
-        const userSafe = { username: customer.username, email: customer.email, role: 'customer', emailVerified: !!customer.emailVerified };
-        setAuthCookie(res, token);
+        const token = signToken({ username: customer.username, role: 'customer' });
+        const userSafe = { username: customer.username, email: customer.email, role: 'customer' };
+        res.cookie(AUTH_COOKIE_NAME, token, getAuthCookieOptions());
         info('Login success', { requestId: req.id, username: customer.username, role: 'customer' });
         return res.json({ user: userSafe });
       }
-      warn('Login failed: customer credential mismatch', { requestId: req.id, username: authUsername });
+      warn('Login failed: customer credential mismatch', { requestId: req.id, username });
     }
   } catch (err) {
     logError('Customer login error', err);
@@ -707,129 +529,6 @@ app.post('/api/auth/start-register', loginRegisterLimiter, authController.startR
 // Complete registration after email verification: provide token + username + password
 app.post('/api/auth/complete-register', loginRegisterLimiter, authController.completeRegister);
 
-// Password reset helpers ---------------------------------------------------
-// simple check whether an account exists for given email
-app.post('/api/auth/check-email', validate(z.object({ email: z.string().email() })), async (req, res) => {
-  const { email } = req.body || {};
-  if (!email) return res.status(400).json({ message: 'email required' });
-  // first, try mongoose lookup (if available)
-  try {
-    if (mongoose.connection && mongoose.connection.readyState === 1) {
-      const User = (await import('./models/User.js')).default;
-      const user = await User.findOne({ email }).lean().exec();
-      if (user) return res.json({ exists: true });
-    }
-  } catch (e) {
-    // ignore mongodb errors, we'll fallback to file storage
-    console.warn('check-email mongoose lookup failed', e && e.message ? e.message : e);
-  }
-  // fallback to local customers.json
-  const locals = readCustomers();
-  if (locals.find(c => c.email === email)) {
-    return res.json({ exists: true });
-  }
-  return res.status(404).json({ message: 'Email not found' });
-});
-
-// request a password reset token; always return OK for security
-app.post('/api/auth/request-password-reset', loginRegisterLimiter, validate(schemas.passwordResetRequest), async (req, res) => {
-  const { email } = req.body || {};
-  if (!email) return res.status(400).json({ message: 'email required' });
-
-  let token = crypto.randomBytes(24).toString('hex');
-  const expires = new Date(Date.now() + 60 * 60 * 1000); // 1h
-
-  // try mongoose first
-  try {
-    if (mongoose.connection && mongoose.connection.readyState === 1) {
-      const User = (await import('./models/User.js')).default;
-      const user = await User.findOne({ email }).exec();
-      if (user) {
-        user.resetPasswordToken = token;
-        user.resetPasswordExpires = expires;
-        await user.save();
-        try {
-          await sendPasswordResetEmail(email, token);
-        } catch (e) {
-          console.warn('request-password-reset: failed to send email', e && e.message ? e.message : e);
-          const frontend = (process.env.FRONTEND_URL && process.env.FRONTEND_URL.trim()) ? process.env.FRONTEND_URL.replace(/\/+$/, '') : (process.env.NODE_ENV === 'production' ? '' : 'https://www.bahma.com.et');
-          const link = `${frontend || ''}/#/forgot-password?token=${encodeURIComponent(token)}`;
-          return res.json({ message: 'Password reset link logged (dev fallback)', fallback: true, link });
-        }
-        return res.json({ message: 'If an account exists, a reset link has been sent to the email.' });
-      }
-    }
-  } catch (e) {
-    console.warn('request-password-reset mongoose error', e && e.message ? e.message : e);
-  }
-
-  // fallback to local customers
-  try {
-    const locals = readCustomers();
-    const idx = locals.findIndex(c => c.email === email);
-    if (idx !== -1) {
-      locals[idx].resetPasswordToken = token;
-      locals[idx].resetPasswordExpires = expires;
-      writeCustomers(locals);
-      try {
-        await sendPasswordResetEmail(email, token);
-      } catch (e) {
-        console.warn('request-password-reset email fallback failed', e && e.message ? e.message : e);
-        const frontend = (process.env.FRONTEND_URL && process.env.FRONTEND_URL.trim()) ? process.env.FRONTEND_URL.replace(/\/+$/, '') : (process.env.NODE_ENV === 'production' ? '' : 'https://www.bahma.com.et');
-        const link = `${frontend || ''}/#/forgot-password?token=${encodeURIComponent(token)}`;
-        return res.json({ message: 'Password reset link logged (dev fallback)', fallback: true, link });
-      }
-    }
-  } catch (e) {
-    console.warn('request-password-reset local lookup error', e && e.message ? e.message : e);
-  }
-
-  // Always respond success so attackers cannot enumerate emails
-  return res.json({ message: 'If an account exists, a reset link has been sent to the email.' });
-});
-
-// perform the actual password update using token
-app.post('/api/auth/reset-password', loginRegisterLimiter, validate(schemas.passwordResetComplete), async (req, res) => {
-  const { token, newPassword } = req.body || {};
-  if (!token || !newPassword) return res.status(400).json({ message: 'token and newPassword required' });
-
-  // try updating Mongo user first
-  try {
-    if (mongoose.connection && mongoose.connection.readyState === 1) {
-      const User = (await import('./models/User.js')).default;
-      const user = await User.findOne({ resetPasswordToken: token }).exec();
-      if (user && user.resetPasswordExpires && user.resetPasswordExpires > new Date()) {
-        user.password = await bcrypt.hash(String(newPassword), 10);
-        user.resetPasswordToken = null;
-        user.resetPasswordExpires = undefined;
-        await user.save();
-        return res.json({ message: 'Password updated' });
-      }
-    }
-  } catch (e) {
-    console.warn('reset-password mongoose update failed', e && e.message ? e.message : e);
-  }
-
-  // fallback to local customers
-  try {
-    const locals = readCustomers();
-    const idx = locals.findIndex(c => c.resetPasswordToken === token && c.resetPasswordExpires && new Date(c.resetPasswordExpires) > new Date());
-    if (idx !== -1) {
-      const hashed = await bcrypt.hash(String(newPassword), 10);
-      locals[idx].password = hashed;
-      locals[idx].resetPasswordToken = null;
-      locals[idx].resetPasswordExpires = undefined;
-      writeCustomers(locals);
-      return res.json({ message: 'Password updated' });
-    }
-  } catch (e) {
-    console.warn('reset-password local update failed', e && e.message ? e.message : e);
-  }
-
-  // token invalid or expired
-  return res.status(400).json({ message: 'Invalid or expired token' });
-});
-
 // Google OAuth verification endpoint
 app.post('/api/auth/google', validate(schemas.authGoogle), authController.handleGoogleAuth);
 
@@ -841,9 +540,6 @@ app.post('/api/auth/verify-email', authController.handleVerifyEmail);
 
 // Resend verification token (authenticated)
 app.post('/api/auth/resend-verification', requireAuth, authController.resendVerification);
-
-// Resend verification for pending registration (no auth required)
-app.post('/api/auth/resend-register', authController.resendRegister);
 
 // continue existing register error handling fallback (if any)
 // (register handled above by authController.registerWithVerification)
@@ -866,7 +562,7 @@ app.post("/api/test-login", async (req, res) => {
 
   app.post('/api/logout', (req, res) => {
     try {
-      clearAuthCookie(res);
+      res.clearCookie(AUTH_COOKIE_NAME, getAuthCookieOptions());
       return res.json({ message: 'Logged out' });
     } catch (e) {
       return res.status(500).json({ message: 'Failed to logout' });
@@ -877,10 +573,7 @@ app.post("/api/test-login", async (req, res) => {
   app.get('/api/me', async (req, res) => {
     try {
       const payload = await getUserFromRequest(req);
-      if (!payload) {
-        // not logged in; return empty user rather than 401 so clients can treat as guest
-        return res.json({ user: null });
-      }
+      if (!payload) return res.status(401).json({ message: 'Not authenticated' });
 
       // Enrich shop owner payload with shop name when possible
       if (payload.role === 'shop_owner' && payload.shopId) {
@@ -903,9 +596,9 @@ app.post("/api/test-login", async (req, res) => {
       const authUser = await getUserFromRequest(req);
       if (!authUser) return res.status(401).json({ message: 'Not authenticated' });
 
-      // Only customers and shop owners stored in Mongo can update their persisted profile here
-      if (authUser.role !== 'customer' && authUser.role !== 'shop_owner') {
-        return res.status(403).json({ message: 'Only customers and shop owners can update profile' });
+      // Only customers stored in Mongo can update their persisted profile here
+      if (authUser.role !== 'customer') {
+        return res.status(403).json({ message: 'Only customers can update profile' });
       }
 
       const payload = req.body || {};
@@ -927,58 +620,10 @@ app.post("/api/test-login", async (req, res) => {
           }
 
           const updated = await UserModel.findOneAndUpdate({ username: authUser.username }, { $set: update }, { new: true }).lean().exec();
-          if (!updated) {
-            // For shop owners not in Mongo, create the user record
-            if (authUser.role === 'shop_owner') {
-              try {
-                const UserModel = (await import('./models/User.js')).default;
-                const newUserData = {
-                  username: authUser.username,
-                  email: authUser.email || authUser.username,
-                  role: 'shop_owner',
-                  name: update.name || '',
-                  phone: update.phone || '',
-                  address: update.address || '',
-                  city: update.city || '',
-                  emailVerified: true // assume verified for existing shop owners
-                };
-                if (update.password) {
-                  newUserData.password = update.password;
-                }
-                const created = await UserModel.create(newUserData);
-                const safe = { username: created.username, email: created.email, phone: created.phone, address: created.address, city: created.city, name: created.name, role: 'shop_owner' };
-                return res.json({ user: safe });
-              } catch (createErr) {
-                console.error('PUT /api/me - create shop owner failed', createErr && createErr.message ? createErr.message : createErr);
-                return res.status(500).json({ message: 'Failed to update profile' });
-              }
-            }
-            return res.status(500).json({ message: 'Failed to update profile' });
-          }
-
-          // For shop owners, also update the corresponding shop's owner information
-          if (authUser.role === 'shop_owner' && (update.name || update.phone || update.address || update.city)) {
-            try {
-              const ShopModel = (await import('./models/Shop.js')).default;
-              const shopUpdate = {};
-              if (update.name) shopUpdate['owner.name'] = update.name;
-              if (update.phone) shopUpdate['owner.phone'] = update.phone;
-              if (update.address) shopUpdate['owner.address'] = update.address;
-              // Note: city is not stored in shop owner, only in user profile
-
-              await ShopModel.findOneAndUpdate(
-                { 'owner.username': authUser.username },
-                { $set: shopUpdate },
-                { new: true }
-              ).exec();
-            } catch (shopErr) {
-              console.warn('PUT /api/me - failed to sync shop owner info', shopErr && shopErr.message ? shopErr.message : shopErr);
-              // Don't fail the entire request if shop sync fails
-            }
-          }
+          if (!updated) return res.status(500).json({ message: 'Failed to update profile' });
 
           // Return sanitized user info
-          const safe = { username: updated.username, email: updated.email, phone: updated.phone, address: updated.address, city: updated.city, name: updated.name, role: updated.role || authUser.role };
+          const safe = { username: updated.username, email: updated.email, phone: updated.phone, address: updated.address, city: updated.city, name: updated.name, role: 'customer' };
           return res.json({ user: safe });
         } catch (err) {
           console.error('PUT /api/me - update error', err && err.message ? err.message : err);
@@ -993,49 +638,6 @@ app.post("/api/test-login", async (req, res) => {
       return res.status(500).json({ message: 'Server error' });
     }
   });
-
-  // DELETE /api/me - delete current authenticated customer's account
-  app.delete('/api/me', authenticate, async (req, res) => {
-    try {
-      const authUser = await getUserFromRequest(req);
-      if (!authUser) return res.status(401).json({ message: 'Not authenticated' });
-
-      if (authUser.role !== 'customer' && authUser.role !== 'shop_owner') {
-        return res.status(403).json({ message: 'Only customers and shop owners can delete account' });
-      }
-
-      // Try deleting from MongoDB when available
-      if (mongoose.connection && mongoose.connection.readyState === 1) {
-        try {
-          const UserModel = (await import('./models/User.js')).default;
-          await UserModel.deleteOne({ username: authUser.username }).exec();
-          // clear auth cookie
-          try { clearAuthCookie(res); } catch (e) { /* ignore */ }
-          return res.json({ message: 'Account deleted' });
-        } catch (err) {
-          console.error('DELETE /api/me - mongo delete error', err && err.message ? err.message : err);
-          return res.status(500).json({ message: 'Failed to delete account' });
-        }
-      }
-
-      // Fallback: remove from local customers.json
-      try {
-        const locals = readCustomers() || [];
-        const filtered = (locals || []).filter(c => String(c.username) !== String(authUser.username) && String(c.email) !== String(authUser.email));
-        if (filtered.length !== (locals || []).length) {
-          writeCustomers(filtered);
-        }
-        try { res.clearCookie(AUTH_COOKIE_NAME, getAuthCookieOptions()); } catch (e) { /* ignore */ }
-        return res.json({ message: 'Account deleted' });
-      } catch (err) {
-        console.error('DELETE /api/me - local delete error', err && err.message ? err.message : err);
-        return res.status(500).json({ message: 'Failed to delete account' });
-      }
-    } catch (e) {
-      console.error('DELETE /api/me unexpected error', e && e.message ? e.message : e);
-      return res.status(500).json({ message: 'Server error' });
-    }
-});
 
 // Temporary debug route: allows GET/POST to check bcrypt against first Mongo user.
 // IMPORTANT: paste this route BEFORE any global CSRF middleware in server.js so it is not blocked.
@@ -1115,7 +717,7 @@ const scheduleOrderDeletion = (shopId, orderId, delayMs) => {
 
 // Health endpoint
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', service: 'ሰኞ ገበያ backend (chapa disabled)' });
+  res.json({ status: 'ok', service: 'Negadras backend (chapa disabled)' });
 });
 
 // Simple non-API health endpoint for uptime checks (some platforms expect '/health')
@@ -1190,7 +792,6 @@ app.get('/api/shops', async (req, res) => {
             return {
               id: d.legacyId || d._id,
               name: d.name,
-              logo: d.logo,
               category: d.category,
               address: d.address,
               deliveryFee: d.deliveryFee,
@@ -1275,41 +876,12 @@ app.post('/api/db/shops', authenticate, validate(schemas.shopCreate), async (req
   try {
     if (!mongoose.connection || mongoose.connection.readyState !== 1) return res.status(503).json({ message: 'MongoDB not connected' });
     const payload = req.body;
-
-    // Ensure owner password is provided when an owner username is supplied so the owner can log in.
-    if (payload.owner && payload.owner.username) {
-      if (!payload.owner.password || String(payload.owner.password).trim().length < 6) {
-        return res.status(400).json({ message: 'Shop owner password is required and must be at least 6 characters' });
-      }
-      payload.owner.password = await bcrypt.hash(String(payload.owner.password), 10);
-    }
-
+    console.log(`[PUT] /api/shops/${shopId}/products/${rawProductId} payload:`, JSON.stringify(payload));
+    if (payload.owner && payload.owner.password) payload.owner.password = await bcrypt.hash(String(payload.owner.password), 10);
     // determine next legacyId
     const max = await ShopModel.findOne().sort({ legacyId: -1 }).lean().exec();
     const nextId = (max && max.legacyId) ? (max.legacyId + 1) : 1;
     const shop = await ShopModel.create({ ...payload, legacyId: nextId });
-
-    if (payload.owner && payload.owner.username && payload.owner.password) {
-      try {
-        const UserModel = (await import('./models/User.js')).default;
-        await UserModel.findOneAndUpdate(
-          { email: payload.owner.username },
-          {
-            username: payload.owner.username,
-            email: payload.owner.username,
-            role: 'shop_owner',
-            password: payload.owner.password,
-            name: '',
-            phone: payload.phone || '',
-            address: payload.address || ''
-          },
-          { upsert: true, new: true, setDefaultsOnInsert: true }
-        ).exec();
-      } catch (userErr) {
-        console.warn('DB shop create: failed to create/update shop owner user', userErr && userErr.message ? userErr.message : userErr);
-      }
-    }
-
     return res.status(201).json({ ...shop.toObject(), id: shop.legacyId });
   } catch (e) {
     console.error('POST /api/db/shops error', e && e.message ? e.message : e);
@@ -1336,41 +908,9 @@ app.get('/api/db/users', async (req, res) => {
     if (process.env.NODE_ENV === 'production') return res.status(404).json({ message: 'Not found' });
     if (!mongoose.connection || mongoose.connection.readyState !== 1) return res.status(503).json({ message: 'MongoDB not connected' });
     const docs = await User.find().limit(100).lean().exec();
-    return res.json({ count: docs.length, users: docs.map(d => ({ username: d.username, email: d.email, role: d.role, phone: d.phone || '', name: d.name || '', _id: d._id })) });
+    return res.json({ count: docs.length, users: docs.map(d => ({ username: d.username, email: d.email, role: d.role, _id: d._id })) });
   } catch (e) {
     console.error('GET /api/db/users error', e && e.message ? e.message : e);
-    return res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// Dev-only: get a single user by email (not in production)
-app.get('/api/db/users/:email', async (req, res) => {
-  try {
-    if (process.env.NODE_ENV === 'production') return res.status(404).json({ message: 'Not found' });
-    if (!mongoose.connection || mongoose.connection.readyState !== 1) return res.status(503).json({ message: 'MongoDB not connected' });
-    const email = String(req.params.email || '').trim().toLowerCase();
-    if (!email) return res.status(400).json({ message: 'Email required' });
-    const user = await User.findOne({ email }).lean().exec();
-    if (!user) return res.status(404).json({ message: 'User not found' });
-    return res.json({ username: user.username, email: user.email, role: user.role, phone: user.phone || '', name: user.name || '' });
-  } catch (e) {
-    console.error('GET /api/db/users/:email error', e && e.message ? e.message : e);
-    return res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// Admin-only: get user profile (shop owner, customer, etc.) by username
-app.get('/api/admin/users/:username', requireAuth, async (req, res) => {
-  try {
-    if (!req.user || req.user.role !== 'admin') return res.status(403).json({ message: 'Admin access required' });
-    if (!mongoose.connection || mongoose.connection.readyState !== 1) return res.status(503).json({ message: 'MongoDB not connected' });
-    const username = String(req.params.username || '').trim().toLowerCase();
-    if (!username) return res.status(400).json({ message: 'Username required' });
-    const user = await User.findOne({ username }).lean().exec();
-    if (!user) return res.status(404).json({ message: 'User not found' });
-    return res.json({ username: user.username, email: user.email, role: user.role, name: user.name || '', phone: user.phone || '', address: user.address || '', city: user.city || '' });
-  } catch (e) {
-    console.error('GET /api/admin/users/:username error', e && e.message ? e.message : e);
     return res.status(500).json({ message: 'Server error' });
   }
 });
@@ -1387,7 +927,7 @@ app.post('/api/products', requireAuth, requireVerifiedEmail, requireShopOwner, v
     const shop = await ShopModel.findOne({ legacyId: legacyShopId }).exec();
     if (!shop) return res.status(404).json({ message: 'Shop not found' });
 
-    const { name, description = '', details = '', price, images = [], category, stock, inStock, status = 'draft', attributes = {}, condition, unit = 'piece', shopPhone = '', shopLocation = '' } = req.body;
+    const { name, description = '', details = '', price, images = [], category, stock, inStock, status = 'draft', attributes = {}, condition = 'new', shopPhone = '', shopLocation = '' } = req.body;
     // Basic required-field validation with clear messages
     if (!name || String(name).trim().length === 0) return res.status(400).json({ message: 'Product name is required' });
     // Normalize price into { amount, currency }
@@ -1401,14 +941,13 @@ app.post('/api/products', requireAuth, requireVerifiedEmail, requireShopOwner, v
     }
 
     // Validate images array (accept single string as well)
-    const imagesArr = Array.isArray(images) ? images.filter(Boolean) : (images ? [images] : []);
-    const uniqueImages = [...new Set(imagesArr.map((item) => String(item).trim()))].filter(Boolean);
-    if (!Array.isArray(uniqueImages) || uniqueImages.length === 0) {
+    const imagesArr = Array.isArray(images) ? images : (images ? [images] : []);
+    if (!Array.isArray(imagesArr) || imagesArr.length === 0) {
       return res.status(400).json({ message: 'images is required and must include at least one image URL' });
     }
 
     // Validate condition field
-    if (typeof condition !== 'undefined' && condition !== '' && !['new', 'used'].includes(String(condition))) {
+    if (condition && !['new', 'used'].includes(String(condition))) {
       return res.status(400).json({ message: 'condition must be either "new" or "used"' });
     }
 
@@ -1417,9 +956,8 @@ app.post('/api/products', requireAuth, requireVerifiedEmail, requireShopOwner, v
       description,
       details: details || '',
       price: priceObj,
-      images: uniqueImages,
-      condition: (condition === 'new' || condition === 'used') ? String(condition) : undefined,
-      unit: (unit === 'piece' || unit === 'kg') ? unit : 'piece',
+      images: imagesArr,
+      condition: String(condition) || 'new',
       shopPhone: shopPhone || '',
       // Default shopLocation to the shop's stored address when not provided
       shopLocation: (shopLocation && String(shopLocation).trim()) ? shopLocation : (shop.address || ''),
@@ -1485,7 +1023,6 @@ app.get('/api/products', async (req, res) => {
           }
 
           // sanitize shape for public consumption and prefer shop address when product lacks shopLocation
-          const purchaseCountMap = await fetchPurchaseCountsForIds((docs || []).map(d => d._id));
           const out = docs.map(d => ({
             id: d._id,
             name: d.name,
@@ -1493,8 +1030,7 @@ app.get('/api/products', async (req, res) => {
             details: d.details || '',
             price: d.price || { amount: 0, currency: 'ETB' },
             images: d.images || (d.image ? [d.image] : []),
-            condition: d.condition || null,
-            unit: d.unit || 'piece',
+            condition: d.condition || 'new',
             shopPhone: d.shopPhone || (shopsMap[d.shopLegacyId] ? shopsMap[d.shopLegacyId].phone || '' : ''),
             shopLocation: (d.shopLocation && String(d.shopLocation).trim()) ? d.shopLocation : (shopsMap[d.shopLegacyId] ? shopsMap[d.shopLegacyId].address || '' : ''),
             shopId: d.shopLegacyId || null,
@@ -1502,7 +1038,6 @@ app.get('/api/products', async (req, res) => {
             stock: d.stock || 0,
             status: d.status || 'draft',
             attributes: d.attributes || {},
-            purchaseCount: purchaseCountMap[String(d._id)] || 0,
             createdAt: d.createdAt,
             updatedAt: d.updatedAt
           }));
@@ -1526,7 +1061,6 @@ app.get('/api/products', async (req, res) => {
         shopLocation: s.address || '',
         category: p.category || null,
         stock: (typeof p.inStock !== 'undefined') ? (p.inStock ? 1 : 0) : 0,
-        inStock: (typeof p.stock !== 'undefined') ? (Number(p.stock) > 0) : ((typeof p.inStock !== 'undefined') ? !!p.inStock : true),
         status: 'active',
         attributes: {}
       }));
@@ -1538,11 +1072,7 @@ app.get('/api/products', async (req, res) => {
     if (search) pool = pool.filter(p => (p.name || '').toLowerCase().includes(String(search).toLowerCase()));
 
     const start = (p - 1) * l;
-    let sliced = pool.slice(start, start + l);
-    if (mongoose.connection && mongoose.connection.readyState === 1 && sliced.length) {
-      const counts = await fetchPurchaseCountsForIds(sliced.map(item => item.id));
-      sliced = sliced.map(item => ({ ...item, purchaseCount: counts[String(item.id)] || 0 }));
-    }
+    const sliced = pool.slice(start, start + l);
     return res.json(sliced);
   } catch (e) {
     console.error('GET /api/products error', e && e.message ? e.message : e);
@@ -1586,27 +1116,14 @@ app.get('/api/products/:id', async (req, res) => {
         if ((!out.images || out.images.length === 0) && out.image) out.images = [out.image];
         out.id = out._id;
         out.shopId = out.shopLegacyId || null;
-        out.purchaseCount = (await fetchPurchaseCountsForIds([out._id]))[String(out._id)] || 0;
-        out.condition = out.condition || null;
-        out.unit = out.unit || 'piece';
+        out.condition = out.condition || 'new';
         out.shopPhone = out.shopPhone || '';
-        // If product doesn't include shopPhone, try to read it from the Shop collection
-        if (!out.shopPhone || String(out.shopPhone).trim() === '') {
-          try {
-            if (typeof out.shopLegacyId !== 'undefined' && out.shopLegacyId !== null) {
-              const s = await ShopModel.findOne({ legacyId: Number(out.shopLegacyId) }).lean().exec();
-              if (s && s.owner && s.owner.phone) out.shopPhone = s.owner.phone;
-            }
-          } catch (e) {
-            // ignore lookup failures
-          }
-        }
         // If product doesn't include shopLocation, try to read it from the Shop collection
         if (!out.shopLocation || String(out.shopLocation).trim() === '') {
           try {
             if (typeof out.shopLegacyId !== 'undefined' && out.shopLegacyId !== null) {
               const s = await ShopModel.findOne({ legacyId: Number(out.shopLegacyId) }).lean().exec();
-              if (s) out.shopLocation = s.address || (s.owner && s.owner.address) || '';
+              if (s) out.shopLocation = s.address || '';
             }
           } catch (e) {
             // ignore lookup failures
@@ -1638,16 +1155,10 @@ app.get('/api/products/:id', async (req, res) => {
             inStock: (typeof p.stock !== 'undefined') ? (Number(p.stock) > 0) : ((typeof p.inStock !== 'undefined') ? !!p.inStock : true),
             status: 'active',
             attributes: p.attributes || {},
-            condition: p.condition || null,
-            unit: p.unit || 'piece',
-            shopPhone: p.shopPhone || (s.owner && s.owner.phone) || '',
-            shopLocation: p.shopLocation || s.address || (s.owner && s.owner.address) || '',
-            purchaseCount: 0
+            condition: p.condition || 'new',
+            shopPhone: p.shopPhone || (s.phone || '') || '',
+            shopLocation: p.shopLocation || s.address || ''
           };
-          if (mongoose.connection && mongoose.connection.readyState === 1) {
-            const counts = await fetchPurchaseCountsForIds([candidateId]);
-            out.purchaseCount = counts[String(candidateId)] || 0;
-          }
           return res.json(out);
         }
       }
@@ -1759,564 +1270,6 @@ app.post('/api/db/cart/:username', async (req, res) => {
   }
 });
 
-// Shop invitation routes
-// POST /api/admin/invite-shop - send invitation email to shop owner
-app.post('/api/admin/invite-shop', requireAuth, validate(schemas.shopInvite), async (req, res) => {
-  try {
-    const authUser = await getUserFromRequest(req);
-    if (!authUser || authUser.role !== 'admin') {
-      return res.status(403).json({ message: 'Admin access required' });
-    }
-
-    const { email } = req.body || {};
-    if (!email || !email.trim()) {
-      return res.status(400).json({ message: 'Email is required' });
-    }
-
-    const normalizedEmail = String(email).trim().toLowerCase();
-
-    // Prevent inviting an email that already belongs to a shop owner
-    try {
-      // Check JSON-backed shops
-      const currentShops = readShops();
-      const existingShop = (currentShops || []).find(s => {
-        const ownerEmail = String(s.owner?.email || s.owner?.username || '').trim().toLowerCase();
-        return ownerEmail === normalizedEmail;
-      });
-      if (existingShop) {
-        return res.status(400).json({ message: 'A shop owner account already exists for this email' });
-      }
-
-      // Check Mongo-backed shops and users if available
-      if (mongoose.connection && mongoose.connection.readyState === 1) {
-        const mongoShop = await ShopModel.findOne({
-          $or: [
-            { 'owner.username': normalizedEmail },
-            { 'owner.email': normalizedEmail }
-          ]
-        }).lean().exec();
-        if (mongoShop) {
-          return res.status(400).json({ message: 'A shop owner account already exists for this email' });
-        }
-
-        const UserModel = (await import('./models/User.js')).default;
-        const existingShopOwner = await UserModel.findOne({ email: normalizedEmail, role: 'shop_owner' }).lean().exec();
-        if (existingShopOwner) {
-          return res.status(400).json({ message: 'A shop owner account already exists for this email' });
-        }
-      }
-    } catch (e) {
-      console.warn('invite-shop: error checking existing shop owners', e && e.message ? e.message : e);
-    }
-
-    // Check if invitation already exists and is not used
-    const existingInvitation = await ShopInvitationModel.findOne({ email: normalizedEmail, used: false });
-    if (existingInvitation && existingInvitation.expiresAt > new Date()) {
-      return res.status(400).json({ message: 'An active invitation already exists for this email' });
-    }
-
-    // Generate secure token
-    const token = crypto.randomBytes(32).toString('hex');
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-
-    // Save invitation
-    await ShopInvitationModel.findOneAndUpdate(
-      { email: normalizedEmail },
-      { token, expiresAt, used: false },
-      { upsert: true, new: true }
-    );
-
-    // Send invitation email
-    try {
-      await sendShopInvitationEmail(email.trim(), token);
-    } catch (emailError) {
-      console.error('Failed to send invitation email:', emailError);
-      return res.status(500).json({ message: 'Failed to send invitation email' });
-    }
-
-    res.json({ message: 'Invitation sent successfully' });
-  } catch (error) {
-    console.error('Invite shop error:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// -------------------- Advertisement endpoints --------------------
-// GET /api/admin/advertisements - get all advertisements (admin only)
-app.get('/api/admin/advertisements', requireAuth, async (req, res) => {
-  try {
-    const authUser = await getUserFromRequest(req);
-    if (!authUser || authUser.role !== 'admin') {
-      return res.status(403).json({ message: 'Admin access required' });
-    }
-
-    const AdvertisementModel = (await import('./models/Advertisement.js')).default;
-    const advertisements = await AdvertisementModel.find({})
-      .sort({ createdAt: -1 })
-      .lean()
-      .exec();
-
-    res.json(advertisements);
-  } catch (error) {
-    console.error('GET /api/admin/advertisements error:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// POST /api/admin/advertisements - create new advertisement (admin only)
-app.post('/api/admin/advertisements', requireAuth, async (req, res) => {
-  try {
-    const authUser = await getUserFromRequest(req);
-    if (!authUser || authUser.role !== 'admin') {
-      return res.status(403).json({ message: 'Admin access required' });
-    }
-
-    const { imageUrl, link, altText, isActive } = req.body;
-
-    if (!imageUrl || !imageUrl.trim()) {
-      return res.status(400).json({ message: 'Image URL is required' });
-    }
-
-    const AdvertisementModel = (await import('./models/Advertisement.js')).default;
-    const newAd = await AdvertisementModel.create({
-      imageUrl: imageUrl.trim(),
-      link: link ? link.trim() : '',
-      altText: altText ? altText.trim() : '',
-      isActive: isActive !== undefined ? !!isActive : true,
-      createdBy: authUser._id || authUser.username || 'admin'
-    });
-
-    res.status(201).json(newAd);
-  } catch (error) {
-    console.error('POST /api/admin/advertisements error:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// PUT /api/admin/advertisements/:id - update advertisement (admin only)
-app.put('/api/admin/advertisements/:id', requireAuth, async (req, res) => {
-  try {
-    const authUser = await getUserFromRequest(req);
-    if (!authUser || authUser.role !== 'admin') {
-      return res.status(403).json({ message: 'Admin access required' });
-    }
-
-    const { id } = req.params;
-    const { imageUrl, link, altText, isActive } = req.body;
-
-    if (!imageUrl || !imageUrl.trim()) {
-      return res.status(400).json({ message: 'Image URL is required' });
-    }
-
-    const AdvertisementModel = (await import('./models/Advertisement.js')).default;
-    const updatedAd = await AdvertisementModel.findByIdAndUpdate(
-      id,
-      {
-        imageUrl: imageUrl.trim(),
-        link: link ? link.trim() : '',
-        altText: altText ? altText.trim() : '',
-        isActive: isActive !== undefined ? !!isActive : true
-      },
-      { new: true, runValidators: true }
-    );
-
-    if (!updatedAd) {
-      return res.status(404).json({ message: 'Advertisement not found' });
-    }
-
-    res.json(updatedAd);
-  } catch (error) {
-    console.error('PUT /api/admin/advertisements/:id error:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// DELETE /api/admin/advertisements/:id - delete advertisement (admin only)
-app.delete('/api/admin/advertisements/:id', requireAuth, async (req, res) => {
-  try {
-    const authUser = await getUserFromRequest(req);
-    if (!authUser || authUser.role !== 'admin') {
-      return res.status(403).json({ message: 'Admin access required' });
-    }
-
-    const { id } = req.params;
-    const AdvertisementModel = (await import('./models/Advertisement.js')).default;
-    const deletedAd = await AdvertisementModel.findByIdAndDelete(id);
-
-    if (!deletedAd) {
-      return res.status(404).json({ message: 'Advertisement not found' });
-    }
-
-    res.json({ message: 'Advertisement deleted successfully' });
-  } catch (error) {
-    console.error('DELETE /api/admin/advertisements/:id error:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// GET /api/advertisements/active - get active advertisements for public display
-app.get('/api/advertisements/active', async (req, res) => {
-  try {
-    if (!mongoose.connection || mongoose.connection.readyState !== 1) {
-      console.warn('GET /api/advertisements/active: MongoDB not connected, returning fallback ad');
-      return res.json([{
-        _id: 'fallback-ad',
-        imageUrl: 'https://images.unsplash.com/photo-1598550975904-4b9e74a6a1d0?auto=format&fit=crop&w=1200&q=80',
-        link: '',
-        altText: 'Sample advertisement',
-        isActive: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }]);
-    }
-
-    const AdvertisementModel = (await import('./models/Advertisement.js')).default;
-    const activeAds = await AdvertisementModel.find({ isActive: true })
-      .sort({ createdAt: -1 })
-      .lean()
-      .exec();
-
-    if (!Array.isArray(activeAds) || activeAds.length === 0) {
-      return res.json([{
-        _id: 'fallback-ad',
-        imageUrl: 'https://images.unsplash.com/photo-1598550975904-4b9e74a6a1d0?auto=format&fit=crop&w=1200&q=80',
-        link: '',
-        altText: 'Sample advertisement',
-        isActive: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }]);
-    }
-
-    res.json(activeAds);
-  } catch (error) {
-    console.error('GET /api/advertisements/active error:', error);
-    res.status(200).json([{
-      _id: 'fallback-ad',
-      imageUrl: 'https://images.unsplash.com/photo-1598550975904-4b9e74a6a1d0?auto=format&fit=crop&w=1200&q=80',
-      link: '',
-      altText: 'Sample advertisement',
-      isActive: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }]);
-  }
-});
-
-// POST /api/advertisements/:id/click - track advertisement click (public)
-app.post('/api/advertisements/:id/click', async (req, res) => {
-  try {
-    const { id } = req.params;
-    if (id === 'fallback-ad') {
-      return res.json({ message: 'Fallback advertisement click ignored' });
-    }
-
-    const AdvertisementModel = (await import('./models/Advertisement.js')).default;
-
-    const ad = await AdvertisementModel.findByIdAndUpdate(
-      id,
-      { $inc: { clickCount: 1 } },
-      { new: true }
-    );
-
-    if (!ad) {
-      return res.status(404).json({ message: 'Advertisement not found' });
-    }
-
-    res.json({ message: 'Click tracked successfully' });
-  } catch (error) {
-    console.error('POST /api/advertisements/:id/click error:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// POST /api/advertisements/:id/impression - track advertisement impression (public)
-app.post('/api/advertisements/:id/impression', async (req, res) => {
-  try {
-    const { id } = req.params;
-    if (id === 'fallback-ad') {
-      return res.json({ message: 'Fallback advertisement impression ignored' });
-    }
-
-    const AdvertisementModel = (await import('./models/Advertisement.js')).default;
-
-    const ad = await AdvertisementModel.findByIdAndUpdate(
-      id,
-      { $inc: { impressions: 1 } },
-      { new: true }
-    );
-
-    if (!ad) {
-      return res.status(404).json({ message: 'Advertisement not found' });
-    }
-
-    res.json({ message: 'Impression tracked successfully' });
-  } catch (error) {
-    console.error('POST /api/advertisements/:id/impression error:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// GET /api/shop/verify-invitation - verify invitation token
-app.get('/api/shop/verify-invitation', async (req, res) => {
-  try {
-    const { token } = req.query;
-    if (!token) {
-      return res.status(400).json({ message: 'Token is required' });
-    }
-
-    const invitation = await ShopInvitationModel.findOne({ token, used: false });
-    if (!invitation) {
-      return res.status(400).json({ message: 'Invalid or used invitation token' });
-    }
-
-    if (invitation.expiresAt < new Date()) {
-      return res.status(400).json({ message: 'Invitation token has expired' });
-    }
-
-    res.json({ valid: true, email: invitation.email });
-  } catch (error) {
-    console.error('Verify invitation error:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// Temporary debug endpoint for shop owner login issues
-app.get('/api/debug/shop-owner/:email', async (req, res) => {
-  try {
-    const email = String(req.params.email || '').trim().toLowerCase();
-    if (!email) return res.status(400).json({ message: 'Email required' });
-
-    const result = { email, found: false, sources: {} };
-
-    // Check JSON shops
-    const shops = readShops();
-    const jsonShop = shops.find(s => {
-      const ownerEmail = String(s.owner?.email || s.owner?.username || '').trim().toLowerCase();
-      return ownerEmail === email;
-    });
-    if (jsonShop) {
-      result.sources.json = {
-        id: jsonShop.id,
-        name: jsonShop.name,
-        owner: { username: jsonShop.owner?.username, email: jsonShop.owner?.email, hasPassword: !!jsonShop.owner?.password }
-      };
-      result.found = true;
-    }
-
-    // Check Mongo Shop
-    if (mongoose.connection && mongoose.connection.readyState === 1) {
-      try {
-        const mongoShop = await ShopModel.findOne({
-          $or: [
-            { 'owner.username': email },
-            { 'owner.email': email }
-          ]
-        }).lean().exec();
-        if (mongoShop) {
-          result.sources.mongoShop = {
-            legacyId: mongoShop.legacyId,
-            name: mongoShop.name,
-            owner: { username: mongoShop.owner?.username, hasPassword: !!mongoShop.owner?.password }
-          };
-          result.found = true;
-        }
-      } catch (e) {
-        result.sources.mongoShopError = e.message;
-      }
-
-      // Check Mongo User
-      try {
-        const UserModel = (await import('./models/User.js')).default;
-        const mongoUser = await UserModel.findOne({ email, role: 'shop_owner' }).lean().exec();
-        if (mongoUser) {
-          result.sources.mongoUser = {
-            username: mongoUser.username,
-            email: mongoUser.email,
-            role: mongoUser.role,
-            hasPassword: !!mongoUser.password,
-            name: mongoUser.name
-          };
-          result.found = true;
-        }
-      } catch (e) {
-        result.sources.mongoUserError = e.message;
-      }
-    }
-
-    res.json(result);
-  } catch (error) {
-    console.error('Debug shop owner error:', error);
-    res.status(500).json({ message: 'Debug error' });
-  }
-});
-app.post('/api/shop/register', validate(schemas.shopRegister), async (req, res) => {
-  try {
-    const { token, ownerName, shopName, phone, address, password } = req.body;
-
-    // Verify token
-    const invitation = await ShopInvitationModel.findOne({ token, used: false });
-    if (!invitation) {
-      return res.status(400).json({ message: 'Invalid or used invitation token' });
-    }
-
-    if (invitation.expiresAt < new Date()) {
-      return res.status(400).json({ message: 'Invitation token has expired' });
-    }
-
-    const normalizedEmail = String(invitation.email || '').trim().toLowerCase();
-
-    // Check if shop with this email already exists in JSON (and reserve a username based on shop name)
-    const shops = readShops();
-    const existingShop = (shops || []).find(s => {
-      const ownerEmail = String(s.owner?.email || s.owner?.username || '').trim().toLowerCase();
-      return ownerEmail === normalizedEmail;
-    });
-    if (existingShop) {
-      return res.status(400).json({ message: 'A shop account already exists for this email' });
-    }
-
-    // Derive a username for the shop owner based on the shop name; fall back to the email local-part
-    const baseShopUsername = String(shopName || '').trim() || String(normalizedEmail.split('@')[0] || '').trim() || `shop${Date.now()}`;
-    let ownerUsername = baseShopUsername;
-    try {
-      if (mongoose.connection && mongoose.connection.readyState === 1) {
-        const UserModel = (await import('./models/User.js')).default;
-        let counter = 1;
-        while (
-          (await UserModel.findOne({ username: ownerUsername }).lean().exec()) ||
-          (shops || []).some(s => String(s.owner?.username || '').trim().toLowerCase() === ownerUsername.toLowerCase())
-        ) {
-          counter += 1;
-          ownerUsername = `${baseShopUsername}-${counter}`;
-        }
-      } else {
-        let counter = 1;
-        while ((shops || []).some(s => String(s.owner?.username || '').trim().toLowerCase() === ownerUsername.toLowerCase())) {
-          counter += 1;
-          ownerUsername = `${baseShopUsername}-${counter}`;
-        }
-      }
-    } catch (e) {
-      // ignore
-    }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create shop
-    let maxId = (shops || []).reduce((m, s) => Math.max(m, s.id || 0), 0);
-
-    // Also check Mongo for max legacyId to avoid conflicts
-    if (mongoose.connection && mongoose.connection.readyState === 1) {
-      try {
-        const maxMongo = await ShopModel.findOne().sort({ legacyId: -1 }).lean().exec();
-        if (maxMongo && maxMongo.legacyId) {
-          maxId = Math.max(maxId, maxMongo.legacyId);
-        }
-      } catch (e) {
-        console.warn('shop/register: error getting max legacyId from Mongo', e && e.message ? e.message : e);
-      }
-    }
-
-    const newShop = {
-      id: maxId + 1,
-      name: shopName,
-      address,
-      phone: phone || '',
-      deliveryFee: 50, // default
-      owner: {
-        username: ownerUsername,
-        email: normalizedEmail,
-        password: hashedPassword,
-        name: ownerName || '',
-        phone: phone || '',
-        address: address || ''
-      }
-    };
-
-    // Save to MongoDB if available
-    if (mongoose.connection && mongoose.connection.readyState === 1) {
-      try {
-        await ShopModel.create({
-          legacyId: Number(newShop.id),
-          name: newShop.name,
-          address: newShop.address,
-          phone: newShop.phone || '',
-          deliveryFee: newShop.deliveryFee || '',
-          deliveryServices: [],
-          owner: newShop.owner || {},
-          products: []
-        });
-      } catch (err) {
-        console.error('POST /api/shop/register - Mongo create error', err && err.message ? err.message : err);
-        // Don't fail the request if Mongo fails - continue with JSON fallback
-      }
-    }
-
-    // Save to JSON file
-    shops.push(newShop);
-    if (!writeShops(shops)) {
-      return res.status(500).json({ message: 'Failed to persist shop' });
-    }
-
-    // Create or update a Mongo user record for shop owner (if Mongo connected)
-    if (mongoose.connection && mongoose.connection.readyState === 1) {
-      try {
-        const UserModel = (await import('./models/User.js')).default;
-        // If a user already exists with this email but is a customer, block to avoid role confusion
-        const existing = await UserModel.findOne({ email: normalizedEmail }).exec();
-        if (existing && existing.role && existing.role !== 'shop_owner') {
-          return res.status(400).json({ message: 'An account with this email already exists as a customer' });
-        }
-
-        // Upsert the shop owner user
-        await UserModel.findOneAndUpdate(
-          { email: normalizedEmail },
-          {
-            username: ownerUsername,
-            email: normalizedEmail,
-            role: 'shop_owner',
-            password: hashedPassword,
-            name: ownerName,
-            phone: phone || '',
-            address,
-            emailVerified: true,
-            verificationToken: null,
-            verificationExpires: null
-          },
-          { upsert: true, new: true, setDefaultsOnInsert: true }
-        ).exec();
-      } catch (e) {
-        console.warn('shop/register: failed to create/update shop owner user', e && e.message ? e.message : e);
-      }
-    }
-
-    // Mark invitation as used (best-effort). If this fails, we still consider the shop created
-    // because the critical part (shop and user creation) already succeeded.
-    try {
-      invitation.used = true;
-      await invitation.save();
-    } catch (err) {
-      console.warn('shop/register: failed to mark invitation used', err && err.message ? err.message : err);
-    }
-
-    res.status(201).json({
-      message: 'Shop registered successfully',
-      shop: {
-        id: newShop.id,
-        name: newShop.name,
-        ownerName,
-        phone: newShop.phone,
-        address: newShop.address
-      }
-    });
-  } catch (error) {
-    console.error('Shop register error:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
 // POST /api/shops - create a new shop
 app.post('/api/shops', authenticate, validate(schemas.shopCreate), async (req, res) => {
   // Public: allow creating shops in public-only mode
@@ -2324,25 +1277,10 @@ app.post('/api/shops', authenticate, validate(schemas.shopCreate), async (req, r
   if (!payload || !payload.name || !payload.owner || !payload.owner.username) {
     return res.status(400).json({ message: 'Invalid shop payload' });
   }
-
-  // Ensure a shop owner password is provided when creating a shop so the owner can log in.
-  // If you want to create a shop without an owner login, omit the `owner` field in the payload.
-  if (!payload.owner.password || String(payload.owner.password).trim().length < 6) {
-    return res.status(400).json({ message: 'Shop owner password is required and must be at least 6 characters' });
+  // hash owner password before saving if provided
+  if (payload.owner && payload.owner.password) {
+    payload.owner.password = await bcrypt.hash(String(payload.owner.password), 10);
   }
-
-  // hash owner password before saving
-  payload.owner.password = await bcrypt.hash(String(payload.owner.password), 10);
-
-  // Ensure a consistent owner profile shape so we can show the same fields in the admin shop details page
-  payload.owner = {
-    ...payload.owner,
-    email: payload.owner.username,
-    name: payload.owner.name || '',
-    phone: payload.owner.phone || '',
-    address: payload.owner.address || ''
-  };
-
   if (!payload.address || !String(payload.address).trim()) payload.address = 'Location not provided';
   const shops = readShops();
   const maxId = shops.reduce((m, s) => Math.max(m, s.id || 0), 0);
@@ -2361,29 +1299,6 @@ app.post('/api/shops', authenticate, validate(schemas.shopCreate), async (req, r
         owner: newShop.owner || {},
         products: newShop.products || []
       });
-
-      // Also ensure there is a corresponding Mongo user record for this shop owner so they can log in.
-      if (newShop.owner && newShop.owner.username && newShop.owner.password) {
-        try {
-          const UserModel = (await import('./models/User.js')).default;
-          await UserModel.findOneAndUpdate(
-            { email: newShop.owner.username },
-            {
-              username: newShop.owner.username,
-              email: newShop.owner.username,
-              role: 'shop_owner',
-              password: newShop.owner.password,
-              name: '',
-              phone: newShop.phone || '',
-              address: newShop.address || ''
-            },
-            { upsert: true, new: true, setDefaultsOnInsert: true }
-          ).exec();
-        } catch (e) {
-          console.warn('Shop create: failed to create/update shop owner user', e && e.message ? e.message : e);
-        }
-      }
-
       // keep JSON file in sync below
     } catch (err) {
       console.error('POST /api/shops - Mongo create error', err && err.message ? err.message : err);
@@ -2398,142 +1313,19 @@ app.post('/api/shops', authenticate, validate(schemas.shopCreate), async (req, r
 
 // PUT /api/shops/:id - update shop
 app.put('/api/shops/:id', authenticate, validate(schemas.shopUpdate), async (req, res) => {
-  const idParam = req.params.id;
-  console.log('PUT /api/shops/:id called with idParam:', idParam);
+  const id = parseInt(req.params.id, 10);
   const payload = req.body;
-
-  // Try to find shop in MongoDB first (by legacyId or _id if valid)
-  let mongoShop = null;
-  if (mongoose.connection && mongoose.connection.readyState === 1) {
-    try {
-      const idNum = parseInt(idParam, 10);
-      console.log('Looking for shop in MongoDB with idNum:', idNum, 'idParam:', idParam);
-      const query = { legacyId: idNum };
-      if (mongoose.Types.ObjectId.isValid(idParam)) {
-        query.$or = [
-          { legacyId: idNum },
-          { _id: idParam }
-        ];
-      }
-      mongoShop = await ShopModel.findOne(query).lean().exec();
-      console.log('MongoDB lookup result:', mongoShop ? 'found' : 'not found');
-    } catch (e) {
-      console.log('MongoDB lookup error:', e.message);
-    }
-  } else {
-    console.log('MongoDB not connected, readyState:', mongoose.connection ? mongoose.connection.readyState : 'no connection');
-  }
-
-  // If found in MongoDB, update it
-  if (mongoShop) {
-    // Authorization: allow admins to update any shop, shop owners to update their own shop
-    const authUser = await getUserFromRequest(req);
-    const isAdmin = authUser && authUser.role === 'admin';
-    const isShopOwner = authUser && authUser.role === 'shop_owner' && mongoShop.owner && mongoShop.owner.username === authUser.username;
-
-    if (!isAdmin && !isShopOwner) {
-      return res.status(403).json({ message: 'You can only update your own shop' });
-    }
-
-    // Normalize/merge owner profile fields
-    const updatedOwner = payload.owner ? {
-      ...mongoShop.owner,
-      ...payload.owner,
-      email: payload.owner.email || payload.owner.username || mongoShop.owner?.email || mongoShop.owner?.username || '',
-      name: (payload.owner.name ?? mongoShop.owner?.name) || '',
-      phone: (payload.owner.phone ?? mongoShop.owner?.phone) || '',
-      address: (payload.owner.address ?? mongoShop.owner?.address) || ''
-    } : { ...mongoShop.owner };
-
-    // Hash password if provided
-    if (payload.owner && payload.owner.password) {
-      updatedOwner.password = bcrypt.hashSync(String(payload.owner.password), 10);
-    }
-
-    try {
-      const updated = await ShopModel.findOneAndUpdate(
-        { _id: mongoShop._id },
-        {
-          name: payload.name ?? mongoShop.name,
-          logo: payload.logo ?? mongoShop.logo,
-          address: payload.address ?? mongoShop.address,
-          phone: (payload.phone ?? mongoShop.phone) || '',
-          deliveryFee: payload.deliveryFee ?? mongoShop.deliveryFee,
-          deliveryServices: (payload.deliveryServices ?? mongoShop.deliveryServices) || [],
-          owner: updatedOwner,
-          products: (payload.products ?? mongoShop.products) || []
-        },
-        { new: true }
-      ).exec();
-
-      // Keep the corresponding Mongo user record in sync when owner credentials are updated
-      if (updatedOwner && updatedOwner.username && updatedOwner.password) {
-        try {
-          const UserModel = (await import('./models/User.js')).default;
-          await UserModel.findOneAndUpdate(
-            { email: updatedOwner.username },
-            {
-              username: updatedOwner.username,
-              email: updatedOwner.email || updatedOwner.username,
-              role: 'shop_owner',
-              password: updatedOwner.password,
-              name: updatedOwner.name || '',
-              phone: updatedOwner.phone || '',
-              address: updatedOwner.address || updated.address || ''
-            },
-            { upsert: true, new: true, setDefaultsOnInsert: true }
-          ).exec();
-        } catch (e) {
-          console.warn('Shop update: failed to create/update shop owner user', e && e.message ? e.message : e);
-        }
-      }
-
-      return res.json(updated);
-    } catch (err) {
-      console.error('PUT /api/shops/:id - Mongo update error', err && err.message ? err.message : err);
-      return res.status(500).json({ message: 'Failed to update shop' });
-    }
-  }
-
-  // Fall back to legacy JSON update
   const shops = readShops();
-  const idx = shops.findIndex(s => String(s.id) === String(idParam));
+  const idx = shops.findIndex(s => s.id === id);
   if (idx === -1) return res.status(404).json({ message: 'Shop not found' });
-
-  // Authorization: allow admins to update any shop, shop owners to update their own shop
-  const authUser = await getUserFromRequest(req);
-  const isAdmin = authUser && authUser.role === 'admin';
-  const isShopOwner = authUser && authUser.role === 'shop_owner' && shops[idx].owner && shops[idx].owner.username === authUser.username;
-  
-  if (!isAdmin && !isShopOwner) {
-    return res.status(403).json({ message: 'You can only update your own shop' });
-  }
+  // Public: allow updating shops in public-only mode
 
   // don't allow changing id
   const updated = { ...shops[idx], ...payload, id };
-
-  // Normalize/merge owner profile fields so the admin view can show the same info as the user profile.
-  if (payload.owner) {
-    updated.owner = {
-      ...shops[idx].owner,
-      ...payload.owner,
-      email: payload.owner.email || payload.owner.username || shops[idx].owner?.email || shops[idx].owner?.username || '',
-      name: (payload.owner.name ?? shops[idx].owner?.name) || '',
-      phone: (payload.owner.phone ?? shops[idx].owner?.phone) || '',
-      address: (payload.owner.address ?? shops[idx].owner?.address) || ''
-    };
-  } else {
-    updated.owner = { ...shops[idx].owner };
-  }
-
   // if owner password provided, hash it
   if (payload.owner && payload.owner.password) {
-    updated.owner.password = bcrypt.hashSync(String(payload.owner.password), 10);
+    updated.owner = { ...updated.owner, password: bcrypt.hashSync(String(payload.owner.password), 10) };
   }
-
-  // Update JSON file
-  shops[idx] = updated;
-  writeShops(shops);
 
   // If Mongo is available, persist updates using legacyId
   if (mongoose.connection && mongoose.connection.readyState === 1) {
@@ -2548,28 +1340,6 @@ app.put('/api/shops/:id', authenticate, validate(schemas.shopUpdate), async (req
         owner: updated.owner || {},
         products: updated.products || []
       }, { upsert: true, new: true }).exec();
-
-      // Keep the corresponding Mongo user record in sync when owner credentials are updated
-      if (updated.owner && updated.owner.username && updated.owner.password) {
-        try {
-          const UserModel = (await import('./models/User.js')).default;
-          await UserModel.findOneAndUpdate(
-            { email: updated.owner.username },
-            {
-              username: updated.owner.username,
-              email: updated.owner.email || updated.owner.username,
-              role: 'shop_owner',
-              password: updated.owner.password,
-              name: updated.owner.name || '',
-              phone: updated.owner.phone || '',
-              address: updated.owner.address || updated.address || ''
-            },
-            { upsert: true, new: true, setDefaultsOnInsert: true }
-          ).exec();
-        } catch (e) {
-          console.warn('Shop update: failed to create/update shop owner user', e && e.message ? e.message : e);
-        }
-      }
     } catch (err) {
       console.error('PUT /api/shops/:id - Mongo update error', err && err.message ? err.message : err);
       return res.status(500).json({ message: 'Failed to persist shop to MongoDB' });
@@ -2605,52 +1375,6 @@ app.delete('/api/shops/:id', authenticate, async (req, res) => {
 });
 
 // -------------------- Product endpoints --------------------
-const buildProductIdCandidates = (productId) => {
-  const seen = new Set();
-  const candidates = [];
-  const add = (value) => {
-    if (value === undefined || value === null) return;
-    const key = `${typeof value}:${String(value)}`;
-    if (!seen.has(key)) {
-      seen.add(key);
-      candidates.push(value);
-    }
-  };
-  add(productId);
-  const pid = String(productId || '').trim();
-  add(pid);
-  if (/^\d+$/.test(pid)) add(Number(pid));
-  try {
-    if (mongoose.Types.ObjectId.isValid(pid)) add(new mongoose.Types.ObjectId(pid));
-  } catch (e) {}
-  const hyphenMatch = pid.match(/^(\d+)-([0-9a-fA-F]{24})$/);
-  if (hyphenMatch) {
-    add(hyphenMatch[1]);
-    try {
-      add(new mongoose.Types.ObjectId(hyphenMatch[2]));
-    } catch (e) {}
-  }
-  return candidates;
-};
-
-const fetchPurchaseCountsForIds = async (productIds) => {
-  if (!mongoose.connection || mongoose.connection.readyState !== 1) return {};
-  const allCandidates = productIds.flatMap(buildProductIdCandidates);
-  if (!allCandidates.length) return {};
-  const agg = await OrderModel.aggregate([
-    { $match: { status: { $nin: ['pending', 'cancelled'] }, 'items.productId': { $in: allCandidates } } },
-    { $project: { items: 1, customerKey: { $ifNull: ['$customer.username', '$customerId'] } } },
-    { $unwind: '$items' },
-    { $match: { 'items.productId': { $in: allCandidates } } },
-    { $group: { _id: { productId: '$items.productId', customerKey: '$customerKey' } } },
-    { $group: { _id: '$_id.productId', uniqueBuyers: { $sum: 1 } } }
-  ]).exec();
-  return (agg || []).reduce((map, item) => {
-    map[String(item._id)] = item.uniqueBuyers || 0;
-    return map;
-  }, {});
-};
-
 // GET products for a shop
 app.get('/api/shops/:id/products', async (req, res) => {
   try {
@@ -2660,18 +1384,14 @@ app.get('/api/shops/:id/products', async (req, res) => {
       try {
         const prods = await ProductModel.find({ shopLegacyId: legacyId }).lean().exec();
         if (prods && prods.length) {
-          const purchaseCountMap = await fetchPurchaseCountsForIds((prods || []).map(p => p._id));
-        const mapped = prods.map(p => ({
+          const mapped = prods.map(p => ({
             id: p._id,
             name: p.name,
             price: p.price ? p.price.amount : 0,
             image: (p.images && p.images.length) ? p.images[0] : '',
             description: p.description || '',
             inStock: typeof p.stock !== 'undefined' ? (p.stock > 0) : true,
-            category: p.category || null,
-            condition: p.condition || null,
-            unit: p.unit || 'piece',
-            purchaseCount: purchaseCountMap[String(p._id)] || 0
+            category: p.category || null
           }));
           return res.json(mapped);
         }
@@ -2738,10 +1458,7 @@ app.put('/api/shops/:shopId/products/:productId', authenticate, validate(schemas
       if (typeof payload.name !== 'undefined') prod.name = payload.name;
       if (typeof payload.description !== 'undefined') prod.description = payload.description;
       if (typeof payload.details !== 'undefined') prod.details = payload.details;
-      if (typeof payload.images !== 'undefined') {
-        const imagesArr = Array.isArray(payload.images) ? payload.images : (payload.images ? [payload.images] : []);
-        prod.images = [...new Set(imagesArr.filter(Boolean).map((item) => String(item).trim()))];
-      }
+      if (typeof payload.images !== 'undefined') prod.images = Array.isArray(payload.images) ? payload.images : (payload.images ? [payload.images] : []);
       if (typeof payload.category !== 'undefined') prod.category = payload.category;
       if (typeof payload.stock !== 'undefined' && payload.stock !== null) {
         const s = Number(payload.stock);
@@ -2787,7 +1504,9 @@ app.put('/api/shops/:shopId/products/:productId', authenticate, validate(schemas
       updated.stock = (Number.isFinite(s) && !Number.isNaN(s)) ? Math.max(0, Math.floor(s)) : updated.stock;
     }
     // default shopLocation to shop address when not provided
-    if (typeof payload.shopLocation === 'undefined' && (!updated.shopLocation || String(updated.shopLocation).trim() === '') && shopDoc && shopDoc.address) updated.shopLocation = shopDoc.address;
+    if (typeof payload.shopLocation === 'undefined' && (!updated.shopLocation || String(updated.shopLocation).trim() === '')) {
+      updated.shopLocation = shop.address || '';
+    }
     // ensure legacy products have a details field (fallback to description)
     if (typeof updated.details === 'undefined' || updated.details === null) updated.details = updated.description || '';
     shop.products[idx] = updated;
@@ -3067,126 +1786,6 @@ app.get('/api/shops/:id/orders', requireAuth, async (req, res) => {
   }
 });
 
-// Helper function to convert orders to CSV
-const ordersToCSV = (orders) => {
-  if (!orders || !orders.length) return 'No orders found\n';
-  
-  const headers = [
-    'Order ID',
-    'Shop ID', 
-    'Status',
-    'Total (ETB)',
-    'Customer Name',
-    'Customer Email',
-    'Customer Phone',
-    'Items Count',
-    'Items Details',
-    'Created At'
-  ];
-  
-  const rows = orders.map(order => {
-    const items = order.items || [];
-    const itemsDetails = items.map(item => `${item.name} × ${item.quantity} (${item.price} ETB each)`).join('; ');
-    return [
-      order.id || order._id || '',
-      order.shopId || '',
-      order.status || '',
-      order.total || 0,
-      (order.customer && order.customer.fullName) || (order.customer && order.customer.username) || '',
-      (order.customer && order.customer.email) || '',
-      (order.customer && order.customer.phone) || '',
-      items.length,
-      itemsDetails,
-      order.createdAt || ''
-    ];
-  });
-  
-  const csvContent = [headers, ...rows]
-    .map(row => row.map(field => `"${String(field || '').replace(/"/g, '""')}"`).join(','))
-    .join('\n');
-    
-  return csvContent;
-};
-
-// GET /api/shops/:id/orders/export - export shop orders as CSV or JSON
-app.get('/api/shops/:id/orders/export', requireAuth, async (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  const format = req.query.format || 'csv';
-  
-  try {
-    // Verify requester is shop owner for this shop or admin
-    const shop = readShops().find(s => s.id === id);
-    let shopDoc = shop || null;
-    if (!shopDoc && mongoose.connection && mongoose.connection.readyState === 1) {
-      shopDoc = await ShopModel.findOne({ legacyId: id }).lean().exec();
-    }
-    if (!shopDoc) return res.status(404).json({ message: 'Shop not found' });
-
-    const requester = req.user;
-    const isAdminUser = requester && requester.role === 'admin';
-    const isShopOwnerUser = requester && requester.role === 'shop_owner' && (Number(requester.shopId) === Number(id) || (shopDoc.owner && shopDoc.owner.username === requester.username));
-    if (!isAdminUser && !isShopOwnerUser) return res.status(403).json({ message: 'Forbidden' });
-
-    // Get orders from Mongo if available, otherwise legacy JSON
-    let orders = [];
-    if (mongoose.connection && mongoose.connection.readyState === 1) {
-      orders = await OrderModel.find({ shopId: id }).lean().exec();
-    } else {
-      orders = (shopDoc.orders || []).map(o => ({ ...o })) || [];
-    }
-
-    if (format === 'json') {
-      res.setHeader('Content-Type', 'application/json');
-      res.setHeader('Content-Disposition', `attachment; filename="shop-${id}-orders.json"`);
-      return res.json(orders);
-    } else {
-      // CSV format
-      const csv = ordersToCSV(orders);
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', `attachment; filename="shop-${id}-orders.csv"`);
-      return res.send(csv);
-    }
-  } catch (err) {
-    console.error('GET /api/shops/:id/orders/export error', err && err.message ? err.message : err);
-    return res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// GET /api/admin/orders/export - export all orders as CSV or JSON (admin only)
-app.get('/api/admin/orders/export', requireAuth, async (req, res) => {
-  const format = req.query.format || 'csv';
-  
-  try {
-    // Verify requester is admin
-    const requester = req.user;
-    if (!requester || requester.role !== 'admin') return res.status(403).json({ message: 'Forbidden' });
-
-    // Get all orders from Mongo if available
-    let orders = [];
-    if (mongoose.connection && mongoose.connection.readyState === 1) {
-      orders = await OrderModel.find({}).lean().exec();
-    } else {
-      // Fallback to legacy orders.json
-      orders = readOrders();
-    }
-
-    if (format === 'json') {
-      res.setHeader('Content-Type', 'application/json');
-      res.setHeader('Content-Disposition', `attachment; filename="all-orders.json"`);
-      return res.json(orders);
-    } else {
-      // CSV format
-      const csv = ordersToCSV(orders);
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', `attachment; filename="all-orders.csv"`);
-      return res.send(csv);
-    }
-  } catch (err) {
-    console.error('GET /api/admin/orders/export error', err && err.message ? err.message : err);
-    return res.status(500).json({ message: 'Server error' });
-  }
-});
-
 // POST /api/orders - create an order as an authenticated customer
 app.post('/api/orders', ordersLimiter, validate(schemas.orderCreate), async (req, res) => {
   const payload = req.body || {};
@@ -3195,118 +1794,43 @@ app.post('/api/orders', ordersLimiter, validate(schemas.orderCreate), async (req
   if (!authUser) return res.status(401).json({ message: 'Authentication required' });
   // require verified email
   if (typeof authUser.emailVerified !== 'undefined' && !authUser.emailVerified) return res.status(403).json({ message: 'Please verify your email before placing orders' });
-  const { shopId, items: rawItems, total, paymentMethod, deliveryMethod } = payload;
+  const { shopId, items: rawItems, total, paymentMethod } = payload;
   // authUser already resolved above (used to decide captcha requirement)
   // Development debug logging to help diagnose order creation issues
   if (process.env.NODE_ENV !== 'production') {
     try {
-      console.log('POST /api/orders - requestId=', req.id, 'user=', authUser ? { username: authUser.username, role: authUser.role } : null, 'shopId=', shopId, 'itemsCount=', Array.isArray(rawItems) ? rawItems.length : 0, 'total=', total, 'deliveryMethod=', deliveryMethod);
+      console.log('POST /api/orders - requestId=', req.id, 'user=', authUser ? { username: authUser.username, role: authUser.role } : null, 'shopId=', shopId, 'itemsCount=', Array.isArray(rawItems) ? rawItems.length : 0, 'total=', total);
     } catch (e) { /* ignore logging errors */ }
   }
-  const baseItems = (Array.isArray(rawItems) ? rawItems : []).map(i => ({
+  const items = (Array.isArray(rawItems) ? rawItems : []).map(i => ({
     productId: i.productId ?? i.id ?? i.product ?? null,
     name: i.name ?? i.title ?? '',
     qty: Number(i.quantity ?? i.qty ?? 1),
-    price: Number(i.price ?? i.unitPrice ?? 0),
-    image: i.image || i.photo || i.thumbnail || null
+    price: Number(i.price ?? i.unitPrice ?? 0)
   }));
-  if (!shopId || !Array.isArray(baseItems) || baseItems.length === 0 || typeof total === 'undefined') {
+  if (!shopId || !Array.isArray(items) || items.length === 0 || typeof total === 'undefined') {
     return res.status(400).json({ message: 'Missing required order fields: shopId, items, total' });
   }
 
-  const resolveProductImageById = async (productId) => {
-    if (!productId) return null;
-    const pid = String(productId).trim();
-    if (!pid) return null;
-
-    if (mongoose.connection && mongoose.connection.readyState === 1 && mongoose.Types.ObjectId.isValid(pid)) {
-      try {
-        const prod = await ProductModel.findById(pid).lean().exec();
-        if (prod && prod.images && prod.images.length) return prod.images[0];
-        if (prod && prod.image) return prod.image;
-      } catch (e) {
-        /* ignore */
-      }
-    }
-
-    try {
-      const numericId = Number(pid);
-      if (!Number.isNaN(numericId)) {
-        const shops = readShops();
-        for (const shop of shops || []) {
-          const product = (shop.products || []).find(p => Number(p.id) === numericId || String(p.id) === pid);
-          if (product) return product.image || null;
-        }
-      }
-    } catch (e) {
-      /* ignore */
-    }
-
-    return null;
-  };
-
   const orderId = `ORD-${Date.now()}`;
-  // merge client-supplied customer info with whatever we know about the authenticated user
-  const rawCustomer = (payload.customer && typeof payload.customer === 'object') ? payload.customer : {};
-  for (const item of baseItems) {
-    if ((!item.image || String(item.image).trim() === '') && item.productId) {
-      try {
-        const image = await resolveProductImageById(item.productId);
-        if (image) item.image = image;
-      } catch (e) {
-        // ignore image enrichment failures
-      }
-    }
-  }
-
-  const customerPayload = {
-    username: rawCustomer.username || authUser?.username || '',
-    fullName: rawCustomer.fullName || authUser?.fullName || authUser?.username || '',
-    email: rawCustomer.email || authUser?.email || '',
-    phone: rawCustomer.phone || authUser?.phone || '',
-    address: rawCustomer.address || '',
-    city: rawCustomer.city || ''
-  };
+  const customerPayload = payload.customer || {};
   const createdBy = authUser && authUser.username ? authUser.username : (customerPayload.username || null);
-
-  // calculate commission-adjusted prices and rebuild items list
-  // const { applyCommission } = await import('./utils/pricing.js');
-  let computedTotal = 0;
-  const items = baseItems.map(it => {
-    // const { basePrice, commission, finalPrice } = applyCommission(it.price);
-    const finalQuantity = Number(it.qty || it.quantity || it.qty || 1);
-    // computedTotal += finalPrice * finalQuantity;
-    computedTotal += it.price * finalQuantity;
-    return {
-      ...it,
-      // basePrice,
-      // commission,
-      // finalPrice,
-      // price: finalPrice // override price field to charged amount
-      price: it.price
-    };
-  });
-
-  // customer's username/email is used for indexing but we keep full payload structure
+  const customerUsername = customerPayload.username || (authUser && authUser.username ? authUser.username : null);
+  const customerEmail = customerPayload.email || (authUser && authUser.email ? authUser.email : null);
   const orderBase = {
     id: orderId,
     shopId: Number(shopId),
     items,
-    total: computedTotal,
-    deliveryMethod: deliveryMethod === 'pickup' ? 'pickup' : 'delivery',
+    total,
     paymentMethod: paymentMethod || 'cash_on_delivery',
     status: 'pending',
     createdAt: new Date().toISOString(),
     createdBy,
-    // store the merged payload; keep any extra client data as well
-    customer: { ...customerPayload, ...(rawCustomer || {}) }
+    customer: {
+      username: customerUsername,
+      email: customerEmail,
+    }
   };
-  // DEBUG: show exactly what customer info the server received and what we merged
-  if (process.env.NODE_ENV !== 'production') {
-    console.log('order rawCustomer', JSON.stringify(rawCustomer));
-    console.log('order merged customerPayload', JSON.stringify(customerPayload));
-    console.log('orderBase.customer', JSON.stringify(orderBase.customer));
-  }
 
   // compute fingerprint for deduplication (shop, items, total, customer identity)
   try {
@@ -3316,7 +1840,7 @@ app.post('/api/orders', ordersLimiter, validate(schemas.orderCreate), async (req
     // expose fingerprint to outer scope via orderBase.__fingerprint
     orderBase.__fingerprint = fingerprint;
   } catch (e) {
-    // ignore fingerprint errors 
+    // ignore fingerprint errors
   }
 
   try {
@@ -3480,7 +2004,7 @@ app.post('/api/orders', ordersLimiter, validate(schemas.orderCreate), async (req
         const shop = await ShopModel.findOne({ legacyId: Number(shopId) }).lean().exec();
         const shopOwnerEmail = shop && shop.owner && shop.owner.email ? shop.owner.email : null;
         const shopOwnerName = shop && shop.owner && shop.owner.username ? shop.owner.username : null;
-        await emailController.sendOrderEmails(orderDoc.toObject ? orderDoc.toObject() : orderDoc, shopOwnerEmail, shopOwnerName);
+        if (shopOwnerEmail) await emailController.sendOrderEmails(orderDoc.toObject ? orderDoc.toObject() : orderDoc, shopOwnerEmail, shopOwnerName);
       } catch (e) {
         console.warn('Failed to send order emails', e && e.message ? e.message : e);
       }
@@ -3570,7 +2094,7 @@ app.post('/api/orders', ordersLimiter, validate(schemas.orderCreate), async (req
       const shop = shops[shopIdx];
       const shopOwnerEmail = shop && shop.owner && shop.owner.email ? shop.owner.email : null;
       const shopOwnerName = shop && shop.owner && shop.owner.username ? shop.owner.username : null;
-      await emailController.sendOrderEmails(order, shopOwnerEmail, shopOwnerName);
+      if (shopOwnerEmail) await emailController.sendOrderEmails(order, shopOwnerEmail, shopOwnerName);
     } catch (e) {
       console.warn('Failed to send legacy order emails', e && e.message ? e.message : e);
     }
@@ -3589,13 +2113,7 @@ app.get('/api/orders/my', requireAuth, async (req, res) => {
     if (!user || !user.username) return res.status(401).json({ message: 'Not authenticated' });
     // If Mongo connected, query orders by customer.username
     if (mongoose.connection && mongoose.connection.readyState === 1) {
-      // query either customer.username or createdBy for backwards compatibility
-      const orders = await OrderModel.find({
-        $or: [
-          { 'customer.username': user.username },
-          { createdBy: user.username }
-        ]
-      }).lean().exec();
+      const orders = await OrderModel.find({ 'customer.username': user.username }).lean().exec();
       return res.json(orders || []);
     }
     // fallback to JSON file
@@ -3821,7 +2339,7 @@ app.post('/api/orders/:id/payment/confirm', requireAuth, async (req, res) => { /
       // Admins are read-only
       if (requester && requester.role === 'admin') return res.status(403).json({ message: 'Admins are read-only' });
       const isOwner = requester && requester.role === 'shop_owner' && (Number(requester.shopId) === Number(order.shopId) || (shop && shop.owner && shop.owner.username === requester.username)); // WHY: shop owners must own the shop for this order
-      if (!isOwner) return res.status(403).json({ message: 'Forbidden' });
+      if (!isOwner) return res.status(403).json({ message: 'Forbidden' }); // WHY: prevent unauthorized payment confirmation
 
       // Apply payment confirmation updates in Mongo
       const nowIso = new Date().toISOString();
@@ -3890,13 +2408,13 @@ app.post('/api/orders/:id/payment/confirm', requireAuth, async (req, res) => { /
     // Update shop's orders entry in shops.json when present
     try {
       const shops = readShops(); // WHY: load shops to update the in-shop notification record
-      let shopIdx = shops.findIndex(s => (s.orders || []).some(o => String(o.orderId) === String(orderId)));
+      let shopIdx = shops.findIndex(s => (s.orders || []).some(o => String(o.orderId) === String(orderId))); // WHY: find shop that has an order with matching orderId
       if (shopIdx === -1) {
         // fallback: match by shopId present in central order (if we found central order)
         if (idx !== -1 && orders[idx] && orders[idx].shopId) shopIdx = shops.findIndex(s => Number(s.id) === Number(orders[idx].shopId)); // WHY: try to find shop by central order shopId
       }
       if (shopIdx !== -1) {
-        const ordIdx = shops[shopIdx].orders.findIndex(o => String(o.orderId) === String(orderId));
+        const ordIdx = shops[shopIdx].orders.findIndex(o => String(o.orderId) === String(orderId)); // WHY: index of shop order entry
         if (ordIdx !== -1) {
           shops[shopIdx].orders[ordIdx].paymentStatus = 'paid'; // WHY: mark shop-level order notification as paid
           shops[shopIdx].orders[ordIdx].payment = shops[shopIdx].orders[ordIdx].payment || {}; // WHY: ensure payment object exists
@@ -4350,11 +2868,8 @@ app.delete('/api/shops/:shopId/orders/:orderId', authenticate, async (req, res) 
   res.json({ message: 'Order deleted' });
 });
 
-// Run migration for owner passwords, connect MongoDB, then start
-Promise.allSettled([
-  connectMongo(),
-  migrateShopOwnerPasswords()
-]).finally(() => {
+// Run migration for owner passwords then start
+migrateShopOwnerPasswords().finally(() => {
   app.listen(PORT, () => {
     info('Backend server listening', { port: PORT, env: process.env.NODE_ENV || app.get('env'), frontendOrigin: process.env.FRONTEND_ORIGIN ? true : false });
     console.log(`Backend server listening on port ${PORT}`);
