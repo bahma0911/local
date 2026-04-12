@@ -2407,15 +2407,19 @@ app.put('/api/shops/:id', authenticate, validate(schemas.shopUpdate), async (req
   if (mongoose.connection && mongoose.connection.readyState === 1) {
     try {
       const idNum = parseInt(idParam, 10);
+      console.log('Looking for shop in MongoDB with idNum:', idNum, 'idParam:', idParam);
       mongoShop = await ShopModel.findOne({
         $or: [
           { legacyId: idNum },
           { _id: idParam }
         ]
       }).lean().exec();
+      console.log('MongoDB lookup result:', mongoShop ? 'found' : 'not found');
     } catch (e) {
-      // ignore Mongo lookup errors
+      console.log('MongoDB lookup error:', e.message);
     }
+  } else {
+    console.log('MongoDB not connected, readyState:', mongoose.connection ? mongoose.connection.readyState : 'no connection');
   }
 
   // If found in MongoDB, update it
