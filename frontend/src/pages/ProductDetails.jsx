@@ -122,15 +122,11 @@ const ProductDetails = () => {
               <strong>Purchased by:</strong> {product.purchaseCount} {product.purchaseCount === 1 ? 'person' : 'people'}
             </div>
           )}
-          {product.unit && (
-            <div style={{ margin: '8px 0' }}>
-              <strong>Unit:</strong> {product.unit === 'kg' ? 'kg' : 'piece'}
-            </div>
-          )}
+           
           {product.condition && (
             <div style={{ margin: '8px 0' }}>
-              <strong>Condition:</strong> <span style={{ padding: '4px 8px', background: product.condition === 'used' ? '#ffc' : (product.condition === 'new' ? 'rgb(233, 132, 31)' : '#eee'), borderRadius: 6, color: product.condition ? '#000' : '#444' }}>{product.condition ? product.condition.toUpperCase() : 'N/A'}</span>
-            </div>
+             <strong>Condition:</strong> <span style={{ padding: '4px 8px', background: product.condition === 'used' ? '#ffc' : (product.condition === 'new' ? 'rgb(233, 132, 31)' : '#eee'), borderRadius: 6, color: product.condition ? '#000' : '#444' }}>{product.condition ? product.condition.toUpperCase() : 'N/A'}</span>
+           </div>
           )}
 
           <div style={{ marginTop: 12 }}>

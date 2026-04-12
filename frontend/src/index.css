@@ -92,7 +92,7 @@
   --card-bg: #ffffff;
   --auth-bg: #ffffff;
   --input-bg: #f8fafc;
-  --navbar-bg: linear-gradient(120deg, #0a428b 0%, #476ce7 55%, #ffffff 100%);
+  --navbar-bg: linear-gradient(120deg, #2f3661 50%, #f36a31);
 
   /* 🧱 BORDERS */
   --border-color: #d1d5db;

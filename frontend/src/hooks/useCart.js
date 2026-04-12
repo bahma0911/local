@@ -117,8 +117,8 @@ export const useCart = () => {
     }
 
     setCartItems((prevItems) => {
-      if (prevItems.some(item => item.shopId === shopId)) {
-        alert("You can only add 1 item per shop to the cart.");
+      if (prevItems.some(item => item.id === pid)) {
+        alert("You can only add 1 of each item to the cart.");
         return prevItems;
       }
       // normalize numeric price for cart items
@@ -150,10 +150,6 @@ export const useCart = () => {
     const stockCheck = checkProductStock(productId);
     const existing = cartItems.find(it => String(it.id) === String(productId));
     const currentQty = existing ? Number(existing.quantity || 0) : 0;
-    if (currentQty >= 1) {
-      alert("Maximum 1 per item.");
-      return;
-    }
     const available = Number(stockCheck.available || 0);
     if (!stockCheck.inStock || currentQty + 1 > available) {
       alert(`Cannot add more - only ${available} available`);
