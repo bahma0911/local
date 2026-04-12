@@ -1490,7 +1490,7 @@ const AdminDashboard = () => {
                         // Upload new logo if selected
                         if (shopInfoForm.logoFile) {
                           const fd = new FormData();
-                          fd.append('file', currentShop.logoFile);
+                          fd.append('file', shopInfoForm.logoFile);
                           const up = await uploadFile(fd);
                           if (!up) {
                             const attempts = (window._lastUploadAttempts || []).join(', ');
