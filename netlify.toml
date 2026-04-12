@@ -5,6 +5,6 @@
 
 [[redirects]]
   from = "/api/*"
-  to = "https://nega-m5uz.onrender.com/:splat"
+  to = "https://local-q29j.onrender.com/:splat"
   status = 200
   force = true
