@@ -2399,6 +2399,7 @@ app.post('/api/shops', authenticate, validate(schemas.shopCreate), async (req, r
 // PUT /api/shops/:id - update shop
 app.put('/api/shops/:id', authenticate, validate(schemas.shopUpdate), async (req, res) => {
   const idParam = req.params.id;
+  console.log('PUT /api/shops/:id called with idParam:', idParam);
   const payload = req.body;
 
   // Try to find shop in MongoDB first (by legacyId or _id)
