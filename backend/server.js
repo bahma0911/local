@@ -2402,18 +2402,20 @@ app.put('/api/shops/:id', authenticate, validate(schemas.shopUpdate), async (req
   console.log('PUT /api/shops/:id called with idParam:', idParam);
   const payload = req.body;
 
-  // Try to find shop in MongoDB first (by legacyId or _id)
+  // Try to find shop in MongoDB first (by legacyId or _id if valid)
   let mongoShop = null;
   if (mongoose.connection && mongoose.connection.readyState === 1) {
     try {
       const idNum = parseInt(idParam, 10);
       console.log('Looking for shop in MongoDB with idNum:', idNum, 'idParam:', idParam);
-      mongoShop = await ShopModel.findOne({
-        $or: [
+      const query = { legacyId: idNum };
+      if (mongoose.Types.ObjectId.isValid(idParam)) {
+        query.$or = [
           { legacyId: idNum },
           { _id: idParam }
-        ]
-      }).lean().exec();
+        ];
+      }
+      mongoShop = await ShopModel.findOne(query).lean().exec();
       console.log('MongoDB lookup result:', mongoShop ? 'found' : 'not found');
     } catch (e) {
       console.log('MongoDB lookup error:', e.message);
