@@ -358,3 +358,29 @@
     font-size: 2em;
   }
 }
+
+[data-theme="light"] .login-prompt,
+[data-theme="light"] .stat-card,
+[data-theme="light"] .dashboard-section,
+[data-theme="light"] .order-preview,
+[data-theme="light"] .wishlist-item-preview,
+[data-theme="light"] .product-preview,
+[data-theme="light"] .quick-actions {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .order-preview:hover,
+[data-theme="light"] .wishlist-item-preview:hover,
+[data-theme="light"] .product-preview:hover,
+[data-theme="light"] .action-btn:hover {
+  background: #f8fafc;
+}
+
+[data-theme="light"] .view-all-btn,
+[data-theme="light"] .action-btn {
+  border-color: #cbd5e1;
+  color: var(--text-primary);
+}

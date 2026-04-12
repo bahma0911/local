@@ -315,6 +315,27 @@
   color: #ddd;
 }
 
+[data-theme="light"] .form-section,
+[data-theme="light"] .payment-option,
+[data-theme="light"] .order-summary-sidebar,
+[data-theme="light"] .order-summary-inline,
+[data-theme="light"] .delivery-option {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .form-input,
+[data-theme="light"] .form-textarea {
+  background-color: #f8fafc;
+  border-color: #d1d5db;
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .delivery-option:hover {
+  border-color: #9ca3af;
+}
+
 .total-row {
   display: flex;
   justify-content: space-between;

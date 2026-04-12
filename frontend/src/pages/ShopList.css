@@ -452,6 +452,18 @@
   box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
 }
 
+[data-theme="light"] .advanced-filters-toggle {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .advanced-filters {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+}
+
 /* Dark theme specific styling for advanced filters - more prominent glass effect */
 .advanced-filters-toggle {
   display: flex;

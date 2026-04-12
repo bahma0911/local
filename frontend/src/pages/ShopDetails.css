@@ -156,3 +156,20 @@
     font-size: 2rem;
   }
 }
+
+[data-theme="light"] .back-button {
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--text-primary);
+  border-color: #d1d5db;
+}
+
+[data-theme="light"] .back-button:hover {
+  background: #ffffff;
+}
+
+[data-theme="light"] .no-products,
+[data-theme="light"] .loading {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  color: var(--text-primary);
+}

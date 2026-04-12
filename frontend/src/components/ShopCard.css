@@ -127,3 +127,34 @@
   max-height: 420px;
   overflow: auto;
 }
+
+[data-theme="light"] .shop-card {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+}
+
+[data-theme="light"] .shop-card:not(.selected) {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  opacity: 1;
+  filter: none;
+}
+
+[data-theme="light"] .shop-card.selected {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+}
+
+[data-theme="light"] .shop-expanded-products {
+  background: rgba(248, 250, 252, 0.95);
+  border-color: #e2e8f0;
+}
+
+[data-theme="light"] .shop-logo {
+  background: rgba(15, 23, 42, 0.04);
+}
+
+[data-theme="light"] .shop-delivery-info {
+  border-top-color: rgba(15, 23, 42, 0.08);
+}
