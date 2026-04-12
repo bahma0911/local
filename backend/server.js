@@ -2450,11 +2450,11 @@ app.put('/api/shops/:id', authenticate, validate(schemas.shopUpdate), async (req
           name: payload.name ?? mongoShop.name,
           logo: payload.logo ?? mongoShop.logo,
           address: payload.address ?? mongoShop.address,
-          phone: payload.phone ?? mongoShop.phone || '',
+          phone: (payload.phone ?? mongoShop.phone) || '',
           deliveryFee: payload.deliveryFee ?? mongoShop.deliveryFee,
-          deliveryServices: payload.deliveryServices ?? mongoShop.deliveryServices || [],
+          deliveryServices: (payload.deliveryServices ?? mongoShop.deliveryServices) || [],
           owner: updatedOwner,
-          products: payload.products ?? mongoShop.products || []
+          products: (payload.products ?? mongoShop.products) || []
         },
         { new: true }
       ).exec();
