@@ -24,6 +24,8 @@ import OrderModel from './models/Order.js';
 import CartModel from './models/Cart.js';
 import NotificationModel from './models/Notification.js';
 import ProductModel from './models/Product.js';
+import AdvertisementModel from './models/Advertisement.js';
+import categoryRoutes from './routes/categoryRoutes.js';
 import mongoose from 'mongoose';
 
 dotenv.config();
@@ -103,6 +105,7 @@ app.use((req, res, next) => {
   }
   next();
 });
+app.use('/api/categories', categoryRoutes);
 
 // In-memory rate limiter factory (MVP). Uses Map to track timestamps per key.
 const createRateLimiter = ({ windowMs = 60000, max = 60, keyFunc = (req) => req.ip, name = 'rate_limit' } = {}) => {
@@ -173,6 +176,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DATA_DIR = path.join(__dirname, 'data');
 const SHOPS_FILE = path.join(DATA_DIR, 'shops.json');
+const ADS_FILE = path.join(DATA_DIR, 'advertisements.json');
 const PUBLIC_DIR = path.join(process.cwd(), 'public');
 const UPLOADS_DIR = path.join(PUBLIC_DIR, 'uploads');
 
@@ -290,6 +294,26 @@ const readCustomers = () => {
     return [];
   }
 };
+
+const readAdvertisements = () => {
+  try {
+    const raw = fs.readFileSync(ADS_FILE, 'utf8');
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (err) {
+    return [];
+  }
+};
+
+const writeAdvertisements = (ads) => {
+  try {
+    fs.writeFileSync(ADS_FILE, JSON.stringify(ads, null, 2), 'utf8');
+    return true;
+  } catch (err) {
+    console.error('Failed to write advertisements file', err.message);
+    return false;
+  }
+};
 const writeCustomers = (c) => {
   try {
     fs.writeFileSync(CUSTOMERS_FILE, JSON.stringify(c, null, 2), 'utf8');
@@ -344,6 +368,11 @@ const requireAuth = async (req, res, next) => {
 
 const requireShopOwner = (req, res, next) => {
   if (!req.user || req.user.role !== 'shop_owner') return res.status(403).json({ message: 'Forbidden: shop owner only' });
+  return next();
+};
+
+const requireAdmin = (req, res, next) => {
+  if (!req.user || req.user.role !== 'admin') return res.status(403).json({ message: 'Forbidden' });
   return next();
 };
 
@@ -724,6 +753,180 @@ app.get('/api/health', (_req, res) => {
 app.get('/health', (_req, res) => {
   res.status(200).send('OK');
 });
+// ---------------- Advertisements API ----------------
+// Admin: list advertisements
+app.get('/api/admin/advertisements', requireAuth, requireAdmin, async (_req, res) => {
+  try {
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      const ads = await AdvertisementModel.find().sort({ createdAt: -1 }).lean().exec();
+      return res.json(ads || []);
+    }
+    const ads = readAdvertisements();
+    return res.json((ads || []).slice().sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)));
+  } catch (e) {
+    console.error('GET /api/admin/advertisements error', e && e.message ? e.message : e);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Admin: create advertisement
+app.post('/api/admin/advertisements', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const payload = req.body || {};
+    const imageUrl = String(payload.imageUrl || '').trim();
+    if (!imageUrl) return res.status(400).json({ message: 'imageUrl is required' });
+
+    const adPayload = {
+      imageUrl,
+      link: String(payload.link || '').trim(),
+      altText: String(payload.altText || 'Advertisement').trim() || 'Advertisement',
+      isActive: typeof payload.isActive === 'boolean' ? payload.isActive : true,
+      createdBy: req.user && req.user.username ? req.user.username : undefined,
+      clickCount: 0,
+      impressions: 0
+    };
+
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      const created = await AdvertisementModel.create(adPayload);
+      return res.status(201).json(created.toObject());
+    }
+
+    const ads = readAdvertisements();
+    const now = new Date().toISOString();
+    const created = {
+      _id: `ad-${Date.now()}-${Math.floor(Math.random() * 100000)}`,
+      ...adPayload,
+      createdAt: now,
+      updatedAt: now
+    };
+    ads.unshift(created);
+    if (!writeAdvertisements(ads)) return res.status(500).json({ message: 'Failed to persist advertisement' });
+    return res.status(201).json(created);
+  } catch (e) {
+    console.error('POST /api/admin/advertisements error', e && e.message ? e.message : e);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Admin: update advertisement
+app.put('/api/admin/advertisements/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const id = req.params.id;
+    const payload = req.body || {};
+    const update = {};
+
+    if (typeof payload.imageUrl !== 'undefined') {
+      const imageUrl = String(payload.imageUrl || '').trim();
+      if (!imageUrl) return res.status(400).json({ message: 'imageUrl cannot be empty' });
+      update.imageUrl = imageUrl;
+    }
+    if (typeof payload.link !== 'undefined') update.link = String(payload.link || '').trim();
+    if (typeof payload.altText !== 'undefined') update.altText = String(payload.altText || '').trim() || 'Advertisement';
+    if (typeof payload.isActive !== 'undefined') update.isActive = !!payload.isActive;
+
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      const updated = await AdvertisementModel.findByIdAndUpdate(id, { $set: update }, { new: true }).lean().exec();
+      if (!updated) return res.status(404).json({ message: 'Advertisement not found' });
+      return res.json(updated);
+    }
+
+    const ads = readAdvertisements();
+    const idx = ads.findIndex(a => String(a._id) === String(id));
+    if (idx === -1) return res.status(404).json({ message: 'Advertisement not found' });
+    ads[idx] = { ...ads[idx], ...update, updatedAt: new Date().toISOString() };
+    if (!writeAdvertisements(ads)) return res.status(500).json({ message: 'Failed to persist advertisement' });
+    return res.json(ads[idx]);
+  } catch (e) {
+    if (e && e.name === 'CastError') return res.status(404).json({ message: 'Advertisement not found' });
+    console.error('PUT /api/admin/advertisements/:id error', e && e.message ? e.message : e);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Admin: delete advertisement
+app.delete('/api/admin/advertisements/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const id = req.params.id;
+
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      const deleted = await AdvertisementModel.findByIdAndDelete(id).lean().exec();
+      if (!deleted) return res.status(404).json({ message: 'Advertisement not found' });
+      return res.json({ success: true });
+    }
+
+    const ads = readAdvertisements();
+    const filtered = ads.filter(a => String(a._id) !== String(id));
+    if (filtered.length === ads.length) return res.status(404).json({ message: 'Advertisement not found' });
+    if (!writeAdvertisements(filtered)) return res.status(500).json({ message: 'Failed to persist advertisement deletion' });
+    return res.json({ success: true });
+  } catch (e) {
+    if (e && e.name === 'CastError') return res.status(404).json({ message: 'Advertisement not found' });
+    console.error('DELETE /api/admin/advertisements/:id error', e && e.message ? e.message : e);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Public: list active advertisements
+app.get('/api/advertisements/active', async (_req, res) => {
+  try {
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      const ads = await AdvertisementModel.find({ isActive: true }).sort({ createdAt: -1 }).lean().exec();
+      return res.json(ads || []);
+    }
+    const ads = readAdvertisements();
+    const active = (ads || []).filter(a => a && a.isActive);
+    return res.json(active);
+  } catch (e) {
+    console.error('GET /api/advertisements/active error', e && e.message ? e.message : e);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Public: track ad impressions
+app.post('/api/advertisements/:id/impression', async (req, res) => {
+  try {
+    const id = req.params.id;
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      const updated = await AdvertisementModel.findByIdAndUpdate(id, { $inc: { impressions: 1 } }, { new: true }).lean().exec();
+      if (!updated) return res.status(404).json({ message: 'Advertisement not found' });
+      return res.json({ success: true, impressions: updated.impressions });
+    }
+    const ads = readAdvertisements();
+    const idx = ads.findIndex(a => String(a._id) === String(id));
+    if (idx === -1) return res.status(404).json({ message: 'Advertisement not found' });
+    ads[idx].impressions = Number(ads[idx].impressions || 0) + 1;
+    ads[idx].updatedAt = new Date().toISOString();
+    if (!writeAdvertisements(ads)) return res.status(500).json({ message: 'Failed to persist impression' });
+    return res.json({ success: true, impressions: ads[idx].impressions });
+  } catch (e) {
+    if (e && e.name === 'CastError') return res.status(404).json({ message: 'Advertisement not found' });
+    console.error('POST /api/advertisements/:id/impression error', e && e.message ? e.message : e);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Public: track ad clicks
+app.post('/api/advertisements/:id/click', async (req, res) => {
+  try {
+    const id = req.params.id;
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      const updated = await AdvertisementModel.findByIdAndUpdate(id, { $inc: { clickCount: 1 } }, { new: true }).lean().exec();
+      if (!updated) return res.status(404).json({ message: 'Advertisement not found' });
+      return res.json({ success: true, clickCount: updated.clickCount });
+    }
+    const ads = readAdvertisements();
+    const idx = ads.findIndex(a => String(a._id) === String(id));
+    if (idx === -1) return res.status(404).json({ message: 'Advertisement not found' });
+    ads[idx].clickCount = Number(ads[idx].clickCount || 0) + 1;
+    ads[idx].updatedAt = new Date().toISOString();
+    if (!writeAdvertisements(ads)) return res.status(500).json({ message: 'Failed to persist click' });
+    return res.json({ success: true, clickCount: ads[idx].clickCount });
+  } catch (e) {
+    if (e && e.name === 'CastError') return res.status(404).json({ message: 'Advertisement not found' });
+    console.error('POST /api/advertisements/:id/click error', e && e.message ? e.message : e);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
 
 // GET /api/shops - list shops
 app.get('/api/shops', async (req, res) => {
@@ -927,7 +1130,7 @@ app.post('/api/products', requireAuth, requireVerifiedEmail, requireShopOwner, v
     const shop = await ShopModel.findOne({ legacyId: legacyShopId }).exec();
     if (!shop) return res.status(404).json({ message: 'Shop not found' });
 
-    const { name, description = '', details = '', price, images = [], category, stock, inStock, status = 'draft', attributes = {}, condition = 'new', shopPhone = '', shopLocation = '' } = req.body;
+    const { name, description = '', details = '', price, images = [], category, stock, inStock, status = 'draft', attributes = {}, condition = 'new', unit = 'piece', shopPhone = '', shopLocation = '' } = req.body;
     // Basic required-field validation with clear messages
     if (!name || String(name).trim().length === 0) return res.status(400).json({ message: 'Product name is required' });
     // Normalize price into { amount, currency }
@@ -951,6 +1154,13 @@ app.post('/api/products', requireAuth, requireVerifiedEmail, requireShopOwner, v
       return res.status(400).json({ message: 'condition must be either "new" or "used"' });
     }
 
+    const normalizedCategory = (typeof category === 'string')
+      ? category.trim()
+      : (typeof category !== 'undefined' && category !== null ? String(category) : '');
+    const resolvedShopPhone = (shopPhone && String(shopPhone).trim())
+      ? String(shopPhone).trim()
+      : ((shop && shop.owner && shop.owner.phone) ? shop.owner.phone : (shop.phone || ''));
+
     const product = await ProductModel.create({
       name,
       description,
@@ -958,12 +1168,13 @@ app.post('/api/products', requireAuth, requireVerifiedEmail, requireShopOwner, v
       price: priceObj,
       images: imagesArr,
       condition: String(condition) || 'new',
-      shopPhone: shopPhone || '',
+      unit: (unit && ['piece', 'kg'].includes(String(unit))) ? String(unit) : 'piece',
+      shopPhone: resolvedShopPhone,
       // Default shopLocation to the shop's stored address when not provided
       shopLocation: (shopLocation && String(shopLocation).trim()) ? shopLocation : (shop.address || ''),
       shopId: shop._id,
       shopLegacyId: shop.legacyId,
-      category,
+      category: normalizedCategory,
       // prefer explicit inStock boolean to set stock quantity; default to 1 (in stock) when inStock true, else 0
       stock: (typeof inStock !== 'undefined') ? (inStock ? 1 : 0) : (Number(stock) || 0),
       status: status || 'draft',

@@ -1,12 +1,26 @@
 import express from 'express';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 const router = express.Router();
-const categoriesPath = path.join(process.cwd(), 'data', 'categories.json');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const categoriesPath = path.join(__dirname, '..', 'data', 'categories.json');
+
+const ensureCategoriesFile = () => {
+  const categoriesDir = path.dirname(categoriesPath);
+  if (!fs.existsSync(categoriesDir)) {
+    fs.mkdirSync(categoriesDir, { recursive: true });
+  }
+  if (!fs.existsSync(categoriesPath)) {
+    fs.writeFileSync(categoriesPath, '[]', 'utf8');
+  }
+};
 
 // GET all categories
 router.get('/', (req, res) => {
+  ensureCategoriesFile();
   fs.readFile(categoriesPath, 'utf8', (err, data) => {
     if (err) {
       console.error('Error reading categories.json:', err);
@@ -24,6 +38,7 @@ router.get('/', (req, res) => {
 
 // POST add a new category
 router.post('/', (req, res) => {
+  ensureCategoriesFile();
   const { name } = req.body;
   if (!name || typeof name !== 'string') return res.status(400).json({ error: 'Name is required' });
   fs.readFile(categoriesPath, 'utf8', (err, data) => {
@@ -45,6 +60,7 @@ router.post('/', (req, res) => {
 
 // DELETE a category by id
 router.delete('/:id', (req, res) => {
+  ensureCategoriesFile();
   const id = Number(req.params.id);
   if (!id) return res.status(400).json({ error: 'Invalid id' });
   fs.readFile(categoriesPath, 'utf8', (err, data) => {
