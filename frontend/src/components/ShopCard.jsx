@@ -15,10 +15,6 @@ const ShopCard = ({ shop, isSelected, onClick }) => {
               <img 
                 src={shop.logo} 
                 alt={`${shop.name} logo`}
-                onError={(e) => { 
-                  e.target.style.display = 'none'; 
-                  e.target.nextSibling.style.display = 'flex';
-                }}
               />
             ) : null}
             <div className="shop-logo-fallback" style={{display: shop.logo ? 'none' : 'flex'}}>

@@ -256,13 +256,13 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
 
       // If the adapter wrote a local file path (disk storage), derive the public URL using the filename
       if (req.file.filename) {
-        return res.json({ url: `/uploads/${req.file.filename}` });
+        return res.json({ url: `http://localhost:5000/uploads/${req.file.filename}` });
       }
 
       if (req.file.path && typeof req.file.path === 'string') {
         // `req.file.path` may be an absolute filesystem path; convert to basename
         const fname = path.basename(req.file.path);
-        if (fname) return res.json({ url: `/uploads/${fname}` });
+        if (fname) return res.json({ url: `http://localhost:5000/uploads/${fname}` });
       }
     }
 
