@@ -96,8 +96,8 @@ const ShopDetails = () => {
         </button>
 
         <div className="shop-info">
-          {shop.logo && (
-            <div className="shop-logo-large">
+          <div className="shop-logo-large">
+            {shop.logo ? (
               <img
                 src={shop.logo}
                 alt={`${shop.name} logo`}
@@ -106,8 +106,9 @@ const ShopDetails = () => {
                   e.target.nextSibling.style.display = 'flex';
                 }}
               />
-              <div className="shop-logo-fallback-large" style={{display:'none'}}>
-                🏪
+            ) : null}
+            <div className="shop-logo-fallback-large" style={{display: shop.logo ? 'none' : 'flex'}}>
+              🏪
               </div>
             </div>
           )}
