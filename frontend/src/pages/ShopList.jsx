@@ -20,26 +20,31 @@ const ShopList = ({ compact = false }) => {
   // compact mode: show all shops horizontally on home page
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
-  useEffect(() => {
-    let mounted = true;
-    const load = async () => {
-      try {
-        const data = await apiFetch(`${API_BASE}/api/shops`);
-        if (mounted) {
-          setShops(data);
-          try { localStorage.setItem('updatedShops', JSON.stringify(data)); } catch (e) {}
-        }
-        return;
-      } catch (e) {
-        // ignore and fallback
-      }
+  const load = async () => {
+    try {
+      const data = await apiFetch(`${API_BASE}/api/shops`);
+      setShops(data);
+      try { localStorage.setItem('updatedShops', JSON.stringify(data)); } catch (e) {}
+      return;
+    } catch (e) {
+      // ignore and fallback
+    }
 
-      const savedShops = localStorage.getItem('updatedShops');
-      if (savedShops) setShops(JSON.parse(savedShops));
-      else setShops(initialShops);
-    };
+    const savedShops = localStorage.getItem('updatedShops');
+    if (savedShops) setShops(JSON.parse(savedShops));
+    else setShops(initialShops);
+  };
+
+  useEffect(() => {
     load();
-    return () => { mounted = false; };
+  }, []);
+
+  useEffect(() => {
+    const handleShopsUpdate = () => {
+      load();
+    };
+    window.addEventListener('shopsUpdated', handleShopsUpdate);
+    return () => window.removeEventListener('shopsUpdated', handleShopsUpdate);
   }, []);
 
   const {

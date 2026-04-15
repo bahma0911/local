@@ -82,6 +82,7 @@ const AdminDashboard = () => {
     try {
       const data = await apiFetch(`${API_BASE}/api/shops`);
       setShops(data);
+      window.dispatchEvent(new Event('shopsUpdated'));
       try {
         localStorage.setItem('updatedShops', JSON.stringify(data));
       } catch (e) {
@@ -1537,6 +1538,7 @@ const AdminDashboard = () => {
                           // Clear the logoFile after successful upload
                           setShopInfoForm(prev => ({ ...prev, logoFile: null, logo: logoUrl }));
                           fetchShops(); // Refresh shop data
+                          window.dispatchEvent(new Event('shopsUpdated'));
                         } else {
                           const error = await response.text();
                           alert('Failed to update shop information: ' + error);
