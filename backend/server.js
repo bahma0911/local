@@ -997,6 +997,7 @@ app.get('/api/shops', async (req, res) => {
               name: d.name,
               category: d.category,
               address: d.address,
+              logo: d.logo || '',
               deliveryFee: d.deliveryFee,
               deliveryServices: d.deliveryServices || [],
               owner: d.owner || {},

@@ -103,15 +103,16 @@ const ShopDetails = () => {
                 alt={`${shop.name} logo`}
                 onError={(e) => {
                   e.target.style.display = 'none';
-                  e.target.nextSibling.style.display = 'flex';
+                  if (e.target.nextSibling) {
+                    e.target.nextSibling.style.display = 'flex';
+                  }
                 }}
               />
             ) : null}
-            <div className="shop-logo-fallback-large" style={{display: shop.logo ? 'none' : 'flex'}}>
+            <div className="shop-logo-fallback-large" style={{ display: shop.logo ? 'none' : 'flex' }}>
               🏪
-              </div>
             </div>
-          )}
+          </div>
 
           <div className="shop-details">
             <h1 className="shop-title">{shop.name}</h1>
