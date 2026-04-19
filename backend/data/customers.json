@@ -1,1 +1,20 @@
-[]
+[
+  {
+    "username": "testuser",
+    "email": "test@example.com",
+    "password": "$2b$10$ye8ncDHnEWzdSviIhacd6.yiOGxII/pUzgxTGaHfjakc6JBmGwKci",
+    "name": "Test User",
+    "phone": "0912345678",
+    "address": "Addis Ababa",
+    "emailVerified": true
+  },
+  {
+    "username": "customer1",
+    "email": "customer1@example.com",
+    "password": "$2b$10$Y5oxUtKayt01j74NIMTOg.AZB7f1vEJZKsfwErxSe0uVN9.5lt7i6",
+    "name": "Customer One",
+    "phone": "0911111111",
+    "address": "Bole, Addis Ababa",
+    "emailVerified": true
+  }
+]
