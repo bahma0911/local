@@ -818,6 +818,13 @@ const AdminDashboard = () => {
   const [editingProduct, setEditingProduct] = useState(null);
   // declared above near top to ensure effects can reference it
 
+  useEffect(() => {
+    if (ownerTab !== 'products' && (editingProductId || editingProduct)) {
+      setEditingProductId(null);
+      setEditingProduct(null);
+    }
+  }, [ownerTab, editingProductId, editingProduct]);
+
   // ===================== Render =====================
 
   useEffect(() => {
@@ -1122,7 +1129,7 @@ const AdminDashboard = () => {
         <div className="product-management">
           <h3>Manage — {currentShop.name}</h3>
           {ownerTab === 'shop-info' && (
-            <div style={{ marginBottom: 20, padding: 16, background: '#f8f9fa', borderRadius: 8, border: '1px solid #e9ecef' }}>
+            <div className="shop-info-panel" style={{ marginBottom: 20, padding: 16 }}>
               <h4 style={{ margin: 0, marginBottom: 8 }}>Shop Information</h4>
               <p style={{ color: '#666', margin: 0, fontSize: '14px' }}>
                 Manage your shop's public information that customers see on product listings. 
@@ -1278,27 +1285,75 @@ const AdminDashboard = () => {
           {ownerTab === 'products' && (
             <div className="products-list" style={{ marginTop: 20 }}>
               {(currentShop.products || []).map(p => (
-                <div key={p.id} className={`product-item ${((typeof p.stock !== 'undefined') ? (p.stock > 0 ? '' : 'out-of-stock') : (p.inStock ? '' : 'out-of-stock'))}`}>
-                  <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                    {p.image && <img src={p.image} alt={p.name} style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 8 }} />}
-                    <div className="product-info">
-                      <div className="name">{p.name}</div>
-                      <div className="description">{p.description}</div>
-                      <div className="price-stock">
-                        <span className="price">{p.price} ETB</span>
-                        {typeof p.stock !== 'undefined' ? (
-                          p.stock > 0 ? <span className="stock-number">{p.stock} left</span> : <span className="stock-number out-of-stock">Out of stock</span>
-                        ) : (
-                          p.inStock ? <span className="stock-number">In stock ({(typeof p.stock !== 'undefined') ? p.stock : 1})</span> : <span className="stock-number out-of-stock">Out of stock</span>
-                        )}
+                <React.Fragment key={p.id}>
+                  <div className={`product-item ${((typeof p.stock !== 'undefined') ? (p.stock > 0 ? '' : 'out-of-stock') : (p.inStock ? '' : 'out-of-stock'))}`}>
+                    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                      {p.image && <img src={p.image} alt={p.name} style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 8 }} />}
+                      <div className="product-info">
+                        <div className="name">{p.name}</div>
+                        <div className="description">{p.description}</div>
+                        <div className="price-stock">
+                          <span className="price">{p.price} ETB</span>
+                          {typeof p.stock !== 'undefined' ? (
+                            p.stock > 0 ? <span className="stock-number">{p.stock} left</span> : <span className="stock-number out-of-stock">Out of stock</span>
+                          ) : (
+                            p.inStock ? <span className="stock-number">In stock ({(typeof p.stock !== 'undefined') ? p.stock : 1})</span> : <span className="stock-number out-of-stock">Out of stock</span>
+                          )}
+                        </div>
                       </div>
                     </div>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <button onClick={() => { setEditingProductId(p.id); setEditingProduct({ ...p }); }}>Edit</button>
+                      <button onClick={async () => { const ok = await deleteProductAPI(currentShop.id, p.id); if (ok) fetchShops(); }}>Delete</button>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <button onClick={() => { setEditingProductId(p.id); setEditingProduct({ ...p }); }}>Edit</button>
-                    <button onClick={async () => { const ok = await deleteProductAPI(currentShop.id, p.id); if (ok) fetchShops(); }}>Delete</button>
-                  </div>
-                </div>
+
+                  {editingProductId === p.id && editingProduct && (
+                    <div className="edit-product-form">
+                      <h4>Edit Product</h4>
+                      <select value={editingProduct.category || ''} onChange={e => setEditingProduct(prev => ({ ...prev, category: e.target.value }))}>
+                        <option value="">Select category</option>
+                        {mergedCategories.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                      <input value={editingProduct.name} onChange={e => setEditingProduct(prev => ({ ...prev, name: e.target.value }))} />
+                      <input type="number" placeholder="Price in ETB" value={editingProduct.price} onChange={e => setEditingProduct(prev => ({ ...prev, price: Number(e.target.value) }))} />
+                      <select value={editingProduct.unit || 'piece'} onChange={e => setEditingProduct(prev => ({ ...prev, unit: e.target.value }))}>
+                        <option value="piece">Piece</option>
+                        <option value="kg">Kg</option>
+                      </select>
+                      <select value={editingProduct.condition || ''} onChange={e => setEditingProduct(prev => ({ ...prev, condition: e.target.value }))}>
+                        <option value="">Condition (optional)</option>
+                        <option value="new">New</option>
+                        <option value="used">Used</option>
+                      </select>
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <input type="file" accept="image/*" multiple onChange={e => {
+                          const files = e.target.files ? Array.from(e.target.files) : [];
+                          setEditingProduct(prev => ({ ...prev, imageFiles: files, imageFile: files.length === 1 ? files[0] : null }));
+                        }} />
+                        {editingProduct.image && <img src={editingProduct.image} alt="preview" style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 6 }} />}
+                      </div>
+                      <input value={editingProduct.description} onChange={e => setEditingProduct(prev => ({ ...prev, description: e.target.value }))} />
+                      <textarea placeholder="Detailed description" value={editingProduct.details || ''} onChange={e => setEditingProduct(prev => ({ ...prev, details: e.target.value }))} />
+                      <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                        <input type="checkbox" checked={editingProduct.inStock} onChange={e => setEditingProduct(prev => ({ ...prev, inStock: e.target.checked }))} /> In stock
+                      </label>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginLeft: 12 }}>
+                        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                          Stock:
+                          <input type="number" min="0" value={typeof editingProduct.stock !== 'undefined' ? editingProduct.stock : (editingProduct.inStock ? 1 : 0)} onChange={e => setEditingProduct(prev => ({ ...prev, stock: Number(e.target.value) || 0 }))} style={{ width: 80 }} />
+                        </label>
+                      </div>
+                      <div style={{ marginTop: 8 }}>
+                        <button onClick={async () => {
+                          const updated = await updateProductAPI(currentShop.id, editingProductId, editingProduct);
+                          if (updated) { setEditingProductId(null); setEditingProduct(null); fetchShops(); }
+                        }}>Save</button>
+                        <button onClick={() => { setEditingProductId(null); setEditingProduct(null); }}>Cancel</button>
+                      </div>
+                    </div>
+                  )}
+                </React.Fragment>
               ))}
             </div>
           )}
@@ -1333,14 +1388,11 @@ const AdminDashboard = () => {
           {ownerTab === 'shop-info' && (
             <div className="shop-info" style={{ marginTop: 20 }}>
               
-              <div style={{ 
+              <div className="shop-info-panel" style={{ 
                 display: 'grid', 
                 gap: 16, 
                 maxWidth: 500,
-                background: '#f8f9fa',
                 padding: 20,
-                borderRadius: 8,
-                border: '1px solid #e9ecef'
               }}>
                 <div>
                   <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, color: '#333' }}>
@@ -1350,13 +1402,13 @@ const AdminDashboard = () => {
                     type="text"
                     value={shopInfoForm.name}
                     onChange={e => setShopInfoForm(prev => ({ ...prev, name: e.target.value }))}
+                    className="shop-info-input"
                     style={{ 
                       width: '100%', 
                       padding: '10px 12px', 
                       border: '1px solid #ced4da', 
                       borderRadius: 6,
-                      fontSize: '14px',
-                      background: 'white'
+                      fontSize: '14px'
                     }}
                     placeholder="Enter your shop name"
                   />
@@ -1370,13 +1422,13 @@ const AdminDashboard = () => {
                     type="tel"
                     value={shopInfoForm.phone}
                     onChange={e => setShopInfoForm(prev => ({ ...prev, phone: e.target.value }))}
+                    className="shop-info-input"
                     style={{ 
                       width: '100%', 
                       padding: '10px 12px', 
                       border: '1px solid #ced4da', 
                       borderRadius: 6,
-                      fontSize: '14px',
-                      background: 'white'
+                      fontSize: '14px'
                     }}
                     placeholder="Phone number displayed on your products"
                   />
@@ -1390,13 +1442,13 @@ const AdminDashboard = () => {
                     type="text"
                     value={shopInfoForm.address}
                     onChange={e => setShopInfoForm(prev => ({ ...prev, address: e.target.value }))}
+                    className="shop-info-input"
                     style={{ 
                       width: '100%', 
                       padding: '10px 12px', 
                       border: '1px solid #ced4da', 
                       borderRadius: 6,
-                      fontSize: '14px',
-                      background: 'white'
+                      fontSize: '14px'
                     }}
                     placeholder="Enter your shop address"
                   />
@@ -1411,12 +1463,11 @@ const AdminDashboard = () => {
                       <img 
                         src={shopInfoForm.logo} 
                         alt="Current logo" 
+                        className="shop-logo-preview"
                         style={{ 
                           maxWidth: 120, 
                           maxHeight: 120, 
-                          border: '2px solid #dee2e6', 
                           borderRadius: 8,
-                          background: 'white',
                           padding: 4
                         }} 
                       />
@@ -1446,13 +1497,13 @@ const AdminDashboard = () => {
                         setShopInfoForm(prev => ({ ...prev, logoFile: file }));
                       }
                     }}
+                    className="shop-info-input"
                     style={{ 
                       width: '100%', 
                       padding: '8px 12px', 
                       border: '1px solid #ced4da', 
                       borderRadius: 6,
-                      fontSize: '14px',
-                      background: 'white'
+                      fontSize: '14px'
                     }}
                   />
                   <small style={{ color: '#666', display: 'block', marginTop: 6, fontSize: '12px' }}>
@@ -1468,13 +1519,13 @@ const AdminDashboard = () => {
                     type="number"
                     value={shopInfoForm.deliveryFee}
                     onChange={e => setShopInfoForm(prev => ({ ...prev, deliveryFee: Number(e.target.value) || 0 }))}
+                    className="shop-info-input"
                     style={{ 
                       width: '100%', 
                       padding: '10px 12px', 
                       border: '1px solid #ced4da', 
                       borderRadius: 6,
-                      fontSize: '14px',
-                      background: 'white'
+                      fontSize: '14px'
                     }}
                     min="0"
                     step="0.01"
@@ -1567,52 +1618,6 @@ const AdminDashboard = () => {
             </div>
           )}
 
-          {/* Edit product modal-ish area */}
-          {editingProductId && editingProduct && (
-            <div className="edit-product-form">
-              <h4>Edit Product</h4>
-              <select value={editingProduct.category || ''} onChange={e => setEditingProduct(prev => ({ ...prev, category: e.target.value }))}>
-                <option value="">Select category</option>
-                {mergedCategories.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-              <input value={editingProduct.name} onChange={e => setEditingProduct(prev => ({ ...prev, name: e.target.value }))} />
-              <input type="number" placeholder="Price in ETB" value={editingProduct.price} onChange={e => setEditingProduct(prev => ({ ...prev, price: Number(e.target.value) }))} />
-              <select value={editingProduct.unit || 'piece'} onChange={e => setEditingProduct(prev => ({ ...prev, unit: e.target.value }))}>
-                <option value="piece">Piece</option>
-                <option value="kg">Kg</option>
-              </select>
-              <select value={editingProduct.condition || ''} onChange={e => setEditingProduct(prev => ({ ...prev, condition: e.target.value }))}>
-                <option value="">Condition (optional)</option>
-                <option value="new">New</option>
-                <option value="used">Used</option>
-              </select>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <input type="file" accept="image/*" multiple onChange={e => {
-                  const files = e.target.files ? Array.from(e.target.files) : [];
-                  setEditingProduct(prev => ({ ...prev, imageFiles: files, imageFile: files.length === 1 ? files[0] : null }));
-                }} />
-                {editingProduct.image && <img src={editingProduct.image} alt="preview" style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 6 }} />}
-              </div>
-              <input value={editingProduct.description} onChange={e => setEditingProduct(prev => ({ ...prev, description: e.target.value }))} />
-              <textarea placeholder="Detailed description" value={editingProduct.details || ''} onChange={e => setEditingProduct(prev => ({ ...prev, details: e.target.value }))} />
-              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                <input type="checkbox" checked={editingProduct.inStock} onChange={e => setEditingProduct(prev => ({ ...prev, inStock: e.target.checked }))} /> In stock
-              </label>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginLeft: 12 }}>
-                <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                  Stock:
-                  <input type="number" min="0" value={typeof editingProduct.stock !== 'undefined' ? editingProduct.stock : (editingProduct.inStock ? 1 : 0)} onChange={e => setEditingProduct(prev => ({ ...prev, stock: Number(e.target.value) || 0 }))} style={{ width: 80 }} />
-                </label>
-              </div>
-              <div style={{ marginTop: 8 }}>
-                <button onClick={async () => {
-                  const updated = await updateProductAPI(currentShop.id, editingProductId, editingProduct);
-                  if (updated) { setEditingProductId(null); setEditingProduct(null); fetchShops(); }
-                }}>Save</button>
-                <button onClick={() => { setEditingProductId(null); setEditingProduct(null); }}>Cancel</button>
-              </div>
-            </div>
-          )}
         </div>
       )}
     </div>

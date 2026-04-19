@@ -82,11 +82,6 @@
 
 /* Disable color/background color changes on hover inside the admin dashboard
    Keep other hover effects like transform/box-shadow intact. */
-.admin-dashboard *:hover {
-  background-color: transparent !important;
-  color: inherit !important;
-  border-color: inherit !important;
-}
 
 /* Tweak owner-tabs positioning so buttons align better and don't stick out on small screens */
 .owner-tabs {
@@ -205,6 +200,38 @@
   background-color: #fff3f3;
 }
 
+html[data-theme="dark"] .product-item {
+  background-color: #1d1d30;
+  border-color: #3c3c5a;
+  color: #e8e8ff;
+}
+html[data-theme="dark"] .product-item .product-info .name {
+  color: #f4f4ff;
+}
+html[data-theme="dark"] .product-item .product-info .description {
+  color: #b9b9dc;
+}
+html[data-theme="dark"] .product-item .product-info .price-stock,
+html[data-theme="dark"] .product-item .product-info .price {
+  color: #d5d5ff;
+}
+html[data-theme="dark"] .product-item .product-info .price {
+  color: #8cb4ff;
+}
+html[data-theme="dark"] .product-item .product-info .stock-number {
+  background: rgba(129, 142, 206, 0.18);
+  color: #e3e7ff;
+}
+html[data-theme="dark"] .product-item.out-of-stock {
+  opacity: 1;
+  background-color: #2e2232;
+  border-color: #5e3a4a;
+}
+html[data-theme="dark"] .product-item.out-of-stock .stock-number {
+  background: rgba(190, 93, 93, 0.18);
+  color: #ffcbd1;
+}
+
 /* shop-orders container - keep full width on small screens */
 .shop-orders {
   width: 100%;
@@ -272,9 +299,122 @@
   color: inherit;
 }
 
+.shop-info-panel {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+}
+
+html[data-theme="dark"] .shop-info-panel {
+  background: #222236;
+  border-color: #3d3d57;
+}
+
+.shop-info-input {
+  background: #ffffff;
+  color: #111111;
+}
+
+html[data-theme="dark"] .shop-info-input {
+  background: #26263f;
+  border-color: #51517c;
+  color: #ececff;
+}
+
+html[data-theme="dark"] .shop-info-input::placeholder {
+  color: #999aaa;
+}
+
+.shop-logo-preview {
+  border: 2px solid #dee2e6;
+  background: #ffffff;
+}
+
+html[data-theme="dark"] .shop-logo-preview {
+  border-color: #5a5a7f;
+  background: #222236;
+}
+
+.edit-product-form {
+  margin-top: 12px;
+  padding: 18px;
+  border: 1px solid #d9d9e2;
+  border-radius: 10px;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.edit-product-form h4 {
+  margin: 0 0 8px;
+}
+
+.edit-product-form input,
+.edit-product-form select,
+.edit-product-form textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d8d8df;
+  border-radius: 8px;
+  background: #fafafa;
+  color: #111;
+  font-size: 14px;
+}
+
+.edit-product-form textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.edit-product-form button {
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.edit-product-form button:first-of-type {
+  background: #007bff;
+  color: #fff;
+}
+
+.edit-product-form button:last-of-type {
+  background: #f5f5f5;
+  color: #333;
+}
+
+html[data-theme="dark"] .edit-product-form {
+  background: #1f1f34;
+  border-color: #44446a;
+  color: #e8e8ff;
+}
+
+html[data-theme="dark"] .edit-product-form input,
+html[data-theme="dark"] .edit-product-form select,
+html[data-theme="dark"] .edit-product-form textarea {
+  background: #29293f;
+  border-color: #51517c;
+  color: #f2f2ff;
+}
+
+html[data-theme="dark"] .edit-product-form button:first-of-type {
+  background: #3a55a8;
+}
+
+html[data-theme="dark"] .edit-product-form button:last-of-type {
+  background: #2c2f4c;
+  color: #e3e3ff;
+}
+
 .product-item:hover {
   background-color: #f0f0f0;
   border-color: #ddd;
+}
+html[data-theme="dark"] .product-item:hover {
+  background-color: #28283f;
+  border-color: #5c5c7e;
 }
 
 .field-hint {
