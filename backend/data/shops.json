@@ -93,7 +93,7 @@
   {
     "id": 2,
     "name": "Selam Grocery",
-    "logo": "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=80&h=80&fit=crop",
+    "logo": "https://res.cloudinary.com/dk8v3s94w/image/upload/v1776586692/negadras/j5ijzt2ngsowc0c9s3ex.jpg",
     "category": "Grocery",
     "address": "Merkato, Addis Ababa - Opposite Merkato Market",
     "deliveryFee": 50,
@@ -103,11 +103,11 @@
     ],
     "owner": {
       "username": "selam",
+      "password": "$2b$10$SiX9U4r5Yj7R/xHWoTYqseNB6acRAdO4RmPhUxBnPsyj7C/WEwSDS",
       "email": "bahma0911@gmail.com",
       "name": "Selam",
       "phone": "0912000000",
-      "address": "Merkato, Addis Ababa",
-      "password": "$2b$10$5eVwfm/qi9is.JQWXwzYreYhDNfLloOUk6fSX2bPh.uIZKHxl18vy"
+      "address": "Merkato, Addis Ababa"
     },
     "products": [
       {
@@ -218,7 +218,8 @@
         "id": 19,
         "inStock": true
       }
-    ]
+    ],
+    "phone": "0912000000"
   },
   {
     "name": "44",
