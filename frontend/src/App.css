@@ -117,6 +117,23 @@
   letter-spacing: -0.02em;
   color: var(--text-primary);
   position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+}
+
+.app-logo-image {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 0.75rem;
+  flex-shrink: 0;
+  background: var(--card-bg);
+}
+
+.app-logo-text {
+  display: inline-block;
 }
 
 .app-logo::after {

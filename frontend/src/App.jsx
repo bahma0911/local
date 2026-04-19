@@ -120,13 +120,20 @@ const AppContent = () => {
       {/* Navigation Bar */}
       <div className="app-header">
         <div className="app-header-content">
-          <h1 
-  className="app-logo" 
-  onClick={handleLogoClick}
-  style={{ cursor: 'pointer', color: "#fff" }}
->
-  🛍️ ሰኞ ገበያ
-</h1>
+          <h1
+            className="app-logo"
+            onClick={handleLogoClick}
+            role="button"
+            tabIndex={0}
+            onKeyPress={(e) => { if (e.key === 'Enter' || e.key === ' ') handleLogoClick(); }}
+          >
+            <img
+              src="/favicon.jpg?v=2"
+              alt="ሰኞ ገበያ logo"
+              className="app-logo-image"
+            />
+            <span className="app-logo-text">ሰኞ ገበያ</span>
+          </h1>
           
           <div className="app-nav-buttons">
             {/* Different navigation for shop owners */}
